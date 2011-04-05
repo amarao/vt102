@@ -150,6 +150,8 @@ class stream:
         elif self.escape.has_key(num):
             self.dispatch(self.escape[num])
             self.state = "stream"
+        else:
+            self.state = "stream" #unknown ESC code, silently eat and continue
 
     def _end_escape_sequence(self, char):
         """
@@ -160,9 +162,10 @@ class stream:
 
         if self.sequence.has_key(ord(char)):
             self.dispatch(self.sequence[ord(char)], *self.params)
-            self.state = "stream"
-            self.current_param = ""
-            self.params = []
+
+        self.state = "stream"
+        self.current_param = ""
+        self.params = []
 
     def _escape_parameters(self, char):
         """
