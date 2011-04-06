@@ -98,6 +98,7 @@ class stream:
         CR: "carriage-return",
         SI: "shift-in",
         SO: "shift-out",
+	BELL: "make-bell",
     }
 
     escape = {
@@ -358,6 +359,7 @@ class screen:
             events.add_event_listener("charset-g1", self._charset_g1)
             events.add_event_listener("shift-in", self._shift_in)
             events.add_event_listener("shift-out", self._shift_out)
+            events.add_event_listener("make-bell", self._bell)
 
     def cursor(self):
         """
@@ -798,3 +800,11 @@ class screen:
 
         for attr in attrs:
             self._set_attr(attr)
+
+    def _bell(self,*attrs):
+        """
+        Here we must bell (beep), but we are library and we don't know how
+        to beep, so we skip BELL char and continue normal operation
+        """
+        pass
+
