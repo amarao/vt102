@@ -2,8 +2,10 @@
 
 import unittest
 
-from vt102 import *
-from vt102.control import *
+from vt102 import (
+    screen, stream,
+    escape as esc, control as ctrl
+)
 
 
 class TestStream(unittest.TestCase):
@@ -31,7 +33,7 @@ class TestStream(unittest.TestCase):
                 assert distance == 5
 
         s = stream()
-        input = "\000" + chr(ESC) + "[5" + chr(CUD)
+        input = "\000" + chr(ctrl.ESC) + "[5" + chr(esc.CUD)
         e = argcheck()
         s.add_event_listener("cursor-down", e)
         s.process(input)
@@ -48,7 +50,7 @@ class TestStream(unittest.TestCase):
                 assert distance == 5
 
         s = stream()
-        input = "\000" + chr(ESC) + "[5" + chr(CUU)
+        input = "\000" + chr(ctrl.ESC) + "[5" + chr(esc.CUU)
         e = argcheck()
         s.add_event_listener("cursor-up", e)
         s.process(input)
@@ -62,7 +64,7 @@ class TestStream(unittest.TestCase):
         for cmd, event in stream.escape.iteritems():
             c = self.counter()
             s.add_event_listener(event, c)
-            s.consume(chr(ESC))
+            s.consume(chr(ctrl.ESC))
             assert s.state == "escape"
             s.consume(chr(cmd))
             assert c.count == 1
@@ -106,7 +108,7 @@ class TestStream(unittest.TestCase):
         screen((25, 80)).attach(s)
 
         try:
-            s.process("\000" + chr(ESC) + "[3g&foo")
+            s.process("\000" + chr(ctrl.ESC) + "[3g&foo")
         except Exception as e:
             self.fail("No exception should've raised, got: %s" % e)
 
@@ -115,7 +117,7 @@ class TestStream(unittest.TestCase):
 
         c = self.counter()
         s.add_event_listener("backspace", c)
-        s.consume(chr(BS))
+        s.consume(chr(ctrl.BS))
 
         assert c.count == 1
         assert s.state == "stream"
@@ -125,7 +127,7 @@ class TestStream(unittest.TestCase):
 
         c = self.counter()
         s.add_event_listener("tab", c)
-        s.consume(chr(HT))
+        s.consume(chr(ctrl.HT))
 
         assert c.count == 1
         assert s.state == "stream"
@@ -135,7 +137,7 @@ class TestStream(unittest.TestCase):
 
         c = self.counter()
         s.add_event_listener("linefeed", c)
-        s.process(chr(LF) + chr(VT) + chr(FF))
+        s.process(chr(ctrl.LF) + chr(ctrl.VT) + chr(ctrl.FF))
 
         assert c.count == 3
         assert s.state == "stream"
@@ -145,7 +147,7 @@ class TestStream(unittest.TestCase):
 
         c = self.counter()
         s.add_event_listener("carriage-return", c)
-        s.consume(chr(CR))
+        s.consume(chr(ctrl.CR))
 
         assert c.count == 1
         assert s.state == "stream"

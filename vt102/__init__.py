@@ -1,6 +1,6 @@
 """
 vt102 implements a subset of the vt102 specification (the subset that should be
-most useful for use in software). Two classes: `stream`, which parses the 
+most useful for use in software). Two classes: `stream`, which parses the
 command stream and dispatches events for commands, and `screen` which, when
 used with a `stream` maintains a buffer of strings representing the screen of a
 terminal.
@@ -55,20 +55,19 @@ Here's a quick example:
 
 import string
 import codecs
-
 from copy import copy
 
-from graphics import text, colors
-from control import *
-from escape import *
+from vt102 import control as ctrl, escape as esc
+from vt102.graphics import text, colors, dsg
+
 
 class stream:
     """
     A stream is the state machine that parses a stream of terminal characters
-    and dispatches events based on what it sees. This can be attached to a 
+    and dispatches events based on what it sees. This can be attached to a
     screen object and it's events, or can be used some other way.
 
-    `stream.basic`, `stream.escape`, and `stream.sequence` are the relevant 
+    `stream.basic`, `stream.escape`, and `stream.sequence` are the relevant
     events that get thrown with one addition: `print`. For details on the
     event parameters, see the vt102 user's guide:
 
@@ -83,60 +82,60 @@ class stream:
             def up(self, count):
                 self.y -= count
     >>> c = Cursor()
-    >>> s.add_event_listener("cursor-up", c.up)
+    >>> s.add_event_listener("cursor-up", ctrl.up)
     >>> s.process("\\x\\00\\1b[5A") # Move the cursor up 5 rows.
-    >>> print c.y
+    >>> print ctrl.y
     5
     """
 
     basic = {
-        BS: "backspace",
-        HT: "tab",
-        LF: "linefeed",
-        VT: "linefeed",
-        FF: "linefeed",
-        CR: "carriage-return",
-        SI: "shift-in",
-        SO: "shift-out",
+        ctrl.BS: "backspace",
+        ctrl.HT: "tab",
+        ctrl.LF: "linefeed",
+        ctrl.VT: "linefeed",
+        ctrl.FF: "linefeed",
+        ctrl.CR: "carriage-return",
+        ctrl.SI: "shift-in",
+        ctrl.SO: "shift-out",
     }
 
     escape = {
-        IND: "index",
-        RI: "reverse-index",
-        NEL: "linefeed",
-        DECSC: "store-cursor",
-        DECRC: "restore-cursor",
-        RLF: "reverse-linefeed",
+        esc.IND: "index",
+        esc.RI: "reverse-index",
+        esc.NEL: "linefeed",
+        esc.DECSC: "store-cursor",
+        esc.DECRC: "restore-cursor",
+        esc.RLF: "reverse-linefeed",
     }
 
     sequence = {
-        CUU: "cursor-up",
-        CUD: "cursor-down",
-        CUF: "cursor-right",
-        CUB: "cursor-left",
-        CUP: "cursor-move",
-        HVP: "cursor-move",
-        EL: "erase-in-line",
-        ED: "erase-in-display",
-        DCH: "delete-characters",
-        IL: "insert-lines",
-        DL: "delete-lines",
-        SGR: "select-graphic-rendition",
-        DECSTBM: "set-margins",
-        IRMI: "set-insert",
-        IRMR: "set-replace",
+        esc.CUU: "cursor-up",
+        esc.CUD: "cursor-down",
+        esc.CUF: "cursor-right",
+        esc.CUB: "cursor-left",
+        esc.CUP: "cursor-move",
+        esc.HVP: "cursor-move",
+        esc.EL: "erase-in-line",
+        esc.ED: "erase-in-display",
+        esc.DCH: "delete-characters",
+        esc.IL: "insert-lines",
+        esc.DL: "delete-lines",
+        esc.SGR: "select-graphic-rendition",
+        esc.DECSTBM: "set-margins",
+        esc.IRMI: "set-insert",
+        esc.IRMR: "set-replace",
     }
 
     def __init__(self):
         self.state = "stream"
         self.params = []
         self.current_param = ""
-        self.listeners = {} 
+        self.listeners = {}
 
     def _escape_sequence(self, char):
         """
         Handle characters seen when in an escape sequence. Most non-vt52
-        commands start with a left-bracket after the escape and then a 
+        commands start with a left-bracket after the escape and then a
         stream of parameters and a command.
         """
 
@@ -169,9 +168,9 @@ class stream:
         Parse parameters in an escape sequence. Parameters are a list of
         numbers in ascii (e.g. '12', '4', '42', etc) separated by a semicolon
         (e.g. "12;4;42").
-        
-        See the vt102 user guide for more details on the formatting of escape 
-        parameters. 
+
+        See the vt102 user guide for more details on the formatting of escape
+        parameters.
         """
 
         if char == ";":
@@ -183,7 +182,7 @@ class stream:
             if len(self.current_param) > 0:
                 self.params.append(int(self.current_param))
 
-            # If we're in parameter parsing mode, but we see a non-numeric 
+            # If we're in parameter parsing mode, but we see a non-numeric
             # value, it must be the end of the control sequence.
             self._end_escape_sequence(char)
         else:
@@ -212,13 +211,13 @@ class stream:
         num = ord(char)
         if self.basic.has_key(num):
             self.dispatch(self.basic[num])
-        elif num == ESC:
+        elif num == ctrl.ESC:
             self.state = "escape"
         elif num == 0x00:
             # nulls are just ignored.
             pass
-        else: 
-            self.dispatch("print", char) 
+        else:
+            self.dispatch("print", char)
 
     def consume(self, char):
         """
@@ -250,14 +249,14 @@ class stream:
     def add_event_listener(self, event, function):
         """
         Add an event listen for a particular event. Depending on the event
-        there may or may not be parameters passed to function. Most escape 
+        there may or may not be parameters passed to function. Most escape
         streams also allow for an empty set of parameters (with a default
         value). Providing these default values and accepting variable arguments
         is the responsibility of function.
 
         More than one listener may be added for a single event. Each listener
         will be called.
-        
+
         :param event: The event to listen for.
         :type event: string
         :param function: The callable to invoke.
@@ -271,8 +270,8 @@ class stream:
 
     def dispatch(self, event, *args):
         """
-        Dispatch an event where `args` is a tuple of the arguments to send to 
-        any callbacks. If any callback throws an exception, the subsequent 
+        Dispatch an event where `args` is a tuple of the arguments to send to
+        any callbacks. If any callback throws an exception, the subsequent
         callbacks will be aborted.
         """
 
@@ -285,7 +284,7 @@ class stream:
 class screen:
     """
     A screen is an in memory buffer of strings that represents the screen
-    display of the terminal. It can be instantiated on it's own and given 
+    display of the terminal. It can be instantiated on it's own and given
     explicit commands, or it can be attached to a stream and will respond to
     events.
 
@@ -303,7 +302,7 @@ class screen:
 
         self.g0 = None
         self.g1 = None
-        self.current_charset = "g0" 
+        self.current_charset = "g0"
 
         self.cursor_save_stack = []
 
@@ -313,14 +312,14 @@ class screen:
         # Initialize the attributes to completely empty, but the same size as
         # the screen.
         self.attributes = [[self._default()] * cols] * rows
-        self.cursor_attributes = self._default() 
+        self.cursor_attributes = self._default()
 
     def __repr__(self):
         return repr(self.display)
 
     def attach(self, events):
         """
-        Attach this screen to a events that processes commands and dispatches 
+        Attach this screen to a events that processes commands and dispatches
         events. Sets up the appropriate event handlers so that the screen will
         update itself automatically as the events processes data.
         """
@@ -330,7 +329,7 @@ class screen:
             events.add_event_listener("backspace", self._backspace)
             events.add_event_listener("tab", self._tab)
             events.add_event_listener("linefeed", self._linefeed)
-            events.add_event_listener("reverse-linefeed", 
+            events.add_event_listener("reverse-linefeed",
                                       self._reverse_linefeed)
             events.add_event_listener("carriage-return", self._carriage_return)
             events.add_event_listener("index", self._index)
@@ -343,9 +342,9 @@ class screen:
             events.add_event_listener("cursor-left", self._cursor_back)
             events.add_event_listener("cursor-move", self._cursor_position)
             events.add_event_listener("erase-in-line", self._erase_in_line)
-            events.add_event_listener("erase-in-display", 
+            events.add_event_listener("erase-in-display",
                                       self._erase_in_display)
-            events.add_event_listener("delete-characters", 
+            events.add_event_listener("delete-characters",
                                       self._delete_character)
             events.add_event_listener("insert-lines", self._insert_line)
             events.add_event_listener("delete-lines", self._delete_line)
@@ -369,8 +368,8 @@ class screen:
         size has less rows than the existing screen rows will be clipped at the
         top of the screen.
 
-        Similarly if the existing screen has less columns than the requested 
-        size, columns will be added at the right, and it it has more, columns 
+        Similarly if the existing screen has less columns than the requested
+        size, columns will be added at the right, and it it has more, columns
         will be clipped at the right.
         """
 
@@ -417,14 +416,14 @@ class screen:
 
     def _charset_g0(self, cs):
         if cs == '0':
-            self.g0 = graphics.dsg
+            self.g0 = dsg
         else:
             # TODO: Officially support UK/US/intl8 charsets
             self.g0 = None
 
     def _charset_g1(self, cs):
         if cs == '0':
-            self.g1 = graphics.dsg
+            self.g1 = dsg
         else:
             # TODO: Officially support UK/US/intl8 charsets
             self.g1 = None
@@ -435,7 +434,7 @@ class screen:
         cursor.
         """
 
-        # Don't make bugs where we try to print a screen. 
+        # Don't make bugs where we try to print a screen.
         assert len(char) == 1
 
         try:
@@ -471,7 +470,7 @@ class screen:
 
     def _index(self):
         """
-        Move the cursor down one row in the same column. If the cursor is at 
+        Move the cursor down one row in the same column. If the cursor is at
         the last row, create a new row at the bottom.
         """
 
@@ -480,7 +479,7 @@ class screen:
             # and scroll down (removing the top row).
             self.display = self.display[1:] + [u" " * self.size[1]]
         else:
-            # If the cursor is anywhere else, then just move it to the 
+            # If the cursor is anywhere else, then just move it to the
             # next line.
             self.y += 1
 
@@ -516,7 +515,7 @@ class screen:
 
     def _next_tab_stop(self):
         """
-        Return the x value of the next available tabstop or the x value of the 
+        Return the x value of the next available tabstop or the x value of the
         margin if there are no more tabstops.
         """
 
@@ -549,7 +548,7 @@ class screen:
 
     def _restore_cursor(self):
         """
-        Set the current cursor position to whatever cursor is on top of the 
+        Set the current cursor position to whatever cursor is on top of the
         stack.
         """
 
@@ -558,8 +557,8 @@ class screen:
 
     def _insert_line(self, count=1):
         """
-        Inserts lines at line with cursor. Lines displayed below cursor move 
-        down. Lines moved past the bottom margin are lost. 
+        Inserts lines at line with cursor. Lines displayed below cursor move
+        down. Lines moved past the bottom margin are lost.
         """
         trimmed = self.display[:self.y+1] + \
                   [u" " * self.size[1]] * count + \
@@ -568,9 +567,9 @@ class screen:
 
     def _delete_line(self, count=1):
         """
-        Deletes count lines, starting at line with cursor. As lines are 
+        Deletes count lines, starting at line with cursor. As lines are
         deleted, lines displayed below cursor move up. Lines added to bottom of
-        screen have spaces with same character attributes as last line moved 
+        screen have spaces with same character attributes as last line moved
         up.
         """
         self.display = self.display[:self.y] + \
@@ -585,7 +584,7 @@ class screen:
     def _delete_character(self, count=1):
         """
         Deletes count characters, starting with the character at cursor
-        position. When a character is deleted, all characters to the right 
+        position. When a character is deleted, all characters to the right
         of cursor move left.
         """
 
@@ -598,7 +597,7 @@ class screen:
         # Then resize the attribute array too
         attrs = self.attributes[self.y]
         attrs = attrs[:self.x] + attrs[self.x+count:] + [self._default()] * count
-        self.attributes[self.y] = attrs 
+        self.attributes[self.y] = attrs
 
     def _erase_in_line(self, type_of=0):
         """
@@ -610,7 +609,7 @@ class screen:
         if type_of == 0:
             # Erase from the cursor to the end of line, including the cursor
             row = row[:self.x] + u" " * (self.size[1] - self.x)
-            attrs = attrs[:self.x] + [self._default()] * (self.size[1] - self.x) 
+            attrs = attrs[:self.x] + [self._default()] * (self.size[1] - self.x)
         elif type_of == 1:
             # Erase from the beginning of the line to the cursor, including it
             row = u" " * (self.x+1) + row[self.x+1:]
@@ -625,14 +624,14 @@ class screen:
 
     def _erase_in_display(self, type_of=0):
         if type_of == 0:
-            # Erase from cursor to the end of the display, including the 
+            # Erase from cursor to the end of the display, including the
             # cursor.
             self.display = self.display[:self.y] + \
                     [u" " * self.size[1]] * (self.size[0] - self.y)
             self.attributes = self.attributes[:self.y] + \
                     [[self._default()] * self.size[1]] * (self.size[0] - self.y)
         elif type_of == 1:
-            # Erase from the beginning of the display to the cursor, including 
+            # Erase from the beginning of the display to the cursor, including
             # it.
             self.display = [u" " * self.size[1]] * (self.y + 1) + \
                     self.display[self.y+1:]
@@ -658,9 +657,9 @@ class screen:
     def _clear_tab_stop(self, type_of=0x33):
         if type_of == 0x30:
             # Clears a horizontal tab stop at cursor position.
-            try: 
-                self.tabstops.remove(self.x) 
-            except ValueError: 
+            try:
+                self.tabstops.remove(self.x)
+            except ValueError:
                 # If there is no tabstop at the current position, then just do
                 # nothing.
                 pass
@@ -670,14 +669,14 @@ class screen:
 
     def _cursor_up(self, count=1):
         """
-        Moves cursor up count lines in same column. Cursor stops at top 
+        Moves cursor up count lines in same column. Cursor stops at top
         margin.
         """
         self.y = max(0, self.y - count)
 
     def _cursor_down(self, count=1):
         """
-        Moves cursor down count lines in same column. Cursor stops at bottom 
+        Moves cursor down count lines in same column. Cursor stops at bottom
         margin.
         """
         self.y = min(self.size[0] - 1, self.y + count)
@@ -696,19 +695,19 @@ class screen:
 
     def _cursor_position(self, row=0, column=0):
         """
-        Set the cursor to a specific row and column. 
+        Set the cursor to a specific row and column.
 
-        Obnoxiously row/column is 1 based, instead of zero based, so we need 
+        Obnoxiously row/column is 1 based, instead of zero based, so we need
         to compensate. I know I've created bugs in here somehow.
         Confoundingly, inputs of 0 are still acceptable, and should move to
         the beginning of the row/column as if they were 1. *sigh*
         """
 
-        if row == 0: 
+        if row == 0:
             row = 1
-        if column == 0: 
+        if column == 0:
             column = 1
-        
+
         self.y = min(row - 1, self.size[0] - 1)
         self.x = min(column - 1, self.size[1] - 1)
 
@@ -728,7 +727,7 @@ class screen:
         current = set(self.cursor_attributes[0])
         current.add(attr)
         attrs = self.cursor_attributes[1:]
-        return (tuple(current), attrs[0], attrs[1]) 
+        return (tuple(current), attrs[0], attrs[1])
 
     def _text_attr(self, attr):
         """
@@ -750,7 +749,7 @@ class screen:
         """
         Given a color attribute, set the current cursor appropriately.
         """
-        attr = colors[ground][attr] 
+        attr = colors[ground][attr]
         attrs = self.cursor_attributes
         if ground == "foreground":
             self.cursor_attributes = (attrs[0], attr, attrs[2])
@@ -759,7 +758,7 @@ class screen:
 
     def _set_attr(self, attr):
         """
-        Given some text attribute, set the current cursor attributes 
+        Given some text attribute, set the current cursor attributes
         appropriately.
         """
         if text.has_key(attr):
@@ -775,12 +774,12 @@ class screen:
         value returned here should always be immutable, including it's children
         since shallow copies are made when resizing/applying/deleting/printing.
 
-        Attributes are represented by a three-tuple that consists of the 
+        Attributes are represented by a three-tuple that consists of the
         following:
 
             1. A tuple of all the text attributes (bold, underline, etc)
             2. The foreground color as a string (see vt102.graphics.colors)
-            2. The background color as a string (see vt102.graphics.colors) 
+            2. The background color as a string (see vt102.graphics.colors)
         """
         return ((), "default", "default")
 
