@@ -170,24 +170,31 @@ class stream(object):
         """Parse parameters in an escape sequence.
 
         Parameters are a list of numbers in ASCII (e.g. ``12``, ``4``,
-        ``42``, etc) separated by a semicolon (e.g. ``12;4;42``).
+        ``42``, etc) separated by a semicolon (e.g. ``12;4;42``). If
+        any of the given param is not a number it's skipped silently.
 
         .. seealso::
 
            `VT102 User Guide <http://vt100.net/docs/vt102-ug/>_`
                For details on the formatting of escape parameters.
         """
-        if char == ";":
-            self.params.append(int(self.current_param))
-            self.current_param = ""
-        elif char == "?":
+        if char == "?":
             self.state = "mode"
-        elif char not in string.digits:
-            if self.current_param:
+        elif char == ";":
+            try:
                 self.params.append(int(self.current_param))
+            except ValueError:
+                pass
 
-            # If we're in parameter parsing mode, but we see a non-numeric
-            # value, it must be the end of the control sequence.
+            self.current_param = ""
+        elif not char.isdigit():
+            try:
+                self.params.append(int(self.current_param))
+            except ValueError:
+                pass
+
+            # If we're in parameter parsing mode, but we see a non-
+            # numeric value, it must be the end of the control sequence.
             self._end_escape_sequence(char)
         else:
             self.current_param += char

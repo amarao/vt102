@@ -16,13 +16,24 @@ class TestStream(unittest.TestCase):
         def __call__(self, **args):
             self.count += 1
 
-    def test_multi_param_params(self):
+    def test_multi_param(self):
         s = stream()
         s.state = "escape-lb"
-        input = "5;25"
-        s.process(input)
+        s.process("5;25")
         assert s.params == [5]
         assert s.current_param == "25"
+
+    def test_multi_param_invalid(self):
+        s = stream()
+        s.state = "escape-lb"
+
+        try:
+            s.process("!;5;25;!")
+        except ValueError:
+            self.fail("Invalid params should be skipped.")
+
+        assert s.params == [5, 25]
+        assert s.current_param == ""
 
     def test_cursor_down(self):
         class argcheck:
