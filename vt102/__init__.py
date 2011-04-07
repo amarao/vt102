@@ -55,7 +55,6 @@ Here's a quick example:
  "          "]
 """
 
-import string
 import codecs
 from copy import copy
 from collections import defaultdict
@@ -100,6 +99,7 @@ class stream(object):
         ctrl.CR: "carriage-return",
         ctrl.SI: "shift-in",
         ctrl.SO: "shift-out",
+        ctrl.BELL: "make-bell",
     }
 
     escape = {
@@ -358,6 +358,7 @@ class screen(object):
             events.add_event_listener("charset-g1", self._charset_g1)
             events.add_event_listener("shift-in", self._shift_in)
             events.add_event_listener("shift-out", self._shift_out)
+            events.add_event_listener("make-bell", self._bell)
 
     def cursor(self):
         """
@@ -783,3 +784,9 @@ class screen(object):
 
         for attr in attrs:
             self._set_attr(attr)
+
+    def _bell(self, *attrs):
+        """
+        Here we must bell (beep), but we are library and we don't know how
+        to beep, so we skip BELL char and continue normal operation
+        """
