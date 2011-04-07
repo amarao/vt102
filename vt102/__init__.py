@@ -58,7 +58,7 @@ Here's a quick example:
 from copy import copy
 
 try:
-    from collections import defaultdict1
+    from collections import defaultdict
 except ImportError:
     class defaultdict(dict):
         def __init__(self, default_factory):
@@ -83,31 +83,33 @@ from vt102.graphics import text, colors, dsg
 
 class stream(object):
     """
-    A stream is the state machine that parses a stream of terminal characters
-    and dispatches events based on what it sees. This can be attached to a
-    screen object and it's events, or can be used some other way.
-
-    `stream.basic`, `stream.escape`, and `stream.sequence` are the relevant
-    events that get thrown with one addition: `print`. For details on the
-    event parameters, see the vt102 user's guide:
-
-        http://vt100.net/docs/vt102-ug/
+    A stream is the state machine that parses a stream of terminal
+    characters and dispatches events based on what it sees.
 
     Quick example:
 
-    >>> s = stream()
-    >>> class Cursor:
-            def __init__(self):
-                self.x = 10; self.y = 10
-            def up(self, count):
-                self.y -= count
-    >>> c = Cursor()
-    >>> s.add_event_listener("cursor-up", ctrl.up)
-    >>> s.process("\\x\\00\\1b[5A") # Move the cursor up 5 rows.
-    >>> print ctrl.y
+    >>> import vt102
+    >>> class dummy(object):
+    ...     def __init__(self):
+    ...         self.foo = 0
+    ...     def up(self, bar):
+    ...         self.foo += bar
+    ...
+    >>> dummy = dummy()
+    >>> stream = vt102.stream()
+    >>> stream.add_event_listener("cursor-up", dummy.up)
+    >>> stream.process("\\x\\00\\1b[5A") # Move the cursor up 5 rows.
+    >>> dummy.foo
     5
+
+    .. seealso::
+
+        ``man console_codes`` <http://linux.die.net/man/4/console_codes>_`
+            For details on console codes listed bellow in :attr:`basic`,
+            :attr:`escape`, :attr:`sequences`
     """
 
+    #: Basic character, which don't require any arguments.
     basic = {
         ctrl.BS: "backspace",
         ctrl.HT: "tab",
@@ -120,6 +122,7 @@ class stream(object):
         ctrl.BELL: "make-bell",
     }
 
+    #: non-CSI escape squences.
     escape = {
         esc.IND: "index",
         esc.RI: "reverse-index",
@@ -129,6 +132,7 @@ class stream(object):
         esc.RLF: "reverse-linefeed",
     }
 
+    #: CSI escape sequences.
     sequence = {
         esc.CUU: "cursor-up",
         esc.CUD: "cursor-down",
@@ -377,10 +381,8 @@ class screen(object):
             events.add_event_listener("make-bell", self._bell)
 
     def cursor(self):
-        """
-        The current location of the cursor.
-        """
-        return (self.x, self.y)
+        """The current location of the cursor."""
+        return self.x, self.y
 
     def resize(self, (rows, cols)):
         """
