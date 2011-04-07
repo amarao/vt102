@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 vt102 implements a subset of the vt102 specification (the subset that should be
 most useful for use in software). Two classes: `stream`, which parses the
@@ -61,7 +63,7 @@ from vt102 import control as ctrl, escape as esc
 from vt102.graphics import text, colors, dsg
 
 
-class stream:
+class stream(object):
     """
     A stream is the state machine that parses a stream of terminal characters
     and dispatches events based on what it sees. This can be attached to a
@@ -146,7 +148,7 @@ class stream:
             self.state = "charset-g0"
         elif char == ")":
             self.state = "charset-g1"
-        elif self.escape.has_key(num):
+        elif num in self.escape:
             self.dispatch(self.escape[num])
             self.state = "stream"
 
@@ -157,7 +159,7 @@ class stream:
         is dispatched here.
         """
 
-        if self.sequence.has_key(ord(char)):
+        if ord(char) in self.sequence:
             self.dispatch(self.sequence[ord(char)], *self.params)
             self.state = "stream"
             self.current_param = ""
@@ -179,7 +181,7 @@ class stream:
         elif char == "?":
             self.state = "mode"
         elif char not in string.digits:
-            if len(self.current_param) > 0:
+            if self.current_param:
                 self.params.append(int(self.current_param))
 
             # If we're in parameter parsing mode, but we see a non-numeric
@@ -209,7 +211,7 @@ class stream:
         """
 
         num = ord(char)
-        if self.basic.has_key(num):
+        if num in self.basic:
             self.dispatch(self.basic[num])
         elif num == ctrl.ESC:
             self.state = "escape"
@@ -242,7 +244,7 @@ class stream:
         Consume a string of  and advance the state as necessary.
         """
 
-        while len(chars) > 0:
+        while chars:
             self.consume(chars[0])
             chars = chars[1:]
 
@@ -263,7 +265,7 @@ class stream:
         :type function: callable
         """
 
-        if not self.listeners.has_key(event):
+        if event not in self.listeners:
             self.listeners[event] = []
 
         self.listeners[event].append(function)
@@ -276,12 +278,13 @@ class stream:
         """
 
         for callback in self.listeners.get(event, []):
-            if len(args) > 0:
+            if args:
                 callback(*args)
             else:
                 callback()
 
-class screen:
+
+class screen(object):
     """
     A screen is an in memory buffer of strings that represents the screen
     display of the terminal. It can be instantiated on it's own and given
@@ -552,7 +555,7 @@ class screen:
         stack.
         """
 
-        if len(self.cursor_save_stack):
+        if self.cursor_save_stack:
             self.x, self.y = self.cursor_save_stack.pop()
 
     def _insert_line(self, count=1):
@@ -761,11 +764,11 @@ class screen:
         Given some text attribute, set the current cursor attributes
         appropriately.
         """
-        if text.has_key(attr):
+        if attr in text:
             self._text_attr(attr)
-        elif colors["foreground"].has_key(attr):
+        elif attr in colors["foreground"]:
             self._color_attr("foreground", attr)
-        elif colors["background"].has_key(attr):
+        elif attr in colors["background"]:
             self._color_attr("background", attr)
 
     def _default(self):
@@ -788,7 +791,7 @@ class screen:
         Set the current text attribute.
         """
 
-        if len(attrs) == 0:
+        if not attrs:
             # No arguments means that we're really trying to do a reset.
             attrs = [0]
 
