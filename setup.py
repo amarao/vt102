@@ -1,5 +1,9 @@
-from distutils.core import setup
-import sys
+# -*- coding: utf-8 -*-
+
+try:
+    from setuptools import find_packages, setup
+except ImportError:
+    from distutils.core import find_packages, setup
 
 import vt102
 
@@ -10,8 +14,8 @@ setup(name="vt102",
       url="https://github.com/samfoo/vt102",
       description="Simple vt102 emulator, useful for screen scraping.",
       long_description=vt102.__doc__,
-      packages=["vt102"],
-      provides=["vt102"],
+      packages=find_packages(),
       keywords="vt102 terminal emulator screen scraper",
       license="Lesser General Public License v3.0",
+      test_suite="tests",
 )
