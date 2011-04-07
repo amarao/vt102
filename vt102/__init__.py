@@ -58,6 +58,7 @@ Here's a quick example:
 import string
 import codecs
 from copy import copy
+from collections import defaultdict
 
 from vt102 import control as ctrl, escape as esc
 from vt102.graphics import text, colors, dsg
@@ -129,52 +130,53 @@ class stream(object):
     }
 
     def __init__(self):
+        self.listeners = defaultdict(lambda: [])
+        self.reset()
+
+    def reset(self):
+        """Resets state to ``"stream"`` and empties parameter attributes."""
         self.state = "stream"
         self.params = []
         self.current_param = ""
-        self.listeners = {}
 
     def _escape_sequence(self, char):
-        """
-        Handle characters seen when in an escape sequence. Most non-vt52
-        commands start with a left-bracket after the escape and then a
-        stream of parameters and a command.
-        """
+        """Handle characters seen when in an escape sequence.
 
-        num = ord(char)
+        Most non-VT52 commands start with a left-bracket after the
+        escape and then a stream of parameters and a command.
+        """
         if char == "[":
             self.state = "escape-lb"
         elif char == "(":
             self.state = "charset-g0"
         elif char == ")":
             self.state = "charset-g1"
-        elif num in self.escape:
-            self.dispatch(self.escape[num])
+        elif ord(char) in self.escape:
             self.state = "stream"
+            self.dispatch(self.escape[ord(char)])
 
     def _end_escape_sequence(self, char):
-        """
-        Handle the end of an escape sequence. The final character in an escape
-        sequence is the command to execute, which corresponds to the event that
-        is dispatched here.
-        """
+        """Handle the end of an escape sequence.
 
-        if ord(char) in self.sequence:
-            self.dispatch(self.sequence[ord(char)], *self.params)
-            self.state = "stream"
-            self.current_param = ""
-            self.params = []
+        The final character in an escape sequence is the command to
+        execute, which corresponds to the event that is dispatched here.
+        """
+        event = self.sequence.get(ord(char))
+        if event:
+            self.dispatch(event, *self.params)
+            self.reset()
 
     def _escape_parameters(self, char):
-        """
-        Parse parameters in an escape sequence. Parameters are a list of
-        numbers in ascii (e.g. '12', '4', '42', etc) separated by a semicolon
-        (e.g. "12;4;42").
+        """Parse parameters in an escape sequence.
 
-        See the vt102 user guide for more details on the formatting of escape
-        parameters.
-        """
+        Parameters are a list of numbers in ASCII (e.g. ``12``, ``4``,
+        ``42``, etc) separated by a semicolon (e.g. ``12;4;42``).
 
+        .. seealso::
+
+           `VT102 User Guide <http://vt100.net/docs/vt102-ug/>_`
+               For details on the formatting of escape parameters.
+        """
         if char == ";":
             self.params.append(int(self.current_param))
             self.current_param = ""
@@ -206,75 +208,59 @@ class stream(object):
         self.state = "stream"
 
     def _stream(self, char):
-        """
-        Process a character when in the default 'stream' state.
-        """
-
+        """Process a character when in the default ``"stream"`` state."""
         num = ord(char)
         if num in self.basic:
             self.dispatch(self.basic[num])
         elif num == ctrl.ESC:
             self.state = "escape"
         elif num == 0x00:
-            # nulls are just ignored.
-            pass
+            pass  # nulls are just ignored.
+
         else:
             self.dispatch("print", char)
 
     def consume(self, char):
-        """
-        Consume a single character and advance the state as necessary.
-        """
+        """Consume a single character and advance the state as necessary."""
+        handler = {
+            "stream": self._stream,
+            "escape": self._escape_sequence,
+            "escape-lb": self._escape_parameters,
+            "mode": self._mode,
+            "charset-g0": self._charset_g0,
+            "charset-g1": self._charset_g1
+        }.get(self.state)
 
-        if self.state == "stream":
-            self._stream(char)
-        elif self.state == "escape":
-            self._escape_sequence(char)
-        elif self.state == "escape-lb":
-            self._escape_parameters(char)
-        elif self.state == "mode":
-            self._mode(char)
-        elif self.state == "charset-g0":
-            self._charset_g0(char)
-        elif self.state == "charset-g1":
-            self._charset_g1(char)
+        handler and handler(char)
 
     def process(self, chars):
+        """Consume a string of chars and advance the state as necessary."""
+        map(self.consume, chars)
+
+    def add_event_listener(self, event, callback):
+        """Add an event listener for a particular event.
+
+        Depending on the event, there may or may not be parameters
+        passed to the callback. Most escape streams also allow for
+        an empty set of parameters (with a default value). Providing
+        these default values and accepting variable arguments is the
+        responsibility of the callback.
+
+        :param event: event to listen for.
+        :param function: callable to invoke when a given event occurs.
         """
-        Consume a string of  and advance the state as necessary.
-        """
-
-        while chars:
-            self.consume(chars[0])
-            chars = chars[1:]
-
-    def add_event_listener(self, event, function):
-        """
-        Add an event listen for a particular event. Depending on the event
-        there may or may not be parameters passed to function. Most escape
-        streams also allow for an empty set of parameters (with a default
-        value). Providing these default values and accepting variable arguments
-        is the responsibility of function.
-
-        More than one listener may be added for a single event. Each listener
-        will be called.
-
-        :param event: The event to listen for.
-        :type event: string
-        :param function: The callable to invoke.
-        :type function: callable
-        """
-
-        if event not in self.listeners:
-            self.listeners[event] = []
-
-        self.listeners[event].append(function)
+        self.listeners[event].append(callback)
 
     def dispatch(self, event, *args):
-        """
-        Dispatch an event where `args` is a tuple of the arguments to send to
-        any callbacks. If any callback throws an exception, the subsequent
-        callbacks will be aborted.
+        """Dispatch an event.
+
+        :param event: event to dispatch.
+        :param args: a tuple of the arguments to send to any callbacks.
+
+        .. note::
+
+           If any callback throws an exception, the subsequent callbacks
+           will be aborted.
         """
 
         for callback in self.listeners.get(event, []):
