@@ -56,7 +56,26 @@ Here's a quick example:
 """
 
 from copy import copy
-from collections import defaultdict
+
+try:
+    from collections import defaultdict1
+except ImportError:
+    class defaultdict(dict):
+        def __init__(self, default_factory):
+            self.default_factory = default_factory
+
+        def __getitem__(self, key):
+            try:
+                value = dict.__getitem__(self, key)
+            except KeyError:
+                value = self.default_factory()
+
+                # Yeah-yeah, we still use Python2.4, so we don't have
+                # __missing__()
+                dict.__setitem__(self, key, value)
+
+            return value
+
 
 from vt102 import control as ctrl, escape as esc
 from vt102.graphics import text, colors, dsg
@@ -435,10 +454,6 @@ class screen(object):
         Print a character at the current cursor position and advance the
         cursor.
         """
-
-        # Don't make bugs where we try to print a screen.
-        assert len(char) == 1
-
         if self.current_charset == "g0" and self.g0 is not None:
             char = char.translate(self.g0)
         elif self.current_charset == "g1" and self.g1 is not None:
