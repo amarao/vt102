@@ -181,22 +181,15 @@ class stream(object):
         if char == "?":
             self.state = "mode"
         elif char == ";":
-            try:
-                self.params.append(int(self.current_param))
-            except ValueError:
-                pass
-
+            self.current_param and self.params.append(int(self.current_param))
             self.current_param = ""
         elif not char.isdigit():
-            try:
-                self.params.append(int(self.current_param))
-            except ValueError:
-                pass
-
+            self.current_param and self.params.append(int(self.current_param))
             # If we're in parameter parsing mode, but we see a non-
             # numeric value, it must be the end of the control sequence.
             self._end_escape_sequence(char)
         else:
+            # .. todo: joining strings with `+` is way too slow!
             self.current_param += char
 
     def _mode(self, char):
