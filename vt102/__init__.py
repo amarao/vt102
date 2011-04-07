@@ -76,7 +76,6 @@ except ImportError:
 
             return value
 
-
 from vt102 import control as ctrl, escape as esc
 from vt102.graphics import text, colors, dsg
 
@@ -104,7 +103,7 @@ class stream(object):
 
     .. seealso::
 
-        ``man console_codes`` <http://linux.die.net/man/4/console_codes>_`
+        `man console_codes <http://linux.die.net/man/4/console_codes>_`
             For details on console codes listed bellow in :attr:`basic`,
             :attr:`escape`, :attr:`sequences`
     """
