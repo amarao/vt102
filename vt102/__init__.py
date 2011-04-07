@@ -154,6 +154,8 @@ class stream(object):
         elif ord(char) in self.escape:
             self.state = "stream"
             self.dispatch(self.escape[ord(char)])
+        else:
+            self.state = "stream"  # Unknown ESC code, silently eat and continue.
 
     def _end_escape_sequence(self, char):
         """Handle the end of an escape sequence.
@@ -164,7 +166,7 @@ class stream(object):
         event = self.sequence.get(ord(char))
         if event:
             self.dispatch(event, *self.params)
-            self.reset()
+        self.reset()
 
     def _escape_parameters(self, char):
         """Parse parameters in an escape sequence.
