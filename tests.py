@@ -635,6 +635,18 @@ class TestScreen(unittest.TestCase):
 
         assert s.display == ["sh"]
 
+    def test_unicode(self):
+        s = stream()
+        _screen = screen((2, 4))
+        _screen.attach(s)
+
+        try:
+            s.process(u"тест")
+        except UnicodeDecodeError:
+            self.fail("Check your code -- we do accept unicode.")
+
+        assert _screen.display[0] == u"тест"
+
 
 if __name__ == "__main__":
     unittest.main()

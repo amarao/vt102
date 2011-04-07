@@ -55,7 +55,6 @@ Here's a quick example:
  "          "]
 """
 
-import codecs
 from copy import copy
 from collections import defaultdict
 
@@ -295,9 +294,7 @@ class screen(object):
     #:        :attr:`vt102.graphics.colors`
     default_attributes = (), "default", "default"
 
-    def __init__(self, (rows, cols), encoding="utf-8"):
-        self.encoding = encoding
-        self.decoder = codecs.getdecoder(encoding)
+    def __init__(self, (rows, cols)):
         self.size = (rows, cols)
         self.x = 0
         self.y = 0
@@ -441,11 +438,6 @@ class screen(object):
 
         # Don't make bugs where we try to print a screen.
         assert len(char) == 1
-
-        try:
-            char = self.decoder(char)[0]
-        except UnicodeDecodeError:
-            char = "?"
 
         if self.current_charset == "g0" and self.g0 is not None:
             char = char.translate(self.g0)
