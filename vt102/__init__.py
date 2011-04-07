@@ -55,6 +55,7 @@ Here's a quick example:
  "          "]
 """
 
+from array import array
 from copy import copy
 
 try:
@@ -292,12 +293,12 @@ class stream(object):
                 callback()
 
 
-class screen(object):
+class screen(list):
     """
     A screen is an in memory buffer of strings that represents the screen
     display of the terminal. It can be instantiated on it's own and given
-    explicit commands, or it can be attached to a stream and will respond to
-    events.
+    explicit commands, or it can be attached to a stream and will respond
+    to events.
 
     The screen buffer can be accessed through the screen's `display` property.
     """
@@ -316,37 +317,36 @@ class screen(object):
     #:        :attr:`vt102.graphics.colors`
     default_attributes = (), "default", "default"
 
-    def __init__(self, (rows, cols)):
-        self.size = (rows, cols)
-        self.x = 0
-        self.y = 0
-        self.irm = "insert"
+    #: Terminal dimensions and coordinates (we can declare them on the
+    #: class level since int-attributes are immutable anyway).
+    lines, columns, x, y = (0, ) * 4
+
+    def __init__(self, *size):
+        # .. todo:: remove me -- the sooner the better.
+        self.display = []
+        self.attributes = []
         self.tabstops = []
 
+        self.irm = "insert"
         self.g0 = None
         self.g1 = None
         self.current_charset = "g0"
 
         self.cursor_save_stack = []
-
-        # Initialize the screen to completely empty.
-        self.display = [u" " * cols] * rows
-
-        # Initialize the attributes to completely empty, but the same size as
-        # the screen.
-        self.attributes = [[self.default_attributes] * cols] * rows
         self.cursor_attributes = self.default_attributes
 
+        self.resize(*size)
+
     def __repr__(self):
-        return repr(self.display)
+        return repr([l.tounicode() for l in self.display])
 
     def attach(self, events):
+        """Attach this screen to a events that processes commands and
+        dispatches events. Sets up the appropriate event handlers so
+        that the screen will update itself automatically as the events
+        processes data.
         """
-        Attach this screen to a events that processes commands and dispatches
-        events. Sets up the appropriate event handlers so that the screen will
-        update itself automatically as the events processes data.
-        """
-
+        # .. fixme:: when we can have None here?
         if events is not None:
             events.add_event_listener("print", self._print)
             events.add_event_listener("backspace", self._backspace)
@@ -383,52 +383,64 @@ class screen(object):
         """The current location of the cursor."""
         return self.x, self.y
 
-    def resize(self, (rows, cols)):
+    def resize(self, lines, columns):
+        """Resize the screen.
+
+        If the requested screen size has more lines than the existing
+        screen, lines will be added at the bottom. If the requested
+        size has less lines than the existing screen lines will be
+        clipped at the top of the screen.
+
+        Similarly if the existing screen has less columns than the
+        requested size, columns will be added at the right, and it it
+        has more, columns will be clipped at the right.
         """
-        Resize the screen. If the requested screen size has more rows than the
-        existing screen, rows will be added at the bottom. If the requested
-        size has less rows than the existing screen rows will be clipped at the
-        top of the screen.
+        assert lines and columns
 
-        Similarly if the existing screen has less columns than the requested
-        size, columns will be added at the right, and it it has more, columns
-        will be clipped at the right.
-        """
+        # First resize the lines ...
+        if self.lines < lines:
+            # If the current display size is shorter than the requested
+            # screen size, then add lines to the bottom. Note that the
+            # old column size is used here so these new lines will get
+            # expanded / contracted as necessary by the column resize
+            # when it happens next.
+            initial = u" " * self.columns
 
-        # Honestly though, you can't trust anyone these days...
-        assert(rows > 0 and cols > 0)
+            for _ in xrange(lines - self.lines):
+                self.display.append(array("u", initial))
+                self.attributes.append(
+                    [self.default_attributes] * self.columns
+                )
+        elif self.lines > lines:
+            # If the current display size is taller than the requested
+            # display, then take lines off the top.
+            self.display = self.display[self.lines - lines: ]
+            self.attributes = self.attributes[self.lines - lines:]
 
-        # First resize the rows
-        if self.size[0] < rows:
-            # If the current display size is shorter than the requested screen
-            # size, then add rows to the bottom. Note that the old column size
-            # is used here so these new rows will get expanded/contracted as
-            # necessary by the column resize when it happens next.
-            self.display += [u" " * self.size[1]] * (rows - self.size[0])
-            self.attributes += [[self.default_attributes] * self.size[1]] * \
-                    (rows - self.size[0])
-        elif self.size[0] > rows:
-            # If the current display size is taller than the requested display,
-            # then take rows off the top.
-            self.display = self.display[self.size[0]-rows:]
-            self.attributes = self.attributes[self.size[0]-rows:]
+        # ... next, of course, resize the columns.
+        if self.columns < columns:
+            # If the current display size is thinner than the requested
+            # size, expand each line to be the new size.
+            initial = u" " * (columns - self.columns)
 
-        # Next, of course, resize the columns.
-        if self.size[1] < cols:
-            # If the current display size is thinner than the requested size,
-            # expand each row to be the new size.
-            self.display = \
-                [row + (u" " * (cols - self.size[1])) for row in self.display]
-            self.attributes = \
-                [row + ([self.default_attributes] * (cols - self.size[1])) for row in self.attributes]
-        elif self.size[1] > cols:
+            self.display = [
+                line + array("u", initial) for line in self.display
+            ]
+            self.attributes = [
+                line + [self.default_attributes] * (columns - self.columns)
+                for line in self.attributes
+            ]
+        elif self.columns > columns:
             # If the current display size is fatter than the requested size,
-            # then trim each row from the right to be the new size.
-            self.display = [row[:cols-self.size[1]] for row in self.display]
-            self.attributes = [row[:cols-self.size[1]] for row in self.attributes]
+            # then trim each line from the right to be the new size.
+            self.display = [
+                line[:columns - self.columns] for line in self.display
+            ]
+            self.attributes = [
+                line[:columns - self.columns] for line in self.attributes
+            ]
 
-        self.size = (rows, cols)
-        return self.size
+        self.lines, self.columns = lines, columns
 
     def _shift_in(self):
         self.current_charset = "g0"
@@ -451,209 +463,185 @@ class screen(object):
             self.g1 = None
 
     def _print(self, char):
-        """
-        Print a character at the current cursor position and advance the
-        cursor.
+        """Print a character at the current cursor position and advance
+        the cursor.
         """
         if self.current_charset == "g0" and self.g0 is not None:
             char = char.translate(self.g0)
         elif self.current_charset == "g1" and self.g1 is not None:
             char = char.translate(self.g1)
 
-        row = self.display[self.y]
-        self.display[self.y] = row[:self.x] + char + row[self.x+1:]
-
-        attrs = self.attributes[self.y]
-        self.attributes[self.y] = attrs[:self.x] + [self.cursor_attributes] + \
-                attrs[self.x+1:]
+        self.display[self.y][self.x] = char
+        self.attributes[self.y][self.x] = self.cursor_attributes
 
         self.x += 1
 
-        if self.x >= self.size[1]:
-            # If this was the last column in a row, move the cursor to the
-            # next row.
+        # If this was the last column in a line, move the cursor to
+        # the next line.
+        if self.x >= self.columns:
             self._linefeed()
 
     def _carriage_return(self):
-        """
-        Move the cursor to the beginning of the current row.
-        """
-
+        """Move the cursor to the beginning of the current line."""
         self.x = 0
 
     def _index(self):
+        """Move the cursor down one line in the same column. If the
+        cursor is at the last line, create a new line at the bottom.
         """
-        Move the cursor down one row in the same column. If the cursor is at
-        the last row, create a new row at the bottom.
-        """
-
-        if self.y + 1 >= self.size[0]:
-            # If the cursor is currently on the last row, then spawn another
-            # and scroll down (removing the top row).
-            self.display = self.display[1:] + [u" " * self.size[1]]
+        if self.y + 1 >= self.lines:
+            self.display = self.display[1:] + \
+                           [(array("u", u" " * self.columns))]
         else:
-            # If the cursor is anywhere else, then just move it to the
-            # next line.
             self.y += 1
 
     def _reverse_index(self):
+        """Move the cursor up one line in the same column. If the cursor
+        is at the first line, create a new line at the top.
         """
-        Move the cursor up one row in the same column. If the cursor is at the
-        first row, create a new row at the top.
-        """
-        if self.y == 0:
-            # If the cursor is currently at the first row, then scroll the
-            # screen up.
-            self.display = [u" " * self.size[1]] + self.display[:-1]
+        if not self.y:
+            self.display = [array("u", u" " * self.columns)] + \
+                           self.display[:-1]
         else:
-            # If the cursor is anywhere other than the first row than just move
-            # it up by one row.
             self.y -= 1
 
     def _linefeed(self):
-        """
-        Performs an index and then a carriage return.
-        """
-
+        """Performs an index and then a carriage return."""
         self._index()
         self.x = 0
 
     def _reverse_linefeed(self):
-        """
-        Performs a reverse index and then a carriage return.
-        """
-
+        """Performs a reverse index and then a carriage return."""
         self._reverse_index()
         self.x = 0
 
     def _next_tab_stop(self):
+        """Return the x value of the next available tabstop or the x
+        value of the margin if there are no more tabstops.
         """
-        Return the x value of the next available tabstop or the x value of the
-        margin if there are no more tabstops.
-        """
-
         for stop in sorted(self.tabstops):
             if self.x < stop:
                 return stop
-        return self.size[1] - 1
+        return self.columns - 1
 
     def _tab(self):
-        """
-        Move to the next tab space, or the end of the screen if there aren't
-        anymore left.
+        """Move to the next tab space, or the end of the screen if there
+        aren't anymore left.
         """
         self.x = self._next_tab_stop()
 
     def _backspace(self):
+        """Move cursor to the left one or keep it in it's position if
+        it's at the beginning of the line already.
         """
-        Move cursor to the left one or keep it in it's position if it's at
-        the beginning of the line already.
-        """
-
-        self.x = max(0, self.x-1)
+        self.x = max(0, self.x - 1)
 
     def _save_cursor(self):
-        """
-        Push the current cursor position onto the stack.
-        """
-
+        """Push the current cursor position onto the stack."""
         self.cursor_save_stack.append((self.x, self.y))
 
     def _restore_cursor(self):
+        """Set the current cursor position to whatever cursor is on top
+        of the stack.
         """
-        Set the current cursor position to whatever cursor is on top of the
-        stack.
-        """
-
         if self.cursor_save_stack:
             self.x, self.y = self.cursor_save_stack.pop()
 
     def _insert_line(self, count=1):
+        """Inserts `count` lines at line with cursor. Lines displayed
+        below cursor move down. Lines moved past the bottom margin are
+        lost.
+
+        .. todo:: reset attributes at ``self.y`` as well?
         """
-        Inserts lines at line with cursor. Lines displayed below cursor move
-        down. Lines moved past the bottom margin are lost.
-        """
-        trimmed = self.display[:self.y+1] + \
-                  [u" " * self.size[1]] * count + \
-                  self.display[self.y+1:self.y+count+1]
-        self.display = trimmed[:self.size[0]]
+        initial = u" " * self.columns
+
+        for line in xrange(self.y, self.y + count):
+            self.display.insert(line, array("u", initial))
+
+        while len(self.display) > self.lines:
+            self.display.pop(-1)
 
     def _delete_line(self, count=1):
+        """Deletes `count` lines, starting at line with cursor. As lines
+        are deleted, lines displayed below cursor move up. Lines added
+        to bottom of screen have spaces with same character attributes
+        as last line moved up.
         """
-        Deletes count lines, starting at line with cursor. As lines are
-        deleted, lines displayed below cursor move up. Lines added to bottom of
-        screen have spaces with same character attributes as last line moved
-        up.
-        """
-        self.display = self.display[:self.y] + \
-                       self.display[self.y+1:]
-        self.display.append([u" " * self.size[1]] * count)
-        self.attributes = self.attributes[:self.y] + \
-                       self.attributes[self.y+1:]
-        last_attributes = self.attributes[-1]
-        for _ in xrange(count):
-            self.attributes.append(copy(last_attributes))
+        initial = u" " * self.columns
+
+        for line in xrange(self.y, self.y + count):
+            self.display.pop(line)
+            self.attributes.pop(line)
+
+        while len(self.display) < self.lines:
+            self.display.append(array("u", initial))
+            self.attributes.append(copy(self.attributes[-1]))
 
     def _delete_character(self, count=1):
+        """Deletes `count` characters, starting with the character at
+        cursor position. When a character is deleted, all characters to
+        the right of cursor move left.
         """
-        Deletes count characters, starting with the character at cursor
-        position. When a character is deleted, all characters to the right
-        of cursor move left.
-        """
+        count = min(count, self.columns - self.x)
 
-        # First resize the text display
-        row = self.display[self.y]
-        count = min(count, self.size[1] - self.x)
-        row = row[:self.x] + row[self.x+count:] + u" " * count
-        self.display[self.y] = row
+        # First resize the text display ...
+        line = self.display[self.y]
+        self.display[self.y] = (line[:self.x] +
+                                line[self.x + count:] +
+                                array("u", u" " * count))
 
-        # Then resize the attribute array too
+        # .. then resize the attribute array too.
         attrs = self.attributes[self.y]
-        attrs = attrs[:self.x] + attrs[self.x+count:] + [self.default_attributes] * count
-        self.attributes[self.y] = attrs
+        self.attributes[self.y] = (attrs[:self.x] +
+                                   attrs[self.x + count:] +
+                                   [self.default_attributes] * count)
 
     def _erase_in_line(self, type_of=0):
-        """
-        Erases the row in a specific way, depending on the type_of.
-        """
+        """Erases a line in a specific way, depending on the `type_of`.
 
-        row = self.display[self.y]
+        .. todo:: this is still a mess -- somebody, rewrite me!
+        """
+        line = self.display[self.y]
         attrs = self.attributes[self.y]
-        if type_of == 0:
-            # Erase from the cursor to the end of line, including the cursor
-            row = row[:self.x] + u" " * (self.size[1] - self.x)
-            attrs = attrs[:self.x] + [self.default_attributes] * (self.size[1] - self.x)
-        elif type_of == 1:
-            # Erase from the beginning of the line to the cursor, including it
-            row = u" " * (self.x+1) + row[self.x+1:]
-            attrs = [self.default_attributes] * (self.x+1) + attrs[self.x+1:]
-        elif type_of == 2:
-            # Erase the entire line.
-            row = u" " * self.size[1]
-            attrs = [self.default_attributes] * self.size[1]
 
-        self.display[self.y] = row
-        self.attributes[self.y] = attrs
+        if type_of == 0:
+            # a) erase from the cursor to the end of line, including
+            # the cursor,
+            count = self.columns - self.x
+            self.display[self.y] = line[:self.x] + array("u", u" " * count)
+            self.attributes[self.y] = attrs[:self.x] + \
+                                      [self.default_attributes] * count
+        elif type_of == 1:
+            # b) erase from the beginning of the line to the cursor,
+            # including it,
+            count = self.x + 1
+            self.display[self.y] = array("u", u" " * count) + line[count:]
+            self.attributes[self.y] = [self.default_attributes] * count + \
+                                      attrs[count:]
+        elif type_of == 2:
+            # c) erase the entire line.
+            self.display[self.y] = array("u", u" " * self.columns)
+            self.attributes[self.y] = [self.default_attributes] * self.columns
 
     def _erase_in_display(self, type_of=0):
-        if type_of == 0:
-            # Erase from cursor to the end of the display, including the
-            # cursor.
-            self.display = self.display[:self.y] + \
-                    [u" " * self.size[1]] * (self.size[0] - self.y)
-            self.attributes = self.attributes[:self.y] + \
-                    [[self.default_attributes] * self.size[1]] * (self.size[0] - self.y)
-        elif type_of == 1:
-            # Erase from the beginning of the display to the cursor, including
-            # it.
-            self.display = [u" " * self.size[1]] * (self.y + 1) + \
-                    self.display[self.y+1:]
-            self.attributes = [[self.default_attributes] * self.size[1]] * (self.y + 1) + \
-                    self.attributes[self.y+1:]
-        elif type_of == 2:
-            # Erase the whole display.
-            self.display = [u" " * self.size[1]] * self.size[0]
-            self.attributes = [[self.default_attributes] * self.size[1]] * self.size[0]
+        initial = u" " * self.columns
+        interval = (
+            # a) erase from cursor to the end of the display, including
+            # the cursor,
+            xrange(self.y, self.lines),
+            # b) erase from the beginning of the display to the cursor,
+            # including it.
+            xrange(0, self.y + 1),
+            # c) erase the whole display.
+            xrange(0, self.lines)
+        )[type_of]
+
+        for line in interval:
+            self.display[line] = array("u", initial)
+            self.attributes[line] = [
+                [self.default_attributes] * self.columns
+            ]
 
     def _set_insert_mode(self):
         self.irm = "insert"
@@ -662,9 +650,7 @@ class screen(object):
         self.irm = "replace"
 
     def _set_tab_stop(self):
-        """
-        Sets a horizontal tab stop at cursor position.
-        """
+        """Sets a horizontal tab stop at cursor position."""
         self.tabstops.append(self.x)
 
     def _clear_tab_stop(self, type_of=0x33):
@@ -681,54 +667,52 @@ class screen(object):
             self.tabstops = []
 
     def _cursor_up(self, count=1):
-        """
-        Moves cursor up count lines in same column. Cursor stops at top
-        margin.
+        """Moves cursor up count lines in same column. Cursor stops
+        at top margin.
         """
         self.y = max(0, self.y - count)
 
     def _cursor_down(self, count=1):
+        """Moves cursor down count lines in same column. Cursor stops
+        at bottom margin.
         """
-        Moves cursor down count lines in same column. Cursor stops at bottom
-        margin.
-        """
-        self.y = min(self.size[0] - 1, self.y + count)
+        self.y = min(self.y + count, self.lines - 1)
 
     def _cursor_back(self, count=1):
-        """
-        Moves cursor left count columns. Cursor stops at left margin.
+        """Moves cursor left count columns. Cursor stops at left
+        margin.
         """
         self.x = max(0, self.x - count)
 
     def _cursor_forward(self, count=1):
+        """Moves cursor right count columns. Cursor stops at right
+        margin.
         """
-        Moves cursor right count columns. Cursor stops at right margin.
+        self.x = min(self.columns - 1, self.x + count)
+
+    def _cursor_position(self, line=0, column=0):
+        """Set the cursor to a specific line and column.
+
+        .. note::
+
+           Obnoxiously line and column are 1-based, instead of zero
+           based, so we need to compensate. Confoundingly, inputs of 0
+           are still acceptable, and should move to the beginning of
+           the line or column as if they were 1 -- *sigh*.
         """
-        self.x = min(self.size[1] - 1, self.x + count)
+        line, column = line or 1, column or 1
 
-    def _cursor_position(self, row=0, column=0):
-        """
-        Set the cursor to a specific row and column.
-
-        Obnoxiously row/column is 1 based, instead of zero based, so we need
-        to compensate. I know I've created bugs in here somehow.
-        Confoundingly, inputs of 0 are still acceptable, and should move to
-        the beginning of the row/column as if they were 1. *sigh*
-        """
-
-        if row == 0:
-            row = 1
-        if column == 0:
-            column = 1
-
-        self.y = min(row - 1, self.size[0] - 1)
-        self.x = min(column - 1, self.size[1] - 1)
+        self.y = min(max(0, line - 1), self.lines - 1)
+        self.x = min(max(0, column -1), self.columns - 1)
 
     def _home(self):
+        """Set the cursor to the left upper corner ``(0, 0)``."""
+        self._cursor_position(0, 0)
+
+    def _bell(self, *attrs):
+        """Bell stub -- the actual implementation should probably be
+        provided by the end-user.
         """
-        Set the cursor to (0, 0)
-        """
-        self.y = self.x = 0
 
     def _remove_text_attr(self, attr):
         current = set(self.cursor_attributes[0])
@@ -792,10 +776,3 @@ class screen(object):
 
         for attr in attrs:
             self._set_attr(attr)
-
-    def _bell(self, *attrs):
-        """
-        Here we must bell (beep), but we are library and we don't know how
-        to beep, so we skip BELL char and continue normal operation
-        """
-
