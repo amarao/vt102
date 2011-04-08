@@ -107,13 +107,36 @@ class TestStream(unittest.TestCase):
             self.fail("No exception should've raised, got: %s" % e)
 
     def test_unknown_escapes(self):
-        s = stream()
-        screen(25, 80).attach(s)
+        st = stream()
+        sc = screen(1, 20)
+        sc.attach(st)
+
+        # a) debug disabled
+        st.debug = False
 
         try:
-            s.process(u"\000" + unichr(ctrl.ESC) + u"[3g&foo")
+            st.process(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
+            st.process(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
         except Exception as e:
             self.fail("No exception should've raised, got: %s" % e)
+        else:
+            # Making sure nothing is printed when debug is off.
+            assert all(map(lambda l: not l.tounicode().strip(), sc.display))
+
+        # b) debug enabled
+        st.debug = True
+
+        try:
+            st.process(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
+            st.process(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
+        except Exception as e:
+            self.fail("No exception should've raised, got: %s" % e)
+        else:
+            # Making sure nothing we got something with debug on ...
+            assert not all(map(lambda l: not l.tounicode().strip(), sc.display))
+            # ... and this something is exactly the two escape sequences
+            # we fed, prefixed with `^`.
+            assert sc.display[0].tounicode() == u"^[6;7!^[9;7!        "
 
     def test_backspace(self):
         s = stream()

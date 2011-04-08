@@ -69,7 +69,11 @@ class stream(object):
             :attr:`escape`, :attr:`sequences`
     """
 
-    #: Basic character, which don't require any arguments.
+    #: When ``True``, unknown CSI sequences are being printed, prefixed
+    #: with ``"^"``.
+    debug = False
+
+    #: Basic characters, which don't require any arguments.
     basic = {
         ctrl.BS: "backspace",
         ctrl.HT: "tab",
@@ -148,6 +152,16 @@ class stream(object):
         event = self.sequence.get(ord(char))
         if event:
             self.dispatch(event, *self.params)
+        elif self.debug:
+            # Unhandled CSI sequences are printed literally.
+            self.dispatch("print", u"^")
+            self.dispatch("print", u"[")
+
+            for param in u";".join(map(unicode, self.params)):
+                self.dispatch("print", param)
+
+            self.dispatch("print", char)
+
         self.reset()
 
     def _escape_parameters(self, char):
@@ -672,7 +686,6 @@ class screen(list):
         """Bell stub -- the actual implementation should probably be
         provided by the end-user.
         """
-
     def _remove_text_attr(self, attr):
         current = set(self.cursor_attributes[0])
         if attr in current:
