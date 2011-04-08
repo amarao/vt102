@@ -1,8 +1,16 @@
-Scrap'in on my Scrapper Screen
-==============================
+vt102
+=====
 
-vt102 is an in memory vt102 terminal emulator. It supports all the most common
-terminal escape sequences, including text attributes and color. 
+:Info: Scrap'in on my scrapper screen.
+:Author: Sam Gibson <sam@ifdown.net>
+
+
+About
+-----
+
+``vt102`` is an in memory vt102 terminal emulator. It supports all the
+most common terminal escape sequences, including text attributes and
+color.
 
 Why would you want to use a terminal emulator?
 
@@ -10,31 +18,28 @@ Why would you want to use a terminal emulator?
 * Chicks dig dudes with terminals.
 * ... seriously, that's about it.
 
-Usage
-=====
 
-There are two important classes in vt102: screen and stream. The screen is the
-terminal screen emulator. It maintains an in-memory buffer of text and 
-text-attributes to display on screen.
+Installation
+------------
 
-The stream is the stream processor. It manages the state of the input and
-dispatches events to anything that's listening about things that are going on.
-Events are things like 'linefeed', 'print "a"', or 'cursor-position 10,10'. See
-the API for more details.
+If you have `setuptools <http://peak.telecommunity.com/DevCenter/setuptools>`_
+you can use ``easy_install -U vt102``. Otherwise, you can download the source
+from `GitHub <http://github.com/samfoo/vt102>`_ and run ``python setup.py install``.
 
-In general, if you just want to know what's being displayed on screen you can
-do something like the following:
+
+Example
+-------
 
     >>> import vt102
     >>> stream = vt102.stream()
-    >>> screen = vt102.screen((24,80))
+    >>> screen = vt102.screen(24, 80)
     >>> screen.attach(stream)
-    >>> stream.process(u"\u001b7\u001b[?47h\u001b)0\u001b[H\u001b[2J\u001b[H" +
-                       u"\u001b[2;1HNetHack, Copyright 1985-2003\r\u001b[3;1" +
-                       u"H         By Stichting Mathematisch Centrum and M. " +
-                       u"Stephenson.\r\u001b[4;1H         See license for de" +
-                       u"tails.\r\u001b[5;1H\u001b[6;1H\u001b[7;1HShall I pi" +
-                       u"ck a character's race, role, gender and alignment f" +
+    >>> stream.process(u"\u001b7\u001b[?47h\u001b)0\u001b[H\u001b[2J\u001b[H"
+                       u"\u001b[2;1HNetHack, Copyright 1985-2003\r\u001b[3;1"
+                       u"H         By Stichting Mathematisch Centrum and M. "
+                       u"Stephenson.\r\u001b[4;1H         See license for de"
+                       u"tails.\r\u001b[5;1H\u001b[6;1H\u001b[7;1HShall I pi"
+                       u"ck a character's race, role, gender and alignment f"
                        u"or you? [ynq] ")
     >>> screen.display
         ['                                                                                ',
@@ -61,5 +66,4 @@ do something like the following:
          '                                                                                ',
          '                                                                                ',
          '                                                                                ']
-    >>> 
-        
+    >>>

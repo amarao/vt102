@@ -1,58 +1,18 @@
 # -*- coding: utf-8 -*-
-
 """
-vt102 implements a subset of the vt102 specification (the subset that should be
-most useful for use in software). Two classes: `stream`, which parses the
-command stream and dispatches events for commands, and `screen` which, when
-used with a `stream` maintains a buffer of strings representing the screen of a
-terminal.
+    vt102
+    ~~~~~
 
-Why would you ever want to use this?
+    `vt102` implements a subset of the vt102 specification (the subset
+    that should be most useful for use in software).
 
-    * Screen scraping.
-    * Cheating at nethack (I swear to god I will ascend)
-    * Chicks dig terminals, and err... VT?
+    Two classes: :class:`stream`, which parses the command stream and
+    dispatches events for commands, and :class:`screen` which, when used
+    with a `stream` maintains a buffer of strings representing the screen
+    of a terminal.
 
-Here's a quick example:
-
->>> from vt102 import screen, stream
->>> st = stream()
->>> sc = screen((10, 10))
-["          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          "]
->>> sc.attach(st)
->>> st.process("Text goes here")
->>> repr(sc)
-["Text goes ",
- "here      ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          "]
->>> st.process("\\x1b[H\\x1b[K")
->>> repr(sc)
-["          ",
- "here      ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          ",
- "          "]
+    :copyright: (c) 2011 by Sam Gibson, see AUTHORS for more details.
+    :license: LGPL, see LICENSE for more details.
 """
 
 from array import array
@@ -104,7 +64,7 @@ class stream(object):
 
     .. seealso::
 
-        `man console_codes <http://linux.die.net/man/4/console_codes>_`
+        `man console_codes <http://linux.die.net/man/4/console_codes>`_
             For details on console codes listed bellow in :attr:`basic`,
             :attr:`escape`, :attr:`sequences`
     """
@@ -199,7 +159,7 @@ class stream(object):
 
         .. seealso::
 
-           `VT102 User Guide <http://vt100.net/docs/vt102-ug/>_`
+           `VT102 User Guide <http://vt100.net/docs/vt102-ug/>`_
                For details on the formatting of escape parameters.
         """
         if char == "?":
@@ -322,7 +282,6 @@ class screen(list):
     lines, columns, x, y = (0, ) * 4
 
     def __init__(self, *size):
-        # .. todo:: remove me -- the sooner the better.
         self.display = []
         self.attributes = []
         self.tabstops = []
