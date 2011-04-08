@@ -57,7 +57,7 @@ class stream(object):
     ...
     >>> dummy = dummy()
     >>> stream = vt102.stream()
-    >>> stream.add_event_listener("cursor-up", dummy.up)
+    >>> stream.connect("cursor-up", dummy.up)
     >>> stream.process("\\x\\00\\1b[5A") # Move the cursor up 5 rows.
     >>> dummy.foo
     5
@@ -236,7 +236,7 @@ class stream(object):
         """Consume a string of chars and advance the state as necessary."""
         map(self.consume, chars)
 
-    def add_event_listener(self, event, callback):
+    def connect(self, event, callback):
         """Add an event listener for a particular event.
 
         Depending on the event, there may or may not be parameters
@@ -326,38 +326,35 @@ class screen(list):
         """
         # .. fixme:: when we can have None here?
         if events is not None:
-            events.add_event_listener("print", self._print)
-            events.add_event_listener("backspace", self._backspace)
-            events.add_event_listener("tab", self._tab)
-            events.add_event_listener("linefeed", self._linefeed)
-            events.add_event_listener("reverse-linefeed",
-                                      self._reverse_linefeed)
-            events.add_event_listener("carriage-return", self._carriage_return)
-            events.add_event_listener("index", self._index)
-            events.add_event_listener("reverse-index", self._reverse_index)
-            events.add_event_listener("store-cursor", self._save_cursor)
-            events.add_event_listener("restore-cursor", self._restore_cursor)
-            events.add_event_listener("cursor-up", self._cursor_up)
-            events.add_event_listener("cursor-down", self._cursor_down)
-            events.add_event_listener("cursor-right", self._cursor_forward)
-            events.add_event_listener("cursor-left", self._cursor_back)
-            events.add_event_listener("cursor-move", self._cursor_position)
-            events.add_event_listener("erase-in-line", self._erase_in_line)
-            events.add_event_listener("erase-in-display",
-                                      self._erase_in_display)
-            events.add_event_listener("delete-characters",
-                                      self._delete_character)
-            events.add_event_listener("insert-lines", self._insert_line)
-            events.add_event_listener("delete-lines", self._delete_line)
-            events.add_event_listener("select-graphic-rendition",
-                                      self._select_graphic_rendition)
-            events.add_event_listener("charset-g0", self._charset_g0)
-            events.add_event_listener("charset-g1", self._charset_g1)
-            events.add_event_listener("shift-in", self._shift_in)
-            events.add_event_listener("shift-out", self._shift_out)
-            events.add_event_listener("bell", self._bell)
-            events.add_event_listener("set-tab-stop", self._set_tab_stop)
-            events.add_event_listener("clear-tab-stop", self._clear_tab_stop)
+            events.connect("print", self._print)
+            events.connect("backspace", self._backspace)
+            events.connect("tab", self._tab)
+            events.connect("linefeed", self._linefeed)
+            events.connect("reverse-linefeed", self._reverse_linefeed)
+            events.connect("carriage-return", self._carriage_return)
+            events.connect("index", self._index)
+            events.connect("reverse-index", self._reverse_index)
+            events.connect("store-cursor", self._save_cursor)
+            events.connect("restore-cursor", self._restore_cursor)
+            events.connect("cursor-up", self._cursor_up)
+            events.connect("cursor-down", self._cursor_down)
+            events.connect("cursor-right", self._cursor_forward)
+            events.connect("cursor-left", self._cursor_back)
+            events.connect("cursor-move", self._cursor_position)
+            events.connect("erase-in-line", self._erase_in_line)
+            events.connect("erase-in-display", self._erase_in_display)
+            events.connect("delete-characters", self._delete_character)
+            events.connect("insert-lines", self._insert_line)
+            events.connect("delete-lines", self._delete_line)
+            events.connect("select-graphic-rendition",
+                           self._select_graphic_rendition)
+            events.connect("charset-g0", self._charset_g0)
+            events.connect("charset-g1", self._charset_g1)
+            events.connect("shift-in", self._shift_in)
+            events.connect("shift-out", self._shift_out)
+            events.connect("bell", self._bell)
+            events.connect("set-tab-stop", self._set_tab_stop)
+            events.connect("clear-tab-stop", self._clear_tab_stop)
 
     def cursor(self):
         """The current location of the cursor."""

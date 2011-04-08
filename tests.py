@@ -40,7 +40,7 @@ class TestStream(unittest.TestCase):
         s = stream()
         input = "\000" + chr(ctrl.ESC) + "[5" + chr(esc.CUD)
         e = argcheck()
-        s.add_event_listener("cursor-down", e)
+        s.connect("cursor-down", e)
         s.process(input)
 
         assert e.count == 1
@@ -55,7 +55,7 @@ class TestStream(unittest.TestCase):
                 assert distance == 5
 
         s, e = stream(), argcheck()
-        s.add_event_listener("cursor-up", e)
+        s.connect("cursor-up", e)
         s.process(u"\000" + unichr(ctrl.ESC) + u"[5" + unichr(esc.CUU))
 
         assert e.count == 1
@@ -66,7 +66,7 @@ class TestStream(unittest.TestCase):
 
         for cmd, event in stream.escape.iteritems():
             c = self.counter()
-            s.add_event_listener(event, c)
+            s.connect(event, c)
             s.consume(unichr(ctrl.ESC))
             assert s.state == "escape"
             s.consume(unichr(cmd))
@@ -142,7 +142,7 @@ class TestStream(unittest.TestCase):
         s = stream()
 
         c = self.counter()
-        s.add_event_listener("backspace", c)
+        s.connect("backspace", c)
         s.consume(chr(ctrl.BS))
 
         assert c.count == 1
@@ -152,7 +152,7 @@ class TestStream(unittest.TestCase):
         s = stream()
 
         c = self.counter()
-        s.add_event_listener("tab", c)
+        s.connect("tab", c)
         s.consume(chr(ctrl.HT))
 
         assert c.count == 1
@@ -162,7 +162,7 @@ class TestStream(unittest.TestCase):
         s = stream()
 
         c = self.counter()
-        s.add_event_listener("linefeed", c)
+        s.connect("linefeed", c)
         s.process(chr(ctrl.LF) + chr(ctrl.VT) + chr(ctrl.FF))
 
         assert c.count == 3
@@ -172,7 +172,7 @@ class TestStream(unittest.TestCase):
         s = stream()
 
         c = self.counter()
-        s.add_event_listener("carriage-return", c)
+        s.connect("carriage-return", c)
         s.consume(chr(ctrl.CR))
 
         assert c.count == 1
