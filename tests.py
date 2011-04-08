@@ -268,6 +268,11 @@ class TestScreen(unittest.TestCase):
                                  s.default_attributes,
                                  s.default_attributes]] * 3
 
+        s.resize(2, 2)
+        assert s.display == _(["  ", "  "])
+        assert s.attributes == [[s.default_attributes,
+                                 s.default_attributes]] * 2
+
     def test_print(self):
         s = screen(3, 3)
         s._print(u"s")
@@ -533,6 +538,7 @@ class TestScreen(unittest.TestCase):
                                "     ",
                                "     ",
                                "     "])
+        assert s.attributes == [[s.default_attributes] * 5] * 5
 
         # Erase from cursor to the beginning of the display.
         s.display = _(["sam i",
@@ -546,6 +552,7 @@ class TestScreen(unittest.TestCase):
                                "     ",
                                "re yo",
                                "u?   "])
+        assert s.attributes == [[s.default_attributes] * 5] * 5
 
         s.y = 1
         # Erase the entire screen
@@ -555,6 +562,7 @@ class TestScreen(unittest.TestCase):
                                "     ",
                                "     ",
                                "     "])
+        assert s.attributes == [[s.default_attributes] * 5] * 5
 
     def test_cursor_up(self):
         s = screen(10, 10)

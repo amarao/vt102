@@ -308,7 +308,10 @@ class screen(list):
         self.cursor_save_stack = []
         self.cursor_attributes = self.default_attributes
 
-        self.resize(*size)
+        if all(size):
+            self.resize(*size)
+        else:
+            raise ValueError("Invalid screen dimensions: %rx%r" % size)
 
     def __repr__(self):
         return repr([l.tounicode() for l in self.display])
@@ -612,9 +615,7 @@ class screen(list):
 
         for line in interval:
             self.display[line] = array("u", initial)
-            self.attributes[line] = [
-                [self.default_attributes] * self.columns
-            ]
+            self.attributes[line] = [self.default_attributes] * self.columns
 
     def _set_insert_mode(self):
         self.irm = "insert"
