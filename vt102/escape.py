@@ -100,3 +100,8 @@ IRMI = 0x68
 characters at cursor position. The old character is erased."""
 IRMR = 0x6c
 
+"""Clears a horizontal tab stop at cursor position."""
+TBC = 0x67
+
+"""Sets a horizontal tab stop at cursor position."""
+HTS = 0x48

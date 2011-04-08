@@ -83,7 +83,7 @@ class stream(object):
         ctrl.CR: "carriage-return",
         ctrl.SI: "shift-in",
         ctrl.SO: "shift-out",
-        ctrl.BELL: "make-bell",
+        ctrl.BELL: "bell",
     }
 
     #: non-CSI escape squences.
@@ -94,6 +94,7 @@ class stream(object):
         esc.DECSC: "store-cursor",
         esc.DECRC: "restore-cursor",
         esc.RLF: "reverse-linefeed",
+        esc.HTS: "set-tab-stop"
     }
 
     #: CSI escape sequences.
@@ -113,6 +114,7 @@ class stream(object):
         esc.DECSTBM: "set-margins",
         esc.IRMI: "set-insert",
         esc.IRMR: "set-replace",
+        esc.TBC: "clear-tab-stop"
     }
 
     def __init__(self):
@@ -353,7 +355,9 @@ class screen(list):
             events.add_event_listener("charset-g1", self._charset_g1)
             events.add_event_listener("shift-in", self._shift_in)
             events.add_event_listener("shift-out", self._shift_out)
-            events.add_event_listener("make-bell", self._bell)
+            events.add_event_listener("bell", self._bell)
+            events.add_event_listener("set-tab-stop", self._set_tab_stop)
+            events.add_event_listener("clear-tab-stop", self._clear_tab_stop)
 
     def cursor(self):
         """The current location of the cursor."""
@@ -624,7 +628,7 @@ class screen(list):
         self.irm = "replace"
 
     def _set_tab_stop(self):
-        """Sets a horizontal tab stop at cursor position."""
+        """Sest a horizontal tab stop at cursor position."""
         self.tabstops.append(self.x)
 
     def _clear_tab_stop(self, type_of=0x33):
