@@ -269,7 +269,7 @@ class stream(object):
                 callback()
 
 
-class screen(list):
+class screen(object):
     """
     A screen is an in memory buffer of strings that represents the screen
     display of the terminal. It can be instantiated on it's own and given
