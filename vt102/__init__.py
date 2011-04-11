@@ -21,8 +21,8 @@ from array import array
 from collections import defaultdict, namedtuple
 from copy import copy
 
-from vt102 import control as ctrl, escape as esc
-from vt102.graphics import text, colors, dsg
+from . import control as ctrl, escape as esc
+from vt102.graphics import text, colors
 
 
 class stream(object):
@@ -130,15 +130,12 @@ class stream(object):
         """
         if char == "[":
             self.state = "escape-lb"
-        elif char == "(":
-            self.state = "charset-g0"
-        elif char == ")":
-            self.state = "charset-g1"
         elif ord(char) in self.escape:
             self.state = "stream"
             self.dispatch(self.escape[ord(char)])
         else:
-            self.state = "stream"  # Unknown ESC code, silently eat and continue.
+            self.state = "stream"  # Unknown ESC code, silently eat and
+                                   # continue.
 
     def _end_escape_sequence(self, char):
         """Handle the end of an escape sequence.
@@ -197,14 +194,6 @@ class stream(object):
             # in the mode state, is just ignored.
             self.state = "stream"
 
-    def _charset_g0(self, char):
-        self.dispatch("charset-g0", char)
-        self.state = "stream"
-
-    def _charset_g1(self, char):
-        self.dispatch("charset-g1", char)
-        self.state = "stream"
-
     def _stream(self, char):
         """Process a character when in the default ``"stream"`` state."""
         num = ord(char)
@@ -223,9 +212,7 @@ class stream(object):
             "stream": self._stream,
             "escape": self._escape_sequence,
             "escape-lb": self._escape_parameters,
-            "mode": self._mode,
-            "charset-g0": self._charset_g0,
-            "charset-g1": self._charset_g1
+            "mode": self._mode
         }.get(self.state)
 
         handler and handler(char)
@@ -318,10 +305,6 @@ class screen(object):
         self.tabstops = []
         self.margins = namedtuple("margins", "top bottom")(0, 0)
 
-        self.g0 = None
-        self.g1 = None
-        self.current_charset = "g0"
-
         self.cursor_save_stack = []
         self.cursor_attributes = self.default_attributes
 
@@ -369,8 +352,6 @@ class screen(object):
             ("delete-lines", self.delete_line),
             ("delete-characters", self.delete_character),
             ("erase-characters", self.erase_character),
-            ("shift-in", self.shift_in),
-            ("shift-out", self.shift_out),
             ("select-graphic-rendition", self.select_graphic_rendition),
             ("bell", self.bell),
             ("set-tab-stop", self.set_tab_stop),
@@ -384,6 +365,11 @@ class screen(object):
             # ("set-mode", ...)
             # ("reset-mode", ...)
             # ("status-report", ...)
+
+            # Not supported
+            # .............
+            # ("shift-in", ...)
+            # ("shift-out")
         ]
 
         for event, handler in handlers:
@@ -476,35 +462,10 @@ class screen(object):
         self.home()
         self.set_margins()
 
-    def shift_in(self):
-        self.current_charset = "g0"
-
-    def shift_out(self):
-        self.current_charset = "g1"
-
-    def charset_g0(self, cs):
-        if cs == '0':
-            self.g0 = dsg
-        else:
-            # TODO: Officially support UK/US/intl8 charsets
-            self.g0 = None
-
-    def charset_g1(self, cs):
-        if cs == '0':
-            self.g1 = dsg
-        else:
-            # TODO: Officially support UK/US/intl8 charsets
-            self.g1 = None
-
     def print(self, char):
         """Print a character at the current cursor position and advance
         the cursor.
         """
-        if self.current_charset == "g0" and self.g0 is not None:
-            char = char.translate(self.g0)
-        elif self.current_charset == "g1" and self.g1 is not None:
-            char = char.translate(self.g1)
-
         self.display[self.y][self.x] = char
         self.attributes[self.y][self.x] = self.cursor_attributes
 
