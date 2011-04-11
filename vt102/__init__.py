@@ -278,35 +278,45 @@ class screen(object):
     explicit commands, or it can be attached to a stream and will respond
     to events.
 
-    The screen buffer can be accessed through the screen's `display` property.
+    .. attribute:: display
+
+       A list of :class:`array.array` objects, holding screen buffer.
+
+    .. attribute:: attributes
+
+       A matrix of character attributes, is allways the same size as
+       :attr:`display`.
+
+    .. attribute:: margins
+
+       Top and bottom margins, defining the scrolling region; the actual
+       values are top and bottom line.
+
+    .. attribute:: default_attributes
+
+       Default colors and styling. The value of this attribute should
+       always be immutable, since shallow copies are made when resizing /
+       applying / deleting / printing.
+
+       Attributes are represented by a three-tuple that consists of the
+       following:
+
+       1. A tuple of all the text attributes: **bold**, `italic`, etc
+       2. Foreground color as a string, see :attr:`vt102.graphics.colors`
+       3. Background color as a string, see :attr:`vt102.graphics.colors`
     """
 
-    #: Default colors and styling. The value of this attribute should
-    #: always be immutable, since shallow copies are made when resizing /
-    #: applying / deleting / printing.
-    #:
-    #: Attributes are represented by a three-tuple that consists of the
-    #: following:
-    #:
-    #:     1. A tuple of all the text attributes: `bold`, `underline`, etc
-    #:     2. The foreground color as a string, see
-    #:        :attr:`vt102.graphics.colors`
-    #:     3. The background color as a string, see
-    #:        :attr:`vt102.graphics.colors`
     default_attributes = (), "default", "default"
 
-    #: Terminal dimensions and coordinates (we can declare them on the
-    #: class level since int-attributes are immutable anyway).
+    # Terminal dimensions and coordinates (we can declare them on the
+    # class level since int-attributes are immutable anyway).
     lines, columns, x, y = (0, ) * 4
-
-    #: Top and bottom margins, defining the scrolling region; the actual
-    #: values are top and bottom line.
-    margins = namedtuple("margins", "top bottom")(0, 0)
 
     def __init__(self, *size):
         self.display = []
         self.attributes = []
         self.tabstops = []
+        self.margins = namedtuple("margins", "top bottom")(0, 0)
 
         self.g0 = None
         self.g1 = None

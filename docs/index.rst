@@ -85,6 +85,9 @@ API
 .. automodule:: vt102.escape
     :members:
 
+.. automodule:: vt102.graphics
+    :members:
+
 .. automodule:: vt102.debug
     :members:
     :undoc-members:
