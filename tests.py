@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import unittest
 from array import array
 
@@ -183,7 +185,7 @@ class TestScreen(unittest.TestCase):
         s = vt102.screen(2, 2)
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
-        s._remove_text_attr("underline")
+        s.remove_text_attr("underline")
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
 
@@ -191,14 +193,14 @@ class TestScreen(unittest.TestCase):
         s = vt102.screen(2, 2)
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
-        s._select_graphic_rendition(1) # Bold
+        s.select_graphic_rendition(1) # Bold
 
         # Still default, since we haven't written anything.
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
         assert s.cursor_attributes == (("bold",), "default", "default")
 
-        s._print(u"f")
+        s.print(u"f")
         assert s.attributes == [
             [(("bold",), "default", "default"), s.default_attributes],
             [s.default_attributes, s.default_attributes]
@@ -208,29 +210,29 @@ class TestScreen(unittest.TestCase):
         s = vt102.screen(2, 2)
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
-        s._select_graphic_rendition(30) # black foreground
-        s._select_graphic_rendition(40) # black background
+        s.select_graphic_rendition(30) # black foreground
+        s.select_graphic_rendition(40) # black background
 
         assert s.cursor_attributes == ((), "black", "black")
-        s._select_graphic_rendition(31) # red foreground
+        s.select_graphic_rendition(31) # red foreground
         assert s.cursor_attributes == ((), "red", "black")
 
     def test_reset_resets_colors(self):
         s = vt102.screen(2, 2)
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
-        s._select_graphic_rendition(30) # black foreground
-        s._select_graphic_rendition(40) # black background
+        s.select_graphic_rendition(30) # black foreground
+        s.select_graphic_rendition(40) # black background
         assert s.cursor_attributes == ((), "black", "black")
-        s._select_graphic_rendition(0)
+        s.select_graphic_rendition(0)
         assert s.cursor_attributes == s.default_attributes
 
     def test_multi_attribs(self):
         s = vt102.screen(2, 2)
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
-        s._select_graphic_rendition(1) # Bold
-        s._select_graphic_rendition(5) # Blinke
+        s.select_graphic_rendition(1) # Bold
+        s.select_graphic_rendition(5) # Blinke
 
         assert s.cursor_attributes == (("bold", "blink"), "default", "default")
 
@@ -238,18 +240,18 @@ class TestScreen(unittest.TestCase):
         s = vt102.screen(2, 2)
         assert s.attributes == [[s.default_attributes,
                                  s.default_attributes]] * 2
-        s._select_graphic_rendition(1) # Bold
-        s._print(u"f")
-        s._print(u"o")
-        s._print(u"o")
+        s.select_graphic_rendition(1) # Bold
+        s.print(u"f")
+        s.print(u"o")
+        s.print(u"o")
         assert s.attributes == [
             [(("bold",), "default", "default"), (("bold",), "default", "default")],
             [(("bold",), "default", "default"), s.default_attributes],
         ]
 
-        s._home()
-        s._select_graphic_rendition(0) # Reset
-        s._print(u"f")
+        s.home()
+        s.select_graphic_rendition(0) # Reset
+        s.print(u"f")
         assert s.attributes == [
             [s.default_attributes, (("bold",), "default", "default")],
             [(("bold",), "default", "default"), s.default_attributes],
@@ -274,15 +276,15 @@ class TestScreen(unittest.TestCase):
 
     def test_print(self):
         s = vt102.screen(3, 3)
-        s._print(u"a")
-        s._print(u"b")
-        s._print(u"c")
+        s.print(u"a")
+        s.print(u"b")
+        s.print(u"c")
 
         assert s.display == _(["abc", "   ", "   "])
         assert s.cursor == (0, 1)
 
-        s._print(u"a")
-        s._print(u"b")
+        s.print(u"a")
+        s.print(u"b")
 
         assert s.display == _(["abc", "ab ", "   "])
         assert s.cursor == (2, 1)
@@ -290,7 +292,7 @@ class TestScreen(unittest.TestCase):
     def test_carriage_return(self):
         s = vt102.screen(3, 3)
         s.x = 2
-        s._carriage_return()
+        s.carriage_return()
 
         assert s.x == 0
 
@@ -300,33 +302,33 @@ class TestScreen(unittest.TestCase):
 
         # a) indexing on a row that isn't the last should just move
         # the cursor down.
-        screen._index()
+        screen.index()
         assert screen.cursor == (0, 1)
 
         # b) indexing on the last row should push everything up and
         # create a new row at the bottom.
-        screen._index()
+        screen.index()
         assert screen.display == _(["sh", "  "])
         assert screen.y == 1
 
         # c) same with margins
         screen = vt102.screen(5, 2)
-        screen._set_margins(1, 4)
+        screen.set_margins(1, 4)
         screen.display = _(["bo", "sh", "th", "er", "oh"])
         screen.y = 3
 
         # ... go!
-        screen._index()
+        screen.index()
         assert screen.display == _(["bo", "sh", "er", "  ", "oh"])
         assert screen.cursor == (0, 3)
 
         # ... and again ...
-        screen._index()
+        screen.index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
         assert screen.cursor == (0, 3)
 
         # ... and again -- look, nothing happens!
-        screen._index()
+        screen.index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
         assert screen.cursor == (0, 3)
 
@@ -336,35 +338,35 @@ class TestScreen(unittest.TestCase):
 
         # a) reverse indexing on the first row should push rows down
         # and create a new row at the top.
-        screen._reverse_index()
+        screen.reverse_index()
         assert screen.cursor == (0, 0)
         assert screen.display == _(["  ", "bo"])
 
         # b) once again ...
         screen.y = 1
-        screen._reverse_index()
+        screen.reverse_index()
 
         assert screen.display == _(["  ", "bo"])
         assert screen.cursor == (0, 0)
 
         # c) same with margins
         screen = vt102.screen(5, 2)
-        screen._set_margins(1, 4)
+        screen.set_margins(1, 4)
         screen.display = _(["bo", "sh", "th", "er", "oh"])
         screen.y = 2
 
         # ... go!
-        screen._reverse_index()
+        screen.reverse_index()
         assert screen.display == _(["bo", "sh", "  ", "th", "oh"])
         assert screen.cursor == (0, 2)
 
         # ... and again ...
-        screen._reverse_index()
+        screen.reverse_index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
         assert screen.cursor == (0, 2)
 
         # ... and again -- look, nothing happens!
-        screen._reverse_index()
+        screen.reverse_index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
         assert screen.cursor == (0, 2)
 
@@ -375,7 +377,7 @@ class TestScreen(unittest.TestCase):
         s = vt102.screen(2, 2)
         s.display = _(["bo", "sh"])
         s.x = 1; s.y = 0
-        s._linefeed()
+        s.linefeed()
 
         assert s.x == 0
         assert s.y == 1
@@ -383,37 +385,37 @@ class TestScreen(unittest.TestCase):
     def test_tabstops(self):
         s = vt102.screen(10, 10)
         s.x = 1
-        s._set_tab_stop()
+        s.set_tab_stop()
         s.x = 8
-        s._set_tab_stop()
+        s.set_tab_stop()
 
         s.x = 0
-        s._tab()
+        s.tab()
         assert s.x == 1
-        s._tab()
+        s.tab()
         assert s.x == 8
-        s._tab()
+        s.tab()
         assert s.x == 9
-        s._tab()
+        s.tab()
         assert s.x == 9
 
     def test_clear_tabstops(self):
         s = vt102.screen(10, 10)
         s.x = 1
-        s._set_tab_stop()
-        s._clear_tab_stop(0x30)
+        s.set_tab_stop()
+        s.clear_tab_stop(0x30)
 
         assert len(s.tabstops) == 0
 
-        s._set_tab_stop()
+        s.set_tab_stop()
         s.x = 5
-        s._set_tab_stop()
+        s.set_tab_stop()
         s.x = 9
-        s._set_tab_stop()
+        s.set_tab_stop()
 
         assert len(s.tabstops) == 3
 
-        s._clear_tab_stop(0x33)
+        s.clear_tab_stop(0x33)
 
         assert len(s.tabstops) == 0
 
@@ -437,27 +439,27 @@ class TestScreen(unittest.TestCase):
     def test_backspace(self):
         s = vt102.screen(2, 2)
         assert s.x == 0
-        s._backspace()
+        s.backspace()
         assert s.x == 0
         s.x = 1
-        s._backspace()
+        s.backspace()
         assert s.x == 0
 
     def test_save_cursor(self):
         s = vt102.screen(10, 10)
-        s._save_cursor()
+        s.save_cursor()
 
         s.x = 3
         s.y = 5
-        s._save_cursor()
+        s.save_cursor()
         s.x = 4
         s.y = 4
-        s._restore_cursor()
+        s.restore_cursor()
 
         assert s.x == 3
         assert s.y == 5
 
-        s._restore_cursor()
+        s.restore_cursor()
 
         assert s.x == 0
         assert s.y == 0
@@ -466,7 +468,7 @@ class TestScreen(unittest.TestCase):
         s = vt102.screen(10, 10)
         s.x = 5
         s.y = 5
-        s._restore_cursor()
+        s.restore_cursor()
 
         assert s.x == 5
         assert s.y == 5
@@ -478,7 +480,7 @@ class TestScreen(unittest.TestCase):
         assert s.x == 0
         assert s.y == 0
 
-        s._insert_line(1)
+        s.insert_line(1)
 
         assert s.display == _(["   ", "sam", "is "])
 
@@ -486,7 +488,7 @@ class TestScreen(unittest.TestCase):
         assert s.y == 0
 
         s.display = _(["sam", "is ", "foo"])
-        s._insert_line(2)
+        s.insert_line(2)
 
         assert s.display == _(["   ", "   ", "sam"])
 
@@ -495,11 +497,11 @@ class TestScreen(unittest.TestCase):
         s.display = _(["sam", "is ", "foo"])
         s.x = 0
         s.y = 0
-        s._delete_line(1)
+        s.delete_line(1)
 
         assert s.display == _(["is ", "foo", "   "])
 
-        s._delete_line(1)
+        s.delete_line(1)
 
         assert s.display == _(["foo", "   ", "   "])
 
@@ -508,25 +510,25 @@ class TestScreen(unittest.TestCase):
         s.display = _(["sam", "is ", "foo"])
         s.x = 0
         s.y = 0
-        s._delete_character(2)
+        s.delete_character(2)
 
         assert s.display == _(["m  ", "is ", "foo"])
 
         s.y = 2
         s.x = 2
-        s._delete_character(1)
+        s.delete_character(1)
 
         assert s.display == _(["m  ", "is ", "fo "])
 
     def test_erase_character(self):
         s = vt102.screen(3, 3)
         s.display = _(["sam", "is ", "foo"])
-        s._erase_character(2)
+        s.erase_character(2)
 
         assert s.display == _(["  m", "is ", "foo"])
 
         s.y, s.x = 2, 2
-        s._erase_character(1)
+        s.erase_character(1)
 
         assert s.display == _(["  m", "is ", "fo "])
 
@@ -541,7 +543,7 @@ class TestScreen(unittest.TestCase):
         s.y = 0
 
         # Erase from cursor to the end of line
-        s._erase_in_line(0)
+        s.erase_in_line(0)
         assert s.display == _(["sa   ",
                                "s foo",
                                "but a",
@@ -554,7 +556,7 @@ class TestScreen(unittest.TestCase):
                        "but a",
                        "re yo",
                        "u?   "])
-        s._erase_in_line(1)
+        s.erase_in_line(1)
         assert s.display == _(["    i",
                                "s foo",
                                "but a",
@@ -568,7 +570,7 @@ class TestScreen(unittest.TestCase):
                        "but a",
                        "re yo",
                        "u?   "])
-        s._erase_in_line(2)
+        s.erase_in_line(2)
         assert s.display == _(["sam i",
                                "     ",
                                "but a",
@@ -585,7 +587,7 @@ class TestScreen(unittest.TestCase):
         s.y = 2
 
         # Erase from the cursor to the end of the display.
-        s._erase_in_display(0)
+        s.erase_in_display(0)
         assert s.display == _(["sam i",
                                "s foo",
                                "     ",
@@ -599,7 +601,7 @@ class TestScreen(unittest.TestCase):
                        "but a",
                        "re yo",
                        "u?   "])
-        s._erase_in_display(1)
+        s.erase_in_display(1)
         assert s.display == _(["     ",
                                "     ",
                                "     ",
@@ -609,7 +611,7 @@ class TestScreen(unittest.TestCase):
 
         s.y = 1
         # Erase the entire screen
-        s._erase_in_display(2)
+        s.erase_in_display(2)
         assert s.display == _(["     ",
                                "     ",
                                "     ",
@@ -621,18 +623,18 @@ class TestScreen(unittest.TestCase):
         s = vt102.screen(10, 10)
 
         # Moving the cursor up at the top doesn't do anything
-        s._cursor_up(1)
+        s.cursor_up(1)
         assert s.y == 0
 
         s.y = 1
 
         # Moving the cursor past the top moves it to the top
-        s._cursor_up(10)
+        s.cursor_up(10)
         assert s.y == 0
 
         s.y = 5
         # Can move the cursor more than one up.
-        s._cursor_up(3)
+        s.cursor_up(3)
         assert s.y == 2
 
     def test_cursor_down(self):
@@ -640,18 +642,18 @@ class TestScreen(unittest.TestCase):
 
         # Moving the cursor down at the bottom doesn't do anything
         s.y = 9
-        s._cursor_down(1)
+        s.cursor_down(1)
         assert s.y == 9
 
         s.y = 8
 
         # Moving the cursor past the bottom moves it to the bottom
-        s._cursor_down(10)
+        s.cursor_down(10)
         assert s.y == 9
 
         s.y = 5
         # Can move the cursor more than one down.
-        s._cursor_down(3)
+        s.cursor_down(3)
         assert s.y == 8
 
     def test_cursor_back(self):
@@ -659,18 +661,18 @@ class TestScreen(unittest.TestCase):
 
         # Moving the cursor left at the margin doesn't do anything
         s.x = 0
-        s._cursor_back(1)
+        s.cursor_back(1)
         assert s.x == 0
 
         s.x = 3
 
         # Moving the cursor past the left margin moves it to the left margin
-        s._cursor_back(10)
+        s.cursor_back(10)
         assert s.x == 0
 
         s.x = 5
         # Can move the cursor more than one back.
-        s._cursor_back(3)
+        s.cursor_back(3)
         assert s.x == 2
 
     def test_cursor_forward(self):
@@ -678,40 +680,40 @@ class TestScreen(unittest.TestCase):
 
         # Moving the cursor right at the margin doesn't do anything
         s.x = 9
-        s._cursor_forward(1)
+        s.cursor_forward(1)
         assert s.x == 9
 
         # Moving the cursor past the right margin moves it to the right margin
         s.x = 8
-        s._cursor_forward(10)
+        s.cursor_forward(10)
         assert s.x == 9
 
         # Can move the cursor more than one forward.
         s.x = 5
-        s._cursor_forward(3)
+        s.cursor_forward(3)
         assert s.x == 8
 
     def test_cursor_position(self):
         s = vt102.screen(10, 10)
 
         # Rows/columns are backwards of x/y and are 1-indexed instead of 0-indexed
-        s._cursor_position(5, 10)
+        s.cursor_position(5, 10)
         assert (s.x, s.y) == (9, 4)
 
         # Confusingly enough, however, 0-inputs are acceptable and should be
         # the same a 1
-        s._cursor_position(0, 10)
+        s.cursor_position(0, 10)
         assert (s.x, s.y) == (9, 0)
 
         # Moving outside the margins constrains to within the margins.
-        s._cursor_position(20, 20)
+        s.cursor_position(20, 20)
         assert (s.x, s.y) == (9, 9)
 
     def test_home(self):
         s = vt102.screen(10, 10)
         s.x = 5
         s.y = 5
-        s._home()
+        s.home()
 
         assert s.x == 0
         assert s.y == 0

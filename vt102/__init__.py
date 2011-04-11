@@ -335,42 +335,42 @@ class screen(object):
         processes data.
         """
         handlers = [
-            ("reset", self._reset),
-            ("print", self._print),
-            ("backspace", self._backspace),
-            ("tab", self._tab),
-            ("linefeed", self._linefeed),
-            ("reverse-linefeed", self._reverse_linefeed),
-            ("carriage-return", self._carriage_return),
-            ("save-cursor", self._save_cursor),
-            ("restore-cursor", self._restore_cursor),
-            ("cursor-up", self._cursor_up),
-            ("cursor-down", self._cursor_down),
-            ("cursor-forward", self._cursor_forward),
-            ("cursor-back", self._cursor_back),
-            ("cursor-down1", self._cursor_down1),
-            ("cursor-up1", self._cursor_up1),
-            ("cursor-position", self._cursor_position),
-            ("cursor-to-column", self._cursor_to_column),
-            ("cursor-to-line", self._cursor_to_line),
-            ("erase-in-line", self._erase_in_line),
-            ("erase-in-display", self._erase_in_display),
-            ("insert-lines", self._insert_line),
-            ("delete-lines", self._delete_line),
-            ("delete-characters", self._delete_character),
-            ("erase-characters", self._erase_character),
-            ("shift-in", self._shift_in),
-            ("shift-out", self._shift_out),
-            ("select-graphic-rendition", self._select_graphic_rendition),
-            ("bell", self._bell),
-            ("set-tab-stop", self._set_tab_stop),
-            ("clear-tab-stop", self._clear_tab_stop),
-            ("set-margins", self._set_margins),
-            ("answer", self._answer),
+            ("reset", self.reset),
+            ("print", self.print),
+            ("backspace", self.backspace),
+            ("tab", self.tab),
+            ("linefeed", self.linefeed),
+            ("reverse-linefeed", self.reverse_linefeed),
+            ("carriage-return", self.carriage_return),
+            ("save-cursor", self.save_cursor),
+            ("restore-cursor", self.restore_cursor),
+            ("cursor-up", self.cursor_up),
+            ("cursor-down", self.cursor_down),
+            ("cursor-forward", self.cursor_forward),
+            ("cursor-back", self.cursor_back),
+            ("cursor-down1", self.cursor_down1),
+            ("cursor-up1", self.cursor_up1),
+            ("cursor-position", self.cursor_position),
+            ("cursor-to-column", self.cursor_to_column),
+            ("cursor-to-line", self.cursor_to_line),
+            ("erase-in-line", self.erase_in_line),
+            ("erase-in-display", self.erase_in_display),
+            ("insert-lines", self.insert_line),
+            ("delete-lines", self.delete_line),
+            ("delete-characters", self.delete_character),
+            ("erase-characters", self.erase_character),
+            ("shift-in", self.shift_in),
+            ("shift-out", self.shift_out),
+            ("select-graphic-rendition", self.select_graphic_rendition),
+            ("bell", self.bell),
+            ("set-tab-stop", self.set_tab_stop),
+            ("clear-tab-stop", self.clear_tab_stop),
+            ("set-margins", self.set_margins),
+            ("answer", self.answer),
 
             # Not implemented
             # ...............
-            # ("insert-characters", self._insert_characters)
+            # ("insert-characters", self.insert_characters)
             # ("set-mode", ...)
             # ("reset-mode", ...)
             # ("status-report", ...)
@@ -438,11 +438,11 @@ class screen(object):
 
         self.lines, self.columns = lines, columns
 
-    def _set_margins(self, top=0, bottom=0):
+    def set_margins(self, top=0, bottom=0):
         """Selects top and bottom margins, defining the scrolling region.
 
         The margins determine which screen lines move during scrolling
-        (see :meth:`_index` and :meth:`_reversed_index`). Characters
+        (see :meth:`index` and :meth:`reversed_index`). Characters
         added outside the scrolling region do not cause the screen to
         scroll.
         """
@@ -451,42 +451,42 @@ class screen(object):
             self.margins = namedtuple("margins", "top bottom")(top, bottom)
             # The cursor moves to the home position when the top and
             # bottom margins of the scrolling region (DECSTBM) changes.
-            self._home()
+            self.home()
 
-    def _answer(self):
-        map(self._print, u"%s6c" % ctrl.CSI)
+    def answer(self):
+        map(self.print, u"%s6c" % ctrl.CSI)
 
-    def _reset(self):
+    def reset(self):
         """Resets the terminal to its initial state."""
         size = self.lines, self.columns
         self.lines, self.columns = 0, 0
         self.display = []
         self.resize(*size)
 
-        self._home()
-        self._set_margins()
+        self.home()
+        self.set_margins()
 
-    def _shift_in(self):
+    def shift_in(self):
         self.current_charset = "g0"
 
-    def _shift_out(self):
+    def shift_out(self):
         self.current_charset = "g1"
 
-    def _charset_g0(self, cs):
+    def charset_g0(self, cs):
         if cs == '0':
             self.g0 = dsg
         else:
             # TODO: Officially support UK/US/intl8 charsets
             self.g0 = None
 
-    def _charset_g1(self, cs):
+    def charset_g1(self, cs):
         if cs == '0':
             self.g1 = dsg
         else:
             # TODO: Officially support UK/US/intl8 charsets
             self.g1 = None
 
-    def _print(self, char):
+    def print(self, char):
         """Print a character at the current cursor position and advance
         the cursor.
         """
@@ -505,13 +505,13 @@ class screen(object):
         # If this was the last column in a line, move the cursor to
         # the next line.
         if self.x == self.columns:
-            self._linefeed()
+            self.linefeed()
 
-    def _carriage_return(self):
+    def carriage_return(self):
         """Move the cursor to the beginning of the current line."""
-        self._cursor_to_column(0)
+        self.cursor_to_column(0)
 
-    def _index(self):
+    def index(self):
         """Move the cursor down one line in the same column. If the
         cursor is at the last line, create a new line at the bottom.
         """
@@ -523,9 +523,9 @@ class screen(object):
             self.display.pop(top)
             self.display.insert(bottom, array("u", u" " * self.columns))
         else:
-            self._cursor_down()
+            self.cursor_down()
 
-    def _reverse_index(self):
+    def reverse_index(self):
         """Move the cursor up one line in the same column. If the cursor
         is at the first line, create a new line at the top.
         """
@@ -537,19 +537,19 @@ class screen(object):
             self.display.pop(bottom)
             self.display.insert(top, array("u", u" " * self.columns))
         else:
-            self._cursor_up()
+            self.cursor_up()
 
-    def _linefeed(self):
+    def linefeed(self):
         """Performs an index and then a carriage return."""
-        self._index()
-        self._carriage_return()
+        self.index()
+        self.carriage_return()
 
-    def _reverse_linefeed(self):
+    def reverse_linefeed(self):
         """Performs a reverse index and then a carriage return."""
-        self._reverse_index()
-        self._carriage_return()
+        self.reverse_index()
+        self.carriage_return()
 
-    def _next_tab_stop(self):
+    def next_tab_stop(self):
         """Return the x value of the next available tabstop or the x
         value of the margin if there are no more tabstops.
         """
@@ -558,26 +558,26 @@ class screen(object):
                 return stop
         return self.columns - 1
 
-    def _tab(self):
+    def tab(self):
         """Move to the next tab space, or the end of the screen if there
         aren't anymore left.
         """
-        self.x = self._next_tab_stop()
+        self.x = self.next_tab_stop()
 
-    def _backspace(self):
+    def backspace(self):
         """Move cursor to the left one or keep it in it's position if
         it's at the beginning of the line already.
         """
-        self._cursor_back()
+        self.cursor_back()
 
-    def _save_cursor(self):
+    def save_cursor(self):
         """Push the current cursor position onto the stack.
 
-        .. todo:: Save whole screen, not just cursor positions.
+        .. todo:: save whole screen, not just cursor positions.
         """
         self.cursor_save_stack.append(self.cursor)
 
-    def _restore_cursor(self):
+    def restore_cursor(self):
         """Set the current cursor position to whatever cursor is on top
         of the stack.
         """
@@ -585,7 +585,7 @@ class screen(object):
             # .. todo:: use _cursor_position()
             self.x, self.y = self.cursor_save_stack.pop()
 
-    def _insert_line(self, count=1):
+    def insert_line(self, count=1):
         """Inserts `count` lines at line with cursor. Lines displayed
         below cursor move down. Lines moved past the bottom margin are
         lost.
@@ -600,7 +600,7 @@ class screen(object):
         while len(self.display) > self.lines:
             self.display.pop(-1)
 
-    def _delete_line(self, count=1):
+    def delete_line(self, count=1):
         """Deletes the indicated # of lines, starting at line with
         cursor. As lines are deleted, lines displayed below cursor
         move up. Lines added to bottom of screen have spaces with same
@@ -618,7 +618,7 @@ class screen(object):
             self.display.append(array("u", initial))
             self.attributes.append(copy(self.attributes[-1]))
 
-    def _delete_character(self, count=1):
+    def delete_character(self, count=1):
         """Deletes the indicated # of characters, starting with the
         character at cursor position. When a character is deleted, all
         characters to the right of cursor move left.
@@ -639,7 +639,7 @@ class screen(object):
                                    attrs[self.x + count:] +
                                    [self.default_attributes] * count)
 
-    def _erase_character(self, count=1):
+    def erase_character(self, count=1):
         """Erases the indicated # of characters, starting with the
         character at cursor position.
 
@@ -650,14 +650,14 @@ class screen(object):
             self.display[self.y][column] = u" "
             self.attributes[self.y][column] = self.default_attributes
 
-    def _erase_in_line(self, type_of=0):
+    def erase_in_line(self, type_of=0):
         """Erases a line in a specific way, depending on the ``type_of``
         value:
 
         * ``0`` -- Erases from cursor to end of line, including cursor
-                   position.
+          position.
         * ``1`` -- Erases from beginning of line to cursor, including cursor
-                   position.
+          position.
         * ``2`` -- Erases complete line.
         """
         line = self.display[self.y]
@@ -682,16 +682,16 @@ class screen(object):
             self.display[self.y] = array("u", u" " * self.columns)
             self.attributes[self.y] = [self.default_attributes] * self.columns
 
-    def _erase_in_display(self, type_of=0):
+    def erase_in_display(self, type_of=0):
         """Erases display in a specific way, depending on the ``type_of``
         value:
 
         * ``0`` -- Erases from cursor to end of screen, including cursor
-                   position.
+          position.
         * ``1`` -- Erases from beginning of screen to cursor, including
-                   cursor position.
+          cursor position.
         * ``2`` -- Erases complete display. All lines are erased and
-                   changed to single-width. Cursor does not move.
+          changed to single-width. Cursor does not move.
         """
         initial = u" " * self.columns
         interval = (
@@ -709,11 +709,18 @@ class screen(object):
             self.display[line] = array("u", initial)
             self.attributes[line] = [self.default_attributes] * self.columns
 
-    def _set_tab_stop(self):
+    def set_tab_stop(self):
         """Sest a horizontal tab stop at cursor position."""
         self.tabstops.append(self.x)
 
-    def _clear_tab_stop(self, type_of=0x33):
+    def clear_tab_stop(self, type_of=0x30):
+        """Clears a horizontal tab stop in a specific way, depending
+        on the ``type_of`` value:
+
+        * ``0`` or nothing -- Clears a horizontal tab stop at cursor
+          position.
+        * ``3`` -- Clears all horizontal tab stops.
+        """
         if type_of == 0x30:
             # Clears a horizontal tab stop at cursor position.
             try:
@@ -726,57 +733,57 @@ class screen(object):
             # Clears all horizontal tab stops
             self.tabstops = []
 
-    def _cursor_up(self, count=1):
+    def cursor_up(self, count=1):
         """Moves cursor up the indicated # of lines in same column.
         Cursor stops at top margin.
 
         :param count: number of lines to skip.
         """
-        self._cursor_to_line(self.y - count, within_margins=True)
+        self.cursor_to_line(self.y - count, within_margins=True)
 
-    def _cursor_up1(self, count=1):
+    def cursor_up1(self, count=1):
         """Moves cursor up the indicated # of lines to column 1. Cursor
         stops at bottom margin.
 
         :param count: number of lines to skip.
         """
-        self._cursor_up(count)
-        self._carriage_return()
+        self.cursor_up(count)
+        self.carriage_return()
 
-    def _cursor_down(self, count=1):
+    def cursor_down(self, count=1):
         """Moves cursor down the indicated # of lines in same column.
         Cursor stops at bottom margin.
 
         :param count: number of lines to skip.
         """
-        self._cursor_to_line(self.y + count, within_margins=True)
+        self.cursor_to_line(self.y + count, within_margins=True)
 
-    def _cursor_down1(self, count=1):
+    def cursor_down1(self, count=1):
         """Moves cursor down the indicated # of lines to column 1.
         Cursor stops at bottom margin.
 
         :param count: number of lines to skip.
         """
-        self._cursor_down(count)
-        self._carriage_return()
+        self.cursor_down(count)
+        self.carriage_return()
 
-    def _cursor_back(self, count=1):
+    def cursor_back(self, count=1):
         """Moves cursor left the indicated # of columns. Cursor stops
         at left margin.
 
         :param count: number of columns to skip.
         """
-        self._cursor_to_column(self.x - count)
+        self.cursor_to_column(self.x - count)
 
-    def _cursor_forward(self, count=1):
+    def cursor_forward(self, count=1):
         """Moves cursor right the indicated # of columns. Cursor stops
         at right margin.
 
         :param count: number of columns to skip.
         """
-        self._cursor_to_column(self.x + count)
+        self.cursor_to_column(self.x + count)
 
-    def _cursor_position(self, line=0, column=0):
+    def cursor_position(self, line=0, column=0):
         """Set the cursor to a specific `line` and `column`.
 
         .. note::
@@ -786,10 +793,10 @@ class screen(object):
            are still acceptable, and should move to the beginning of
            the line or column as if they were 1 -- *sigh*.
         """
-        self._cursor_to_line((line or 1) - 1)
-        self._cursor_to_column((column or 1) - 1)
+        self.cursor_to_line((line or 1) - 1)
+        self.cursor_to_column((column or 1) - 1)
 
-    def _cursor_to_column(self, column=0):
+    def cursor_to_column(self, column=0):
         """Set the cursor to a specific column in the current line.
 
         :param column: column number to move the cursor to (starts
@@ -797,7 +804,7 @@ class screen(object):
         """
         self.x = min(max(0, column), self.columns - 1)
 
-    def _cursor_to_line(self, line=0, within_margins=False):
+    def cursor_to_line(self, line=0, within_margins=False):
         """Set the cursor to a specific line in the current column.
 
         :param line: line number to move the cursor to (starts with ``0``).
@@ -807,30 +814,34 @@ class screen(object):
         """
         self.y = min(max(0, line), self.lines - 1)
 
-    def _home(self):
+    def home(self):
         """Set the cursor to the left upper corner ``(0, 0)``.
 
         .. todo:: add support for `origin` mode (``DECOM``).
         """
-        self._cursor_position(0, 0)
+        self.cursor_position(0, 0)
 
-    def _bell(self, *attrs):
+    def bell(self, *attrs):
         """Bell stub -- the actual implementation should probably be
         provided by the end-user.
         """
-    def _remove_text_attr(self, attr):
+
+    # The following methods weren't tested properly yet.
+    # ..................................................
+
+    def remove_text_attr(self, attr):
         current = set(self.cursor_attributes[0])
         if attr in current:
             current.remove(attr)
         return tuple(current) + self.cursor_attributes[1:]
 
-    def _add_text_attr(self, attr):
+    def add_text_attr(self, attr):
         current = set(self.cursor_attributes[0])
         current.add(attr)
         attrs = self.cursor_attributes[1:]
         return (tuple(current), attrs[0], attrs[1])
 
-    def _text_attr(self, attr):
+    def text_attr(self, attr):
         """
         Given a text attribute, set the current cursor appropriately.
         """
@@ -838,15 +849,15 @@ class screen(object):
         if attr == "reset":
             self.cursor_attributes = self.default_attributes
         elif attr == "underline-off":
-            self.cursor_attributes = self._remove_text_attr("underline")
+            self.cursor_attributes = self.remove_text_attr("underline")
         elif attr == "blink-off":
-            self.cursor_attributes = self._remove_text_attr("blink")
+            self.cursor_attributes = self.remove_text_attr("blink")
         elif attr == "reverse-off":
-            self.cursor_attributes = self._remove_text_attr("reverse")
+            self.cursor_attributes = self.remove_text_attr("reverse")
         else:
-            self.cursor_attributes = self._add_text_attr(attr)
+            self.cursor_attributes = self.add_text_attr(attr)
 
-    def _color_attr(self, ground, attr):
+    def color_attr(self, ground, attr):
         """
         Given a color attribute, set the current cursor appropriately.
         """
@@ -857,19 +868,19 @@ class screen(object):
         elif ground == "background":
             self.cursor_attributes = (attrs[0], attrs[1], attr)
 
-    def _set_attr(self, attr):
+    def set_attr(self, attr):
         """
         Given some text attribute, set the current cursor attributes
         appropriately.
         """
         if attr in text:
-            self._text_attr(attr)
+            self.text_attr(attr)
         elif attr in colors["foreground"]:
-            self._color_attr("foreground", attr)
+            self.color_attr("foreground", attr)
         elif attr in colors["background"]:
-            self._color_attr("background", attr)
+            self.color_attr("background", attr)
 
-    def _select_graphic_rendition(self, *attrs):
+    def select_graphic_rendition(self, *attrs):
         """
         Set the current text attribute.
         """
@@ -879,4 +890,4 @@ class screen(object):
             attrs = [0]
 
         for attr in attrs:
-            self._set_attr(attr)
+            self.set_attr(attr)
