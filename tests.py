@@ -275,15 +275,18 @@ class TestScreen(unittest.TestCase):
 
     def test_print(self):
         s = screen(3, 3)
-        s._print(u"s")
-
-        assert s.display == _(["s  ", "   ", "   "])
-        assert s.cursor() == (1, 0)
-
-        s.x = 1; s.y = 1
         s._print(u"a")
+        s._print(u"b")
+        s._print(u"c")
 
-        assert s.display == _(["s  ", " a ", "   "])
+        assert s.display == _(["abc", "   ", "   "])
+        assert s.cursor() == (0, 1)
+
+        s._print(u"a")
+        s._print(u"b")
+
+        assert s.display == _(["abc", "ab ", "   "])
+        assert s.cursor() == (2, 1)
 
     def test_carriage_return(self):
         s = screen(3, 3)
@@ -462,7 +465,7 @@ class TestScreen(unittest.TestCase):
 
         assert s.display == _(["foo", "   ", "   "])
 
-    def test_delete_characters(self):
+    def test_delete_character(self):
         s = screen(3, 3)
         s.display = _(["sam", "is ", "foo"])
         s.x = 0
@@ -476,6 +479,18 @@ class TestScreen(unittest.TestCase):
         s._delete_character(1)
 
         assert s.display == _(["m  ", "is ", "fo "])
+
+    def test_erase_character(self):
+        s = screen(3, 3)
+        s.display = _(["sam", "is ", "foo"])
+        s._erase_character(2)
+
+        assert s.display == _(["  m", "is ", "foo"])
+
+        s.y, s.x = 2, 2
+        s._erase_character(1)
+
+        assert s.display == _(["  m", "is ", "fo "])
 
     def test_erase_in_line(self):
         s = screen(5, 5)
@@ -643,19 +658,16 @@ class TestScreen(unittest.TestCase):
 
         # Rows/columns are backwards of x/y and are 1-indexed instead of 0-indexed
         s._cursor_position(5, 10)
-        assert s.x == 9
-        assert s.y == 4
+        assert (s.x, s.y) == (9, 4)
 
         # Confusingly enough, however, 0-inputs are acceptable and should be
         # the same a 1
         s._cursor_position(0, 10)
-        assert s.x == 9
-        assert s.y == 0
+        assert (s.x, s.y) == (9, 0)
 
         # Moving outside the margins constrains to within the margins.
         s._cursor_position(20, 20)
-        assert s.x == 9
-        assert s.y == 9
+        assert (s.x, s.y) == (9, 9)
 
     def test_home(self):
         s = screen(10, 10)

@@ -65,16 +65,16 @@ CNL = 0x45
 """Move cursor up the indicated # of lines to column 1."""
 CPL = 0x46
 
-"""Move cursor to the indicated column in current row."""
+"""Move cursor to the indicated column in current line."""
 CHA = 0x47
 
-"""Move cursor to the indicated row, column  (origin at ``1, 1``)."""
+"""Move cursor to the indicated line, column  (origin at ``1, 1``)."""
 CUP = 0x48
 
 """Erase data (default: from cursor to end of line)."""
 ED = 0x4A
 
-"""Erase in line (default: from cursor to end of line)."""s
+"""Erase in line (default: from cursor to end of line)."""
 EL = 0x4B
 
 """Insert the indicated # of blank lines, starting from the current
@@ -92,6 +92,9 @@ DL = 0x4D
 character is deleted, all characters to the right of cursor move left.
 """
 DCH = 0x50
+
+"""Erase the indicated # of characters on the current line."""
+ECH = 0x58
 
 """Same as data:`CUF`."""
 HPR = 0x61
@@ -150,5 +153,5 @@ DECSTBM = 0x72
 """Same as :data:`CHA`."""
 HPA = 0x60
 
-# .. todo: missing -- ``ECH``, ``DECLL``, ``DECSTBM`` and many-many-MANY
+# .. todo: missing -- ``DECLL``, ``DECSTBM`` and many-many-MANY
 #          more ...
