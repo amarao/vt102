@@ -75,46 +75,58 @@ class stream(object):
 
     #: Basic characters, which don't require any arguments.
     basic = {
+        ctrl.BEL: "bell",
         ctrl.BS: "backspace",
         ctrl.HT: "tab",
         ctrl.LF: "linefeed",
         ctrl.VT: "linefeed",
         ctrl.FF: "linefeed",
         ctrl.CR: "carriage-return",
-        ctrl.SI: "shift-in",
         ctrl.SO: "shift-out",
-        ctrl.BELL: "bell",
+        ctrl.SI: "shift-in",
     }
 
     #: non-CSI escape squences.
     escape = {
-        esc.IND: "index",
-        esc.RI: "reverse-index",
-        esc.NEL: "linefeed",
-        esc.DECSC: "store-cursor",
-        esc.DECRC: "restore-cursor",
-        esc.RLF: "reverse-linefeed",
+        esc.RIS: "reset",
+        esc.IND: "linefeed",
+        esc.NEL: "newline",
+        esc.RI: "reverse-linefeed",
         esc.HTS: "set-tab-stop"
+        esc.DECSC: "save-cursor",
+        esc.DECRC: "restore-cursor",
     }
 
     #: CSI escape sequences.
     sequence = {
+        exc.ICH: "insert-characters",
         esc.CUU: "cursor-up",
         esc.CUD: "cursor-down",
         esc.CUF: "cursor-right",
         esc.CUB: "cursor-left",
-        esc.CUP: "cursor-move",
-        esc.HVP: "cursor-move",
-        esc.EL: "erase-in-line",
+        esc.CNL: "cursor-down1",
+        esc.CPL: "cursor-up1",
+        esc.CHA: "cursor-to-column",
+        esc.CUP: "cursor-position",
         esc.ED: "erase-in-display",
-        esc.DCH: "delete-characters",
+        esc.EL: "erase-in-line",
         esc.IL: "insert-lines",
         esc.DL: "delete-lines",
+        esc.DCH: "delete-characters",
+        exc.DA: "answer",
+
+        # Aliases.
+        esc.HPR: "cursor-right",
+        esc.VPA: "cursor-to-line",
+        esc.VPR: "cursor-down",
+        esc.HVP: "cursor-position",
+        esc.TBC: "clear-tab-stop",
+        esc.SM: "set-mode",
+        esc.RM: "reset-mode",
         esc.SGR: "select-graphic-rendition",
+        esc.DSR: "status-report",
         esc.DECSTBM: "set-margins",
-        esc.IRMI: "set-insert",
-        esc.IRMR: "set-replace",
-        esc.TBC: "clear-tab-stop"
+        esc.HPA: "cursor-to-column"
     }
 
     def __init__(self):
@@ -334,13 +346,13 @@ class screen(object):
             events.connect("carriage-return", self._carriage_return)
             events.connect("index", self._index)
             events.connect("reverse-index", self._reverse_index)
-            events.connect("store-cursor", self._save_cursor)
+            events.connect("save-cursor", self._save_cursor)
             events.connect("restore-cursor", self._restore_cursor)
             events.connect("cursor-up", self._cursor_up)
             events.connect("cursor-down", self._cursor_down)
             events.connect("cursor-right", self._cursor_forward)
             events.connect("cursor-left", self._cursor_back)
-            events.connect("cursor-move", self._cursor_position)
+            events.connect("cursor-position", self._cursor_position)
             events.connect("erase-in-line", self._erase_in_line)
             events.connect("erase-in-display", self._erase_in_display)
             events.connect("delete-characters", self._delete_character)
