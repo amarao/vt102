@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import os
+import subprocess
+import sys
 
 try:
-    from setuptools import find_packages, setup
+    from setuptools import find_packages, setup, Command
 except ImportError:
-    from distutils.core import find_packages, setup
+    from distutils.core import find_packages, setup, Command
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -28,9 +30,29 @@ CLASSIFIERS = (
     "Topic :: Terminals :: Terminal Emulators/X Terminals",
 )
 
+
+class PyTest(Command):
+    """Unfortunately :mod:`setuptools` support only :mod:`unittest`
+    based tests, thus, we have to overider build-in ``test`` command
+    to run :mod:`pytest`.
+
+    .. note::
+
+       Please pack your tests, using ``py.test --genscript=runtests.py``
+       before commiting, this will eliminate `pytest` dependency.
+    """
+    user_options = []
+    initialize_options = finalize_options = lambda self: None
+
+    def run(self):
+        errno = subprocess.call([sys.executable, "runtests.py"])
+        raise SystemExit(errno)
+
+
 setup(name="vt102",
       version="0.3.4",
       packages=find_packages(),
+      cmdclass={"test": PyTest},
       platforms=["any"],
 
       author="Sam Gibson",
@@ -40,5 +62,4 @@ setup(name="vt102",
       classifiers=CLASSIFIERS,
       keywords=["vt102", "terminal emulator", "screen scraper"],
       url="https://github.com/samfoo/vt102",
-      test_suite="tests",
 )
