@@ -26,7 +26,7 @@ class TestStream(unittest.TestCase):
     def test_multi_param(self):
         s = vt102.stream()
         s.state = "escape-lb"
-        s.process("5;25")
+        s.feed("5;25")
         assert s.params == [5]
         assert s.current_param == "25"
 
@@ -42,7 +42,7 @@ class TestStream(unittest.TestCase):
         input = "\000" + chr(ctrl.ESC) + "[5" + chr(esc.CUD)
         e = argcheck()
         s.connect("cursor-down", e)
-        s.process(input)
+        s.feed(input)
 
         assert e.count == 1
         assert s.state == "stream"
@@ -57,7 +57,7 @@ class TestStream(unittest.TestCase):
 
         s, e = vt102.stream(), argcheck()
         s.connect("cursor-up", e)
-        s.process(u"\000" + unichr(ctrl.ESC) + u"[5" + unichr(esc.CUU))
+        s.feed(u"\000" + unichr(ctrl.ESC) + u"[5" + unichr(esc.CUU))
 
         assert e.count == 1
         assert s.state == "stream"
@@ -82,7 +82,7 @@ class TestStream(unittest.TestCase):
         # making sure it won't ever happen again :)
         # a) TERM=vt102
         try:
-            s.process(
+            s.feed(
                 u"\x1b[3g\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bHLF"
                 u"\x1b>\x1b[?3l\x1b[?4l\x1b[?5l\x1b[?7h\x1b[?8h"
             )
@@ -91,7 +91,7 @@ class TestStream(unittest.TestCase):
 
         # b) TERM=xterm
         try:
-            s.process(
+            s.feed(
                 u"\x1b[3g\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bHLF"
                 u"\x1bc\x1b[!p\x1b[?3;4l\x1b[4l\x1b>"
             )
@@ -100,7 +100,7 @@ class TestStream(unittest.TestCase):
 
         # c) TERM=linux
         try:
-            s.process(
+            s.feed(
                 u"\x1b[3g\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bH\x1bHLF"
                 u"\x1bc\x1b]R"
             )
@@ -116,8 +116,8 @@ class TestStream(unittest.TestCase):
         st.debug = False
 
         try:
-            st.process(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
-            st.process(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
+            st.feed(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
+            st.feed(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
         except Exception as e:
             self.fail("No exception should've raised, got: %s" % e)
         else:
@@ -128,8 +128,8 @@ class TestStream(unittest.TestCase):
         st.debug = True
 
         try:
-            st.process(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
-            st.process(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
+            st.feed(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
+            st.feed(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
         except Exception as e:
             self.fail("No exception should've raised, got: %s" % e)
         else:
@@ -164,7 +164,7 @@ class TestStream(unittest.TestCase):
 
         c = self.counter()
         s.connect("linefeed", c)
-        s.process(chr(ctrl.LF) + chr(ctrl.VT) + chr(ctrl.FF))
+        s.feed(chr(ctrl.LF) + chr(ctrl.VT) + chr(ctrl.FF))
 
         assert c.count == 3
         assert s.state == "stream"
@@ -741,7 +741,7 @@ class TestScreen(unittest.TestCase):
         _screen.attach(s)
 
         try:
-            s.process(u"тест")
+            s.feed(u"тест")
         except UnicodeDecodeError:
             self.fail("Check your code -- we do accept unicode.")
 

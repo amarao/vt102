@@ -217,7 +217,7 @@ class stream(object):
 
         handler and handler(char)
 
-    def process(self, chars):
+    def feed(self, chars):
         """Consume a string of chars and advance the state as necessary."""
         map(self.consume, chars)
 
