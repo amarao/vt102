@@ -42,7 +42,7 @@ class stream(object):
     >>> dummy = dummy()
     >>> stream = vt102.stream()
     >>> stream.connect("cursor-up", dummy.up)
-    >>> stream.process("\\x\\00\\1b[5A") # Move the cursor up 5 rows.
+    >>> stream.process(u"\u001B[5A") # Move the cursor up 5 rows.
     >>> dummy.foo
     5
 
@@ -301,7 +301,7 @@ class screen(object):
 
     #: Top and bottom margins, defining the scrolling region; the actual
     #: values are top and bottom line.
-    margins = namedtuple("margins", "x y")(0, 0)
+    margins = namedtuple("margins", "top bottom")(0, 0)
 
     def __init__(self, *size):
         self.display = []
@@ -438,7 +438,19 @@ class screen(object):
         self.lines, self.columns = lines, columns
 
     def _set_margins(self, top=0, bottom=0):
-        self.margins.top, self.margins.bottom = 0, 0
+        """Selects top and bottom margins, defining the scrolling region.
+
+        The margins determine which screen lines move during scrolling
+        (see :meth:`_index` and :meth:`_reversed_index`). Characters
+        added outside the scrolling region do not cause the screen to
+        scroll.
+        """
+        # The minimum size of the scrolling region is two lines.
+        if bottom - top >= 2:
+            self.margins = namedtuple("margins", "top bottom")(top, bottom)
+            # The cursor moves to the home position when the top and
+            # bottom margins of the scrolling region (DECSTBM) changes.
+            self._home()
 
     def _answer(self):
         map(self._print, u"%s6c" % ctrl.CSI)
@@ -502,11 +514,13 @@ class screen(object):
         """Move the cursor down one line in the same column. If the
         cursor is at the last line, create a new line at the bottom.
         """
-        if self.y == self.lines - 1:
-            top, bottom = self.margins
-            self.display.pop(top + 1)
-            self.display.insert(bottom - 1,
-                                array("u", u" " * self.columns))
+        top = self.margins.top + 1 if self.margins.top else 0
+        bottom = (self.margins.bottom if self.margins.bottom else
+                  self.lines) - 1
+
+        if self.y == bottom:
+            self.display.pop(top)
+            self.display.insert(bottom, array("u", u" " * self.columns))
         else:
             self._cursor_down()
 
@@ -514,10 +528,13 @@ class screen(object):
         """Move the cursor up one line in the same column. If the cursor
         is at the first line, create a new line at the top.
         """
-        if not self.y:
-            top, bottom = self.margins
-            self.display.insert(top + 1, array("u", u" " * self.columns))
-            self.display.pop(bottom - 1)
+        top = self.margins.top + 1 if self.margins.top else 0
+        bottom = (self.margins.bottom if self.margins.bottom else
+                  self.lines) - 1
+
+        if self.y == top:
+            self.display.pop(bottom)
+            self.display.insert(top, array("u", u" " * self.columns))
         else:
             self._cursor_up()
 
@@ -690,12 +707,16 @@ class screen(object):
     def _cursor_up(self, count=1):
         """Moves cursor up count lines in same column. Cursor stops
         at top margin.
+
+        :param count: number of lines to skip.
         """
-        self._cursor_to_line(self.y - count)
+        self._cursor_to_line(self.y - count, within_margins=True)
 
     def _cursor_up1(self, count=1):
         """Moves cursor up count lines to column 1. Cursor stops at
         bottom margin.
+
+        :param count: number of lines to skip.
         """
         self._cursor_up(count)
         self._carriage_return()
@@ -703,12 +724,16 @@ class screen(object):
     def _cursor_down(self, count=1):
         """Moves cursor down count lines in same column. Cursor stops
         at bottom margin.
+
+        :param count: number of lines to skip.
         """
-        self._cursor_to_line(self.y + count)
+        self._cursor_to_line(self.y + count, within_margins=True)
 
     def _cursor_down1(self, count=1):
         """Moves cursor down count lines to column 1. Cursor stops at
         bottom margin.
+
+        :param count: number of lines to skip.
         """
         self._cursor_down(count)
         self._carriage_return()
@@ -716,12 +741,16 @@ class screen(object):
     def _cursor_back(self, count=1):
         """Moves cursor left count columns. Cursor stops at left
         margin.
+
+        :param count: number of columns to skip.
         """
         self._cursor_to_column(self.x - count)
 
     def _cursor_forward(self, count=1):
         """Moves cursor right count columns. Cursor stops at right
         margin.
+
+        :param count: number of columns to skip.
         """
         self._cursor_to_column(self.x + count)
 
@@ -739,15 +768,28 @@ class screen(object):
         self._cursor_to_column((column or 1) - 1)
 
     def _cursor_to_column(self, column=0):
-        """Set the cursor to a specific column in the current line."""
+        """Set the cursor to a specific column in the current line.
+
+        :param column: column number to move the cursor to (starts
+                       with ``0``).
+        """
         self.x = min(max(0, column), self.columns - 1)
 
-    def _cursor_to_line(self, line=0):
-        """Set the cursor to a specific line in the current column."""
+    def _cursor_to_line(self, line=0, within_margins=False):
+        """Set the cursor to a specific line in the current column.
+
+        :param line: line number to move the cursor to (starts with ``0``).
+        :param within_margins: when ``True``, cursor is bounded by top
+                               and bottom margins, otherwise :attr:`lines`
+                               and ``0`` is used.
+        """
         self.y = min(max(0, line), self.lines - 1)
 
     def _home(self):
-        """Set the cursor to the left upper corner ``(0, 0)``."""
+        """Set the cursor to the left upper corner ``(0, 0)``.
+
+        .. todo:: add support for `origin` mode (``DECOM``).
+        """
         self._cursor_position(0, 0)
 
     def _bell(self, *attrs):
