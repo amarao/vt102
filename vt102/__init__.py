@@ -323,6 +323,11 @@ class screen(object):
     def __repr__(self):
         return repr([l.tounicode() for l in self.display])
 
+    @property
+    def cursor(self):
+        """Returns cursor's column and line numbers."""
+        return self.x, self.y
+
     def attach(self, events):
         """Attach this screen to a events that processes commands and
         dispatches events. Sets up the appropriate event handlers so
@@ -373,10 +378,6 @@ class screen(object):
 
         for event, handler in handlers:
             events.connect(event, handler)
-
-    def cursor(self):
-        """The current location of the cursor."""
-        return self.x, self.y
 
     def resize(self, lines, columns):
         """Resize the screen.
@@ -456,6 +457,7 @@ class screen(object):
         map(self._print, u"%s6c" % ctrl.CSI)
 
     def _reset(self):
+        """Resets the terminal to its initial state."""
         size = self.lines, self.columns
         self.lines, self.columns = 0, 0
         self.display = []
@@ -483,7 +485,6 @@ class screen(object):
         else:
             # TODO: Officially support UK/US/intl8 charsets
             self.g1 = None
-
 
     def _print(self, char):
         """Print a character at the current cursor position and advance
@@ -574,7 +575,7 @@ class screen(object):
 
         .. todo:: Save whole screen, not just cursor positions.
         """
-        self.cursor_save_stack.append((self.x, self.y))
+        self.cursor_save_stack.append(self.cursor)
 
     def _restore_cursor(self):
         """Set the current cursor position to whatever cursor is on top
@@ -600,10 +601,12 @@ class screen(object):
             self.display.pop(-1)
 
     def _delete_line(self, count=1):
-        """Deletes `count` lines, starting at line with cursor. As lines
-        are deleted, lines displayed below cursor move up. Lines added
-        to bottom of screen have spaces with same character attributes
-        as last line moved up.
+        """Deletes the indicated # of lines, starting at line with
+        cursor. As lines are deleted, lines displayed below cursor
+        move up. Lines added to bottom of screen have spaces with same
+        character attributes as last line moved up.
+
+        :param count: number of lines to delete.
         """
         initial = u" " * self.columns
 
@@ -616,9 +619,11 @@ class screen(object):
             self.attributes.append(copy(self.attributes[-1]))
 
     def _delete_character(self, count=1):
-        """Deletes `count` characters, starting with the character at
-        cursor position. When a character is deleted, all characters to
-        the right of cursor move left.
+        """Deletes the indicated # of characters, starting with the
+        character at cursor position. When a character is deleted, all
+        characters to the right of cursor move left.
+
+        :param count: number of characters to delete.
         """
         count = min(count, self.columns - self.x)
 
@@ -635,8 +640,10 @@ class screen(object):
                                    [self.default_attributes] * count)
 
     def _erase_character(self, count=1):
-        """Erases `count` characters, starting with the character at
-        cursor position.
+        """Erases the indicated # of characters, starting with the
+        character at cursor position.
+
+        :param count: number of characters to erase.
         """
         for column in xrange(self.x, min(self.x + count,
                                          self.columns)):
@@ -644,9 +651,14 @@ class screen(object):
             self.attributes[self.y][column] = self.default_attributes
 
     def _erase_in_line(self, type_of=0):
-        """Erases a line in a specific way, depending on the `type_of`.
+        """Erases a line in a specific way, depending on the ``type_of``
+        value:
 
-        .. todo:: this is still a mess -- somebody, rewrite me!
+        * ``0`` -- Erases from cursor to end of line, including cursor
+                   position.
+        * ``1`` -- Erases from beginning of line to cursor, including cursor
+                   position.
+        * ``2`` -- Erases complete line.
         """
         line = self.display[self.y]
         attrs = self.attributes[self.y]
@@ -671,6 +683,16 @@ class screen(object):
             self.attributes[self.y] = [self.default_attributes] * self.columns
 
     def _erase_in_display(self, type_of=0):
+        """Erases display in a specific way, depending on the ``type_of``
+        value:
+
+        * ``0`` -- Erases from cursor to end of screen, including cursor
+                   position.
+        * ``1`` -- Erases from beginning of screen to cursor, including
+                   cursor position.
+        * ``2`` -- Erases complete display. All lines are erased and
+                   changed to single-width. Cursor does not move.
+        """
         initial = u" " * self.columns
         interval = (
             # a) erase from cursor to the end of the display, including
@@ -705,16 +727,16 @@ class screen(object):
             self.tabstops = []
 
     def _cursor_up(self, count=1):
-        """Moves cursor up count lines in same column. Cursor stops
-        at top margin.
+        """Moves cursor up the indicated # of lines in same column.
+        Cursor stops at top margin.
 
         :param count: number of lines to skip.
         """
         self._cursor_to_line(self.y - count, within_margins=True)
 
     def _cursor_up1(self, count=1):
-        """Moves cursor up count lines to column 1. Cursor stops at
-        bottom margin.
+        """Moves cursor up the indicated # of lines to column 1. Cursor
+        stops at bottom margin.
 
         :param count: number of lines to skip.
         """
@@ -722,16 +744,16 @@ class screen(object):
         self._carriage_return()
 
     def _cursor_down(self, count=1):
-        """Moves cursor down count lines in same column. Cursor stops
-        at bottom margin.
+        """Moves cursor down the indicated # of lines in same column.
+        Cursor stops at bottom margin.
 
         :param count: number of lines to skip.
         """
         self._cursor_to_line(self.y + count, within_margins=True)
 
     def _cursor_down1(self, count=1):
-        """Moves cursor down count lines to column 1. Cursor stops at
-        bottom margin.
+        """Moves cursor down the indicated # of lines to column 1.
+        Cursor stops at bottom margin.
 
         :param count: number of lines to skip.
         """
@@ -739,23 +761,23 @@ class screen(object):
         self._carriage_return()
 
     def _cursor_back(self, count=1):
-        """Moves cursor left count columns. Cursor stops at left
-        margin.
+        """Moves cursor left the indicated # of columns. Cursor stops
+        at left margin.
 
         :param count: number of columns to skip.
         """
         self._cursor_to_column(self.x - count)
 
     def _cursor_forward(self, count=1):
-        """Moves cursor right count columns. Cursor stops at right
-        margin.
+        """Moves cursor right the indicated # of columns. Cursor stops
+        at right margin.
 
         :param count: number of columns to skip.
         """
         self._cursor_to_column(self.x + count)
 
     def _cursor_position(self, line=0, column=0):
-        """Set the cursor to a specific line and column.
+        """Set the cursor to a specific `line` and `column`.
 
         .. note::
 

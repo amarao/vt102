@@ -279,13 +279,13 @@ class TestScreen(unittest.TestCase):
         s._print(u"c")
 
         assert s.display == _(["abc", "   ", "   "])
-        assert s.cursor() == (0, 1)
+        assert s.cursor == (0, 1)
 
         s._print(u"a")
         s._print(u"b")
 
         assert s.display == _(["abc", "ab ", "   "])
-        assert s.cursor() == (2, 1)
+        assert s.cursor == (2, 1)
 
     def test_carriage_return(self):
         s = vt102.screen(3, 3)
@@ -301,7 +301,7 @@ class TestScreen(unittest.TestCase):
         # a) indexing on a row that isn't the last should just move
         # the cursor down.
         screen._index()
-        assert screen.cursor() == (0, 1)
+        assert screen.cursor == (0, 1)
 
         # b) indexing on the last row should push everything up and
         # create a new row at the bottom.
@@ -318,17 +318,17 @@ class TestScreen(unittest.TestCase):
         # ... go!
         screen._index()
         assert screen.display == _(["bo", "sh", "er", "  ", "oh"])
-        assert screen.cursor() == (0, 3)
+        assert screen.cursor == (0, 3)
 
         # ... and again ...
         screen._index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
-        assert screen.cursor() == (0, 3)
+        assert screen.cursor == (0, 3)
 
         # ... and again -- look, nothing happens!
         screen._index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
-        assert screen.cursor() == (0, 3)
+        assert screen.cursor == (0, 3)
 
     def test_reverse_index(self):
         screen = vt102.screen(2, 2)
@@ -337,7 +337,7 @@ class TestScreen(unittest.TestCase):
         # a) reverse indexing on the first row should push rows down
         # and create a new row at the top.
         screen._reverse_index()
-        assert screen.cursor() == (0, 0)
+        assert screen.cursor == (0, 0)
         assert screen.display == _(["  ", "bo"])
 
         # b) once again ...
@@ -345,7 +345,7 @@ class TestScreen(unittest.TestCase):
         screen._reverse_index()
 
         assert screen.display == _(["  ", "bo"])
-        assert screen.cursor() == (0, 0)
+        assert screen.cursor == (0, 0)
 
         # c) same with margins
         screen = vt102.screen(5, 2)
@@ -356,17 +356,17 @@ class TestScreen(unittest.TestCase):
         # ... go!
         screen._reverse_index()
         assert screen.display == _(["bo", "sh", "  ", "th", "oh"])
-        assert screen.cursor() == (0, 2)
+        assert screen.cursor == (0, 2)
 
         # ... and again ...
         screen._reverse_index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
-        assert screen.cursor() == (0, 2)
+        assert screen.cursor == (0, 2)
 
         # ... and again -- look, nothing happens!
         screen._reverse_index()
         assert screen.display == _(["bo", "sh", "  ", "  ", "oh"])
-        assert screen.cursor() == (0, 2)
+        assert screen.cursor == (0, 2)
 
 
     def test_line_feed(self):

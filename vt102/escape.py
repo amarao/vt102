@@ -99,7 +99,7 @@ ECH = 0x58
 """Same as data:`CUF`."""
 HPR = 0x61
 
-"""Answer ESC [ ? 6 c: "I'm a VT102"."""
+"""Answer ``ESC [ ? 6 c``: "I'm a VT102"."""
 DA = 0x63
 
 """Move cursor to the indicated line, current column."""
@@ -114,11 +114,11 @@ HVP = 0x66
 """Clears a horizontal tab stop at cursor position."""
 TBC = 0x67
 
-"""Set mode::
+"""Set mode:
 
-``ESC [ 3 h `` -- DECCRM, display control chars.
-``ESC [ 4 h `` -- DECIM, set insert mode.
-``ESC [ 20 h`` -- LF/NL, automatically follow echo of LF, VT or FF with CR.
+* ``ESC [ 3 h`` -- DECCRM, display control chars.
+* ``ESC [ 4 h`` -- DECIM, set insert mode.
+* ``ESC [ 20 h`` -- LF/NL, automatically follow echo of LF, VT or FF with CR.
 """
 SM = 0x68
 
@@ -136,12 +136,13 @@ the character.
 """
 SGR = 0x6D
 
-"""Status report::
+"""Status report:
 
-``ESC [ 5 n`` -- Device status report (DSR) -- Answer is ``ESC [ 0 n``
-                 (Terminal OK).
-``ESC [ 6 n`` -- Cursor position report (CPR) -- Answer is ``ESC [ y ; x R``,
-                 where x, y is the cursor location.
+* ``ESC [ 5 n`` -- Device status report (DSR); answer is ``ESC [ 0 n``
+  (Terminal OK).
+
+* ``ESC [ 6 n`` -- Cursor position report (CPR); answer is
+  ``ESC [ y ; x R``, where x, y is the cursor location.
 """
 DSR = 0x6E
 
