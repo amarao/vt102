@@ -87,6 +87,7 @@ API
 
 .. automodule:: vt102.graphics
     :members:
+    :undoc-members:
 
 .. automodule:: vt102.debug
     :members:
