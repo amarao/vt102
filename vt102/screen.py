@@ -50,23 +50,11 @@ class screen(object):
     """
     default_attributes = (), "default", "default"
 
-    # Terminal dimensions and coordinates (we can declare them on the
-    # class level since int-attributes are immutable anyway).
-    lines, columns, x, y = (0, ) * 4
-
-    def __init__(self, *size):
-        self.display = []
-        self.attributes = []
+    def __init__(self, lines, columns):
         self.tabstops = []
-        self.margins = namedtuple("margins", "top bottom")(0, 0)
-
         self.cursor_save_stack = []
-        self.cursor_attributes = self.default_attributes
-
-        if all(size):
-            self.resize(*size)
-        else:
-            raise ValueError("Invalid screen dimensions: %rx%r" % size)
+        self.lines, self.columns = lines, columns
+        self.reset()
 
     def __repr__(self):
         return repr([l.tounicode() for l in self.display])
@@ -132,6 +120,26 @@ class screen(object):
 
         for event, handler in handlers:
             events.connect(event, handler)
+
+    def reset(self):
+        """Resets the terminal to its initial state.
+
+        * Scroll margins are reset to screen boundaries.
+        * Cursor is moved to home location -- ``(0, 0)`` and its
+          attributes are set to defaults (:attr:`default_attributes`)
+        * Screen buffer is emptied.
+        """
+        size = self.size
+
+        self.display = []
+        self.attributes = []
+        self.margins = namedtuple("margins", "top bottom")(0, 0)
+        self.cursor_attributes = self.default_attributes
+        self.lines, self.columns = 0, 0
+
+        self.resize(*size)
+        self.home()
+
 
     def resize(self, lines, columns):
         """Resize the screen.
@@ -209,16 +217,6 @@ class screen(object):
 
     def answer(self):
         map(self.print, u"%s6c" % ctrl.CSI)
-
-    def reset(self):
-        """Resets the terminal to its initial state."""
-        size = self.lines, self.columns
-        self.lines, self.columns = 0, 0
-        self.display = []
-        self.resize(*size)
-
-        self.home()
-        self.set_margins()
 
     def print(self, char):
         """Print a character at the current cursor position and advance
