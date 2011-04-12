@@ -31,16 +31,13 @@
 
 from __future__ import absolute_import
 
+from warnings import warn
 from collections import defaultdict
 
 from . import control as ctrl, escape as esc
 
 
 class stream(object):
-    #: When ``True``, unknown CSI sequences are being printed, prefixed
-    #: with ``"^"``.
-    debug = False
-
     #: Basic characters, which don't require any arguments.
     basic = {
         ctrl.BEL: "bell",
@@ -106,6 +103,55 @@ class stream(object):
         self.params = []
         self.current_param = ""
 
+    def consume(self, char):
+        """Consume a single character and advance the state as necessary."""
+        handler = {
+            "stream": self._stream,
+            "escape": self._escape_sequence,
+            "escape-lb": self._escape_parameters,
+            "mode": self._mode
+        }.get(self.state)
+
+        handler and handler(char)
+
+    def feed(self, chars):
+        """Consume a string of chars and advance the state as necessary."""
+        map(self.consume, chars)
+
+    def connect(self, event, callback):
+        """Add an event listener for a particular event.
+
+        Depending on the event, there may or may not be parameters
+        passed to the callback. Most escape streams also allow for
+        an empty set of parameters (with a default value). Providing
+        these default values and accepting variable arguments is the
+        responsibility of the callback.
+
+        :param event: event to listen for.
+        :param function: callable to invoke when a given event occurs.
+        """
+        self.listeners[event].append(callback)
+
+    def dispatch(self, event, *args):
+        """Dispatch an event.
+
+        :param event: event to dispatch.
+        :param args: a tuple of the arguments to send to any callbacks.
+
+        .. note::
+
+           If any callback throws an exception, the subsequent callbacks
+           will be aborted.
+        """
+        if event not in self.listeners:
+            warn("no listner found for %s(%s)" % (event, args))
+
+        for callback in self.listeners.get(event, []):
+            if args:
+                callback(*args)
+            else:
+                callback()
+
     def _escape_sequence(self, char):
         """Handle characters seen when in an escape sequence.
 
@@ -130,18 +176,9 @@ class stream(object):
         event = self.sequence.get(ord(char))
         if event:
             self.dispatch(event, *self.params)
-        elif self.debug:
-            # Unhandled CSI sequences are printed literally.
-            self.dispatch("print", u"^")
-            self.dispatch("print", u"[")
-
-            for param in u";".join(map(unicode, self.params)):
-                self.dispatch("print", param)
-
-            self.dispatch("print", char)
-
-            print("i'm unhandled, boss -- ^[%s"
-                  % u";".join(map(unicode, self.params)) + char)
+        else:
+            self.dispatch("debug",
+                u"^[" + u";".join(map(unicode, self.params)) + char)
 
         self.reset()
 
@@ -189,55 +226,3 @@ class stream(object):
             pass  # nulls are just ignored.
         else:
             self.dispatch("print", char)
-
-    def consume(self, char):
-        """Consume a single character and advance the state as necessary."""
-        handler = {
-            "stream": self._stream,
-            "escape": self._escape_sequence,
-            "escape-lb": self._escape_parameters,
-            "mode": self._mode
-        }.get(self.state)
-
-        handler and handler(char)
-
-    def feed(self, chars):
-        """Consume a string of chars and advance the state as necessary."""
-        map(self.consume, chars)
-
-    def connect(self, event, callback):
-        """Add an event listener for a particular event.
-
-        Depending on the event, there may or may not be parameters
-        passed to the callback. Most escape streams also allow for
-        an empty set of parameters (with a default value). Providing
-        these default values and accepting variable arguments is the
-        responsibility of the callback.
-
-        :param event: event to listen for.
-        :param function: callable to invoke when a given event occurs.
-        """
-        self.listeners[event].append(callback)
-
-    def dispatch(self, event, *args):
-        """Dispatch an event.
-
-        :param event: event to dispatch.
-        :param args: a tuple of the arguments to send to any callbacks.
-
-        .. note::
-
-           If any callback throws an exception, the subsequent callbacks
-           will be aborted.
-        """
-        if event not in self.listeners:
-            print("oh shoot -- nobody needs me! (%s, %s)" % (event, args))
-        elif event != "print":
-            print(event, args)
-
-        for callback in self.listeners.get(event, []):
-            if args:
-                callback(*args)
-            else:
-                callback()
-

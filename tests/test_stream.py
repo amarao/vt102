@@ -107,34 +107,16 @@ def test_unknown_escapes():
     screen = vt102.screen(1, 20)
     screen.attach(stream)
 
-    # a) debug disabled
-    stream.debug = False
+    handler = argcheck()
+    stream.connect("debug", handler)
 
     try:
         stream.feed(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
-        stream.feed(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
     except Exception as e:
         pytest.fail("No exception should've raised, got: %s" % e)
     else:
-        # Making sure nothing is printed when debug is off.
-        assert all(map(lambda l: not l.tounicode().strip(),
-                       screen.display))
-
-    # b) debug enabled
-    stream.debug = True
-
-    try:
-        stream.feed(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
-        stream.feed(u"\000" + unichr(ctrl.ESC) + u"[9;7!")
-    except Exception as e:
-        pytest.fail("No exception should've raised, got: %s" % e)
-    else:
-        # Making sure nothing we got something with debug on ...
-        assert not all(map(lambda l: not l.tounicode().strip(),
-                           screen.display))
-        # ... and this something is exactly the two escape sequences
-        # we fed, prefixed with `^`.
-        assert screen.display[0].tounicode() == u"^[6;7!^[9;7!        "
+        assert handler.count == 1
+        assert handler.args == (u"^[6;7!", )
 
 
 def test_backspace():
