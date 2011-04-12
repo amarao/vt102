@@ -19,6 +19,10 @@ from . import control as ctrl
 from .graphics import text, colors
 
 
+#: A container for screen's scroll margins.
+margins = namedtuple("margins", "top bottom")
+
+
 class screen(object):
     """
     .. attribute:: display
@@ -133,7 +137,7 @@ class screen(object):
 
         self.display = []
         self.attributes = []
-        self.margins = namedtuple("margins", "top bottom")(0, 0)
+        self.margins = margins(0, 0)
         self.cursor_attributes = self.default_attributes
         self.lines, self.columns = 0, 0
 
@@ -210,7 +214,7 @@ class screen(object):
         """
         # The minimum size of the scrolling region is two lines.
         if bottom - top >= 2:
-            self.margins = namedtuple("margins", "top bottom")(top, bottom)
+            self.margins = margins(top, bottom)
             # The cursor moves to the home position when the top and
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.home()
