@@ -121,6 +121,15 @@ class stream(object):
         self.listeners = defaultdict(lambda: [])
         self.reset()
 
+        self.handlers = {
+            "stream": self._stream,
+            "escape": self._escape_sequence,
+            "escape-lb": self._escape_parameters,
+            "mode": self._mode,
+            "charset-g0": self._charset_g0,
+            "charset-g1": self._charset_g1
+            }
+
     def reset(self):
         """Resets state to ``"stream"`` and empties parameter attributes."""
         self.state = "stream"
@@ -221,20 +230,13 @@ class stream(object):
 
     def consume(self, char):
         """Consume a single character and advance the state as necessary."""
-        handler = {
-            "stream": self._stream,
-            "escape": self._escape_sequence,
-            "escape-lb": self._escape_parameters,
-            "mode": self._mode,
-            "charset-g0": self._charset_g0,
-            "charset-g1": self._charset_g1
-        }.get(self.state)
-
-        handler and handler(char)
+        handler = self.handlers.get(self.state)
+        if handler:
+            handler(char)
 
     def process(self, chars):
         """Consume a string of chars and advance the state as necessary."""
-        map(self.consume, chars)
+        [self.consume(c) for c in chars]
 
     def connect(self, event, callback):
         """Add an event listener for a particular event.
