@@ -76,11 +76,14 @@ class screen(object):
         """Returns cursor's column and line numbers."""
         return self.x, self.y
 
+    @property
+    def size(self):
+        """Returns screen size -- ``(lines, columns)``."""
+        return self.lines, self.columns
+
     def attach(self, events):
-        """Attach this screen to a events that processes commands and
-        dispatches events. Sets up the appropriate event handlers so
-        that the screen will update itself automatically as the events
-        processes data.
+        """Attaches a screen to an object, which processes commands
+        and dispatches events.
         """
         handlers = [
             ("reset", self.reset),
@@ -139,7 +142,7 @@ class screen(object):
         clipped at the top of the screen.
 
         Similarly if the existing screen has less columns than the
-        requested size, columns will be added at the right, and it it
+        requested size, columns will be added at the right, and it
         has more, columns will be clipped at the right.
         """
         assert lines and columns
