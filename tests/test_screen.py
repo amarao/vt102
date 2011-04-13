@@ -438,18 +438,46 @@ def test_delete_line():
     assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
 
 
-def test_delete_character():
+def test_insert_characters():
     screen = vt102.screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
-    screen.x = 0
-    screen.y = 0
-    screen.delete_character(2)
+
+    # a) normal case
+    cursor = screen.cursor
+    screen.insert_characters(2)
+    assert repr(screen) == repr([u"  s", u"is ", u"foo"])
+    assert screen.cursor == cursor
+
+    # b) now inserting from the middle of the line
+    screen.y, screen.x = 2, 1
+    screen.insert_characters(1)
+    assert repr(screen) == repr([u"  s", u"is ", u"f o"])
+
+    # c) inserting more than we have
+    screen.insert_characters(10)
+    assert repr(screen) == repr([u"  s", u"is ", u"f  "])
+
+    # d) 0 is 1
+    screen.display = _(["sam", "is ", "foo"])
+    screen.home()
+    screen.insert_characters()
+    assert repr(screen) == repr([u" sa", u"is ", u"foo"])
+
+    screen.display = _(["sam", "is ", "foo"])
+    screen.home()
+    screen.insert_characters(0)
+    assert repr(screen) == repr([u" sa", u"is ", u"foo"])
+
+
+def test_delete_characters():
+    screen = vt102.screen(3, 3)
+    screen.display = _(["sam", "is ", "foo"])
+    screen.delete_characters(2)
 
     assert repr(screen) == repr([u"m  ", u"is ", u"foo"])
 
-    screen.y = 2
-    screen.x = 2
-    screen.delete_character(1)
+    screen.y, screen.x = 2, 2
+    screen.delete_characters(1)
 
     assert repr(screen) == repr([u"m  ", u"is ", u"fo "])
 
@@ -457,12 +485,12 @@ def test_delete_character():
 def test_erase_character():
     screen = vt102.screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
-    screen.erase_character(2)
+    screen.erase_characters(2)
 
     assert repr(screen) == repr([u"  m", u"is ", u"foo"])
 
     screen.y, screen.x = 2, 2
-    screen.erase_character(1)
+    screen.erase_characters(1)
 
     assert repr(screen) == repr([u"  m", u"is ", u"fo "])
 

@@ -101,8 +101,9 @@ class screen(object):
             ("erase-in-display", self.erase_in_display),
             ("insert-lines", self.insert_line),
             ("delete-lines", self.delete_line),
-            ("delete-characters", self.delete_character),
-            ("erase-characters", self.erase_character),
+            ("insert-characters", self.insert_characters),
+            ("delete-characters", self.delete_characters),
+            ("erase-characters", self.erase_characters),
             ("select-graphic-rendition", self.select_graphic_rendition),
             ("bell", self.bell),
             ("set-tab-stop", self.set_tab_stop),
@@ -112,7 +113,6 @@ class screen(object):
 
             # Not implemented
             # ...............
-            # ("insert-characters", self.insert_characters)
             # ("set-mode", ...)
             # ("reset-mode", ...)
             # ("status-report", ...)
@@ -370,10 +370,28 @@ class screen(object):
 
             self.cursor_to_column(0)
 
-    def delete_character(self, count=1):
+    def insert_characters(self, count=0):
+        """Inserts the indicated # of blank characters at the cursor
+        position. The cursor does not move and remains at the beginning
+        of the inserted blank characters.
+
+        :param count: number of characters to delete.
+        """
+        # From VT220 Programming Reference Manual: "A parameter of 0
+        # or 1 inserts one blank character."
+        count = count or 1
+
+        for _ in xrange(self.y, min(self.columns, self.y + count)):
+            self.display[self.y].insert(self.x, u" ")
+            self.display[self.y].pop(-1)
+
+            self.attributes[self.y][self.x] = self.default_attributes
+
+    def delete_characters(self, count=1):
         """Deletes the indicated # of characters, starting with the
         character at cursor position. When a character is deleted, all
-        characters to the right of cursor move left.
+        characters to the right of cursor move left. Character attributes
+        move with the characters.
 
         :param count: number of characters to delete.
         """
@@ -391,7 +409,7 @@ class screen(object):
                                    attrs[self.x + count:] +
                                    [self.default_attributes] * count)
 
-    def erase_character(self, count=1):
+    def erase_characters(self, count=1):
         """Erases the indicated # of characters, starting with the
         character at cursor position.
 
