@@ -409,12 +409,15 @@ class screen(object):
                                    attrs[self.x + count:] +
                                    [self.default_attributes] * count)
 
-    def erase_characters(self, count=1):
+    def erase_characters(self, count=0):
         """Erases the indicated # of characters, starting with the
-        character at cursor position.
+        character at cursor position.  Character attributes are set
+        to normal. The cursor remains in the same position.
 
         :param count: number of characters to erase.
         """
+        count = count or 1
+
         for column in xrange(self.x, min(self.x + count,
                                          self.columns)):
             self.display[self.y][column] = u" "
