@@ -222,9 +222,19 @@ class screen(object):
             self.home()
 
     def set_mode(self, mode):
+        """Sets (enables) a give mode.
+
+        :param modes: a mode to set, where mode is a constant from
+                      :mod:`modes`.
+        """
         self.mode.add(mode)
 
     def reset_mode(self, mode):
+        """Resets (disables) a given mode.
+
+        :param mode: a mode to reset -- hopefully a constant from
+                     :mod:`modes`.
+        """
         try:
             self.mode.remove(mode)
         except ValueError:
@@ -232,7 +242,7 @@ class screen(object):
 
     def print(self, char):
         """Print a character at the current cursor position and advance
-        the cursor.
+        the cursor if :data:`modes.DECAWM` is set.
         """
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line.
