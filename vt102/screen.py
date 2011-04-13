@@ -359,7 +359,7 @@ class screen(object):
         if top < self.y < bottom:
             initial = u" " * self.columns
 
-            for _ in xrange(self.y, min(bottom, self.y + count)):
+            for _ in xrange(min(bottom - self.y, count)):
                 self.display.pop(self.y)
                 self.display.insert(bottom - 1, array("u", initial))
 
@@ -376,7 +376,7 @@ class screen(object):
         # or 1 inserts one blank character."
         count = count or 1
 
-        for _ in xrange(self.y, min(self.columns, self.y + count)):
+        for _ in xrange(min(self.columns - self.y, count)):
             self.display[self.y].insert(self.x, u" ")
             self.display[self.y].pop(-1)
 
@@ -390,9 +390,7 @@ class screen(object):
 
         :param count: number of characters to delete.
         """
-        count = min(self.columns - self.x, count)
-
-        for _ in xrange(count):
+        for _ in xrange(min(self.columns - self.x, count)):
             self.display[self.y].pop(self.x)
             self.display[self.y].append(u" ")
 
