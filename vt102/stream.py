@@ -26,7 +26,7 @@
 
         `man console_codes <http://linux.die.net/man/4/console_codes>`_
             For details on console codes listed bellow in :attr:`basic`,
-            :attr:`escape`, :attr:`sequences`
+            :attr:`escape`, :attr:`csi`
 """
 
 from __future__ import absolute_import
@@ -54,16 +54,16 @@ class stream(object):
     #: non-CSI escape squences.
     escape = {
         esc.RIS: "reset",
-        esc.IND: "linefeed",
-        esc.NEL: "newline",
-        esc.RI: "reverse-linefeed",
+        esc.IND: "index",
+        esc.NEL: "linefeed",
+        esc.RI: "reverse-index",
         esc.HTS: "set-tab-stop",
         esc.DECSC: "save-cursor",
         esc.DECRC: "restore-cursor",
     }
 
     #: CSI escape sequences.
-    sequence = {
+    csi = {
         esc.ICH: "insert-characters",
         esc.CUU: "cursor-up",
         esc.CUD: "cursor-down",
@@ -192,7 +192,10 @@ class stream(object):
         .. seealso::
 
            `VT102 User Guide <http://vt100.net/docs/vt102-ug/>`_
-               For details on the formatting of escape parameters.
+               For details on the formatting of escape arguments.
+
+           `VT220 Programmer Reference <http://http://vt100.net/docs/vt220-rm/>`_
+               For details on the characters valid for use as arguments.
         """
         if char == "?":
             # At this point we don't distinguish DEC private modes from
@@ -208,7 +211,7 @@ class stream(object):
             if char == ";":
                 self.current = ""
             else:
-                event = self.sequence.get(ord(char))
+                event = self.csi.get(ord(char))
                 if event:
                     self.dispatch(event, *self.params)
                 else:

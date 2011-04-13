@@ -62,7 +62,7 @@ def test_unknown_sequences():
 def test_non_csi_sequences():
     stream = vt102.stream()
 
-    for cmd, event in stream.sequence.iteritems():
+    for cmd, event in stream.csi.iteritems():
         # a) single param
         handler = argcheck()
         stream.connect(event, handler)

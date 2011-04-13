@@ -15,16 +15,18 @@
 """Reset."""
 RIS = 0x63
 
-"""Linefeed: Move cursor down one line in same column."""
+"""Index: Move cursor down one line in same column. If the cursor is
+at the bottom margin, the screen performs a scroll-up."""
 IND = 0x44
 
-"""Newline: Move cursor to first position on next line."""
+"""Next line: Same as :data:`control.LF`."""
 NEL = 0x45
 
 """Tabulation set: Set a horizontal tab stop at cursor position."""
 HTS = 0x48
 
-"""Reverse linefeed: Move cursor up one line in same column."""
+"""Reverse index: Move cursor up one line in same column. If the cursor
+is at the top margin, the screen performs a scroll-down."""
 RI = 0x4D
 
 """Save cursor: Save cursor position, character attribute (graphic

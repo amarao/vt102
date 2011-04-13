@@ -7,11 +7,6 @@
     although named `vt102`, the set of codes here is for ``TERM=linux``,
     which is a superset of `vt102`.
 
-    .. seealso::
-
-        `man console_codes <http://linux.die.net/man/4/console_codes>`_
-            For details on console codes listed bellow.
-
     :copyright: (c) 2011 by Sam Gibson, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """

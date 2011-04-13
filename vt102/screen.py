@@ -83,8 +83,9 @@ class screen(object):
             ("backspace", self.backspace),
             ("tab", self.tab),
             ("linefeed", self.linefeed),
-            ("reverse-linefeed", self.reverse_linefeed),
             ("carriage-return", self.carriage_return),
+            ("index", self.index),
+            ("reverse-index", self.reverse_index),
             ("save-cursor", self.save_cursor),
             ("restore-cursor", self.restore_cursor),
             ("cursor-up", self.cursor_up),
@@ -275,11 +276,6 @@ class screen(object):
         self.index()
         self.carriage_return()
 
-    def reverse_linefeed(self):
-        """Performs a reverse index and then a carriage return."""
-        self.reverse_index()
-        self.carriage_return()
-
     def next_tab_stop(self):
         """Return the x value of the next available tabstop or the x
         value of the margin if there are no more tabstops.
@@ -315,11 +311,17 @@ class screen(object):
         if self.cursor_save_stack:
             # .. todo:: use _cursor_position()
             self.x, self.y = self.cursor_save_stack.pop()
+        else:
+            # From VT220 Programming Reference Manual: "If none of the
+            # characteristics were saved, the cursor moves to home position;
+            # origin mode is reset; no character attributes are assigned;
+            # and the default character set mapping is established."
+            self.home()
 
     def insert_line(self, count=1):
-        """Inserts `count` lines at line with cursor. Lines displayed
-        below cursor move down. Lines moved past the bottom margin are
-        lost.
+        """Inserts the indicated # of linesat line with cursor. Lines
+        displayed below cursor move down. Lines moved past the bottom
+        margin are lost.
 
         .. todo:: reset attributes at ``self.y`` as well?
         """
