@@ -76,8 +76,13 @@ can do something like the following:
 API
 ===
 
-.. automodule:: vt102
+.. automodule:: vt102.stream
     :members:
+    :undoc-members:
+
+.. automodule:: vt102.screen
+    :members:
+    :undoc-members:
 
 .. automodule:: vt102.control
     :members:
@@ -85,7 +90,6 @@ API
 .. automodule:: vt102.escape
     :members:
 
-.. automodule:: vt102.debug
+.. automodule:: vt102.graphics
     :members:
     :undoc-members:
-

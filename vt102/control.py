@@ -3,55 +3,47 @@
     vt102.control
     ~~~~~~~~~~~~~
 
-    A container for control sequences, recognized by :class:`vt102.stream`
+    A container for control sequences, recognized by :class:`vt102.stream`,
+    although named `vt102`, the set of codes here is for ``TERM=linux``,
+    which is a superset of `vt102`.
 
     :copyright: (c) 2011 by Sam Gibson, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """
 
-"""Backspace: Moves cursor to the left one character position; if cursor
-is at left margin, no action occurs."""
+"""Bell: Beeps."""
+BEL = 0x07
+
+"""Backspace: Backspaces one column, but not past the begining of the line."""
 BS = 0x08
 
-"""Horizontal tab: Moves cursor to the next tab stop, or right margin
-if there are no more tab stops."""
+"""Horizontal tab: Moves cursor to the next tab stop, or to the end of
+the line if there is no earlier tab stop."""
 HT = 0x09
 
-"""Linefeed: Causes a linefeed."""
-LF = 0x0a
-
-"""Vertical tab: Processed as LF."""
-VT = 0x0b
-
-"""Form feed: Process as LF."""
-FF = 0x0c
+"""Linefeed, vertical tab, form feed: all give a line feed, and if LF/NL
+(new line mode) is set also a carriage return."""
+LF, VT, FF = 0x0A, 0x0B, 0x0C
 
 """Carriage return: Moves cursor to left margin on current line."""
-CR = 0x0d
+CR = 0x0D
 
-"""Device control 1: Processed as XON. DC1 causes terminal to continue
-transmitting characters."""
-DC1 = 0x11
+"""Shift out: Activates G1 character set."""
+SO = 0x0E
 
-"""Device control 3: Processed as XOFF. DC3 causes terminal to stop
-transmitting all characters except XOFF and XON."""
-DC3 = 0x13
+"""Shift in: Activates G0 character set."""
+SI = 0x0F
 
-"""Cancel: If received during an escape or control sequence, cancels
-the sequence and displays substitution character"""
-CAN = 0x18
+"""Cancel, substitute: interrupt escape sequences. If received during
+an escape or control sequence, cancels the sequence and displays
+substitution character."""
+CAN, SUB = 0x18, 0x1A
 
-"""Substitute: Processed as CAN"""
-SUB = 0x1a
+"""Escape: Starts an escape sequence."""
+ESC = 0x1B
 
-"""Escape: Processed as a sequence introducer."""
-ESC = 0x1b
+"""Delete: is ingored."""
+DEL = 0x7F
 
-"""Shift in: Switch to the G0 character set."""
-SI = 0x0f
-
-"""Shift out: Switch to the G1 character set."""
-SO = 0x0e
-
-"""Bell: Do a beep."""
-BELL = 0x07
+"""Control sequence introducer: is equavalent for ``ESC [``."""
+CSI = 0x9B
