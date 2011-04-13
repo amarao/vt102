@@ -390,24 +390,52 @@ def test_insert_line():
     # d) with margins -- trying to insert outside scroll boundaries
     screen = vt102.screen(5, 3)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.set_margins(0, 4)
-    screen.y = 0
+    screen.set_margins(1, 4)
     screen.insert_line(5)
 
     assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
 
 
 def test_delete_line():
+    # a) without margins
     screen = vt102.screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
-    screen.x, screen.y = 0, 0
+    screen.x = 2
     screen.delete_line(1)
 
     assert repr(screen) == repr([u"is ", u"foo", u"   "])
+    assert screen.cursor == (0, 0)
 
     screen.delete_line(1)
 
     assert repr(screen) == repr([u"foo", u"   ", u"   "])
+    assert screen.cursor == (0, 0)
+
+    # b) with margins
+    screen = vt102.screen(5, 3)
+    screen.set_margins(0, 4)
+    screen.y = 1
+
+    screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.delete_line(1)
+    assert repr(screen) == repr([u"sam", u"foo", u"bar", u"   ", u"baz"])
+
+    screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.delete_line(2)
+    assert repr(screen) == repr([u"sam", u"bar", u"   ", u"   ", u"baz"])
+
+    # c) with margins -- trying to delete  more than we have available
+    screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.delete_line(5)
+    assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
+
+    # d) with margins -- trying to delete outside scroll boundaries
+    screen = vt102.screen(5, 3)
+    screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.set_margins(1, 4)
+    screen.delete_line(5)
+
+    assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
 
 
 def test_delete_character():

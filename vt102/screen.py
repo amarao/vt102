@@ -326,7 +326,9 @@ class screen(object):
         displayed **at** and below the cursor move down. Lines moved
         past the bottom margin are lost.
 
-        .. todo:: reset attributes at ``self.y`` as well?
+        .. todo:: reset attributes of the newly inserted lines?
+
+        :param count: number of lines to delete.
         """
         if self.margins:
             top, bottom = self.margins
@@ -341,23 +343,32 @@ class screen(object):
                 self.display.insert(line, array("u", initial))
                 self.display.pop(bottom)
 
+            self.cursor_to_column(0)
+
     def delete_line(self, count=1):
         """Deletes the indicated # of lines, starting at line with
         cursor. As lines are deleted, lines displayed below cursor
         move up. Lines added to bottom of screen have spaces with same
         character attributes as last line moved up.
 
+        .. todo:: reset attributes of the deleted lines?
+
         :param count: number of lines to delete.
         """
-        initial = u" " * self.columns
+        if self.margins:
+            top, bottom = self.margins
+        else:
+            top, bottom = -1, self.lines
 
-        for line in xrange(self.y, self.y + count):
-            self.display.pop(line)
-            self.attributes.pop(line)
+        # If cursor is outside scrolling margins it -- do nothin'.
+        if top < self.y < bottom:
+            initial = u" " * self.columns
 
-        while len(self.display) < self.lines:
-            self.display.append(array("u", initial))
-            self.attributes.append(copy(self.attributes[-1]))
+            for _ in xrange(self.y, min(bottom, self.y + count)):
+                self.display.pop(self.y)
+                self.display.insert(bottom - 1, array("u", initial))
+
+            self.cursor_to_column(0)
 
     def delete_character(self, count=1):
         """Deletes the indicated # of characters, starting with the
