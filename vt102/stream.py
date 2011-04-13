@@ -101,15 +101,14 @@ class stream(object):
         """Resets state to ``"stream"`` and empties parameter attributes."""
         self.state = "stream"
         self.params = []
-        self.current_param = ""
+        self.current = ""
 
     def consume(self, char):
         """Consume a single character and advance the state as necessary."""
         handler = {
             "stream": self._stream,
             "escape": self._escape_sequence,
-            "escape-lb": self._escape_parameters,
-            "mode": self._mode
+            "arguments": self._arguments,
         }.get(self.state)
 
         handler and handler(char)
@@ -136,7 +135,7 @@ class stream(object):
         """Dispatch an event.
 
         :param event: event to dispatch.
-        :param args: a tuple of the arguments to send to any callbacks.
+        :param args: a tuple of the arguments to send to each callback.
 
         .. note::
 
@@ -152,6 +151,23 @@ class stream(object):
             else:
                 callback()
 
+    # State transformers.
+    # ...................
+
+    def _stream(self, char):
+        """Process a character when in the default ``"stream"`` state."""
+        num = ord(char)
+        if num in self.basic:
+            self.dispatch(self.basic[num])
+        elif num == ctrl.ESC:
+            self.state = "escape"
+        elif num == ctrl.CSI:
+            self.state = "arguments"
+        elif not num:
+            pass  # nulls are just ignored.
+        else:
+            self.dispatch("print", char)
+
     def _escape_sequence(self, char):
         """Handle characters seen when in an escape sequence.
 
@@ -159,31 +175,15 @@ class stream(object):
         escape and then a stream of parameters and a command.
         """
         if char == "[":
-            self.state = "escape-lb"
+            self.state = "arguments"
         elif ord(char) in self.escape:
             self.state = "stream"
             self.dispatch(self.escape[ord(char)])
         else:
-            self.state = "stream"  # Unknown ESC code, silently eat and
-                                   # continue.
+            self.state = "stream"
 
-    def _end_escape_sequence(self, char):
-        """Handle the end of an escape sequence.
-
-        The final character in an escape sequence is the command to
-        execute, which corresponds to the event that is dispatched here.
-        """
-        event = self.sequence.get(ord(char))
-        if event:
-            self.dispatch(event, *self.params)
-        else:
-            self.dispatch("debug",
-                u"^[" + u";".join(map(unicode, self.params)) + char)
-
-        self.reset()
-
-    def _escape_parameters(self, char):
-        """Parse parameters in an escape sequence.
+    def _arguments(self, char):
+        """Parse arguments of an escape sequence.
 
         Parameters are a list of numbers in ASCII (e.g. ``12``, ``4``,
         ``42``, etc) separated by a semicolon (e.g. ``12;4;42``). If
@@ -195,34 +195,25 @@ class stream(object):
                For details on the formatting of escape parameters.
         """
         if char == "?":
-            self.state = "mode"
-        elif char == ";":
-            self.current_param and self.params.append(int(self.current_param))
-            self.current_param = ""
-        elif not char.isdigit():
-            self.current_param and self.params.append(int(self.current_param))
-            # If we're in parameter parsing mode, but we see a non-
-            # numeric value, it must be the end of the control sequence.
-            self._end_escape_sequence(char)
-        else:
+            # At this point we don't distinguish DEC private modes from
+            # ANSI modes, since the latter are pretty much useless for
+            # a library to handle.
+            pass
+        elif char.isdigit():
             # .. todo: joining strings with `+` is way too slow!
-            self.current_param += char
-
-    def _mode(self, char):
-        if char in "lh":
-            # 'l' or 'h' designates the end of a mode stream. We don't
-            # really care about mode streams so anything else seen while
-            # in the mode state, is just ignored.
-            self.state = "stream"
-
-    def _stream(self, char):
-        """Process a character when in the default ``"stream"`` state."""
-        num = ord(char)
-        if num in self.basic:
-            self.dispatch(self.basic[num])
-        elif num == ctrl.ESC:
-            self.state = "escape"
-        elif num == 0x00:
-            pass  # nulls are just ignored.
+            self.current += char
         else:
-            self.dispatch("print", char)
+            self.current and self.params.append(int(self.current))
+
+            if char == ";":
+                self.current = ""
+            else:
+                event = self.sequence.get(ord(char))
+                if event:
+                    self.dispatch(event, *self.params)
+                else:
+                    self.dispatch("debug",
+                                  unichr(ctrl.CSI) +
+                                  u";".join(map(unicode, self.params)) + char)
+
+                self.reset()

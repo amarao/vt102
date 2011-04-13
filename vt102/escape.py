@@ -123,7 +123,7 @@ TBC = 0x67
 SM = 0x68
 
 """Reset mode to defaults."""
-RM = 0x69
+RM = 0x6c
 
 """Select graphics rendition. The terminal can display the following
 character attributes that change the character display without changing
