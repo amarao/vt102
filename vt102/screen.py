@@ -138,13 +138,12 @@ class screen(object):
 
         self.display = []
         self.attributes = []
-        self.margins = margins(0, 0)
+        self.margins = None
         self.cursor_attributes = self.default_attributes
         self.lines, self.columns = 0, 0
 
         self.resize(*size)
         self.home()
-
 
     def resize(self, lines, columns):
         """Resize the screen.
@@ -205,14 +204,16 @@ class screen(object):
 
         self.lines, self.columns = lines, columns
 
-    def set_margins(self, top=0, bottom=0):
+    def set_margins(self, top=None, bottom=None):
         """Selects top and bottom margins, defining the scrolling region.
 
-        The margins determine which screen lines move during scrolling
-        (see :meth:`index` and :meth:`reversed_index`). Characters
-        added outside the scrolling region do not cause the screen to
-        scroll.
+        Margins determine which screen lines move during scrolling (see
+        :meth:`index` and :meth:`reversed_index`). Characters added
+        outside the scrolling region do not cause the screen to scroll.
         """
+        if top is None or bottom is None:
+            return
+
         # The minimum size of the scrolling region is two lines.
         if bottom - top >= 2:
             self.margins = margins(top, bottom)
@@ -247,13 +248,14 @@ class screen(object):
         """Move the cursor down one line in the same column. If the
         cursor is at the last line, create a new line at the bottom.
         """
-        top = self.margins.top + 1 if self.margins.top else 0
-        bottom = (self.margins.bottom if self.margins.bottom else
-                  self.lines) - 1
+        if self.margins:
+            top, bottom = self.margins
+        else:
+            top, bottom = -1, self.lines
 
-        if self.y == bottom:
-            self.display.pop(top)
-            self.display.insert(bottom, array("u", u" " * self.columns))
+        if self.y == bottom - 1:
+            self.display.pop(top + 1)
+            self.display.insert(bottom - 1, array("u", u" " * self.columns))
         else:
             self.cursor_down()
 
@@ -261,13 +263,14 @@ class screen(object):
         """Move the cursor up one line in the same column. If the cursor
         is at the first line, create a new line at the top.
         """
-        top = self.margins.top + 1 if self.margins.top else 0
-        bottom = (self.margins.bottom if self.margins.bottom else
-                  self.lines) - 1
+        if self.margins:
+            top, bottom = self.margins
+        else:
+            top, bottom = -1, self.lines
 
-        if self.y == top:
-            self.display.pop(bottom)
-            self.display.insert(top, array("u", u" " * self.columns))
+        if self.y == top + 1:
+            self.display.pop(bottom - 1)
+            self.display.insert(top + 1, array("u", u" " * self.columns))
         else:
             self.cursor_up()
 
@@ -319,19 +322,24 @@ class screen(object):
             self.home()
 
     def insert_line(self, count=1):
-        """Inserts the indicated # of linesat line with cursor. Lines
-        displayed below cursor move down. Lines moved past the bottom
-        margin are lost.
+        """Inserts the indicated # of lines at line with cursor. Lines
+        displayed **at** and below the cursor move down. Lines moved
+        past the bottom margin are lost.
 
         .. todo:: reset attributes at ``self.y`` as well?
         """
-        initial = u" " * self.columns
+        if self.margins:
+            top, bottom = self.margins
+        else:
+            top, bottom = -1, self.lines
 
-        for line in xrange(self.y, self.y + count):
-            self.display.insert(line, array("u", initial))
+        # If cursor is outside scrolling margins it -- do nothin'.
+        if top < self.y < bottom:
+            initial = u" " * self.columns
 
-        while len(self.display) > self.lines:
-            self.display.pop(-1)
+            for line in xrange(self.y, min(bottom, self.y + count)):
+                self.display.insert(line, array("u", initial))
+                self.display.pop(bottom)
 
     def delete_line(self, count=1):
         """Deletes the indicated # of lines, starting at line with
@@ -544,12 +552,12 @@ class screen(object):
                                and bottom margins, otherwise :attr:`lines`
                                and ``0`` is used.
         """
-        if within_margins and all(self.margins):
+        if within_margins and self.margins:
             top, bottom = self.margins
         else:
-            top, bottom = 0, self.lines - 1
+            top, bottom = -1, self.lines
 
-        self.y = min(max(top, line), bottom)
+        self.y = min(max(top + 1, line), bottom - 1)
 
     def home(self):
         """Set the cursor to the left upper corner ``(0, 0)``.
