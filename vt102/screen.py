@@ -446,7 +446,7 @@ class screen(object):
         """Sest a horizontal tab stop at cursor position."""
         self.tabstops.append(self.x)
 
-    def clear_tab_stop(self, type_of=0x30):
+    def clear_tab_stop(self, type_of=None):
         """Clears a horizontal tab stop in a specific way, depending
         on the ``type_of`` value:
 
@@ -454,17 +454,16 @@ class screen(object):
           position.
         * ``3`` -- Clears all horizontal tab stops.
         """
-        if type_of == 0x30:
+        if not type_of:
             # Clears a horizontal tab stop at cursor position.
             try:
                 self.tabstops.remove(self.x)
             except ValueError:
-                # If there is no tabstop at the current position, then just do
-                # nothing.
+                # If there is no tabstop at the current position, then
+                # just do nothing.
                 pass
-        elif type_of == 0x33:
-            # Clears all horizontal tab stops
-            self.tabstops = []
+        elif type_of == 3:
+            self.tabstops = []  # Clears all horizontal tab stops
 
     def cursor_up(self, count=1):
         """Moves cursor up the indicated # of lines in same column.
@@ -530,7 +529,7 @@ class screen(object):
         self.cursor_to_column((column or 1) - 1)
 
     def cursor_to_column(self, column=0):
-        """Set the cursor to a specific column in the current line.
+        """Moves cursor to a specific column in the current line.
 
         :param column: column number to move the cursor to (starts
                        with ``0``).
@@ -538,14 +537,19 @@ class screen(object):
         self.x = min(max(0, column), self.columns - 1)
 
     def cursor_to_line(self, line=0, within_margins=False):
-        """Set the cursor to a specific line in the current column.
+        """Moves cursor to a specific line in the current column.
 
         :param line: line number to move the cursor to (starts with ``0``).
         :param within_margins: when ``True``, cursor is bounded by top
                                and bottom margins, otherwise :attr:`lines`
                                and ``0`` is used.
         """
-        self.y = min(max(0, line), self.lines - 1)
+        if within_margins and all(self.margins):
+            top, bottom = self.margins
+        else:
+            top, bottom = 0, self.lines - 1
+
+        self.y = min(max(top, line), bottom)
 
     def home(self):
         """Set the cursor to the left upper corner ``(0, 0)``.

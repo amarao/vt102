@@ -267,21 +267,26 @@ def test_tabstops():
 
 def test_clear_tabstops():
     screen = vt102.screen(10, 10)
+
+    # a) clear a tabstop at current cusor location
     screen.x = 1
-    screen.set_tab_stop()
-    screen.clear_tab_stop(0x30)
-
-    assert not screen.tabstops
-
     screen.set_tab_stop()
     screen.x = 5
     screen.set_tab_stop()
+    screen.clear_tab_stop()
+
+    assert screen.tabstops == [1]
+
+    screen.set_tab_stop()
+    screen.clear_tab_stop(0)
+
+    assert screen.tabstops == [1]
+
+    # b) all tabstops
+    screen.set_tab_stop()
     screen.x = 9
     screen.set_tab_stop()
-
-    assert len(screen.tabstops) == 3
-
-    screen.clear_tab_stop(0x33)
+    screen.clear_tab_stop(3)
 
     assert not screen.tabstops
 
@@ -340,7 +345,7 @@ def test_restore_cursor_with_none_saved():
     screen.y = 5
     screen.restore_cursor()
 
-    assert screen.cursor == (5, 5)
+    assert screen.cursor == (0, 0)
 
 
 def test_insert_line():
