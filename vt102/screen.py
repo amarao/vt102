@@ -13,9 +13,7 @@ from __future__ import print_function, absolute_import
 
 from array import array
 from collections import namedtuple
-from copy import copy
 
-from . import control as ctrl
 from .graphics import text, colors
 
 
@@ -109,13 +107,13 @@ class screen(object):
             ("set-tab-stop", self.set_tab_stop),
             ("clear-tab-stop", self.clear_tab_stop),
             ("set-margins", self.set_margins),
-            ("answer", self.answer),
 
             # Not implemented
             # ...............
             # ("set-mode", ...)
             # ("reset-mode", ...)
             # ("status-report", ...)
+            # ("answer", ...),
 
             # Not supported
             # .............
@@ -220,9 +218,6 @@ class screen(object):
             # The cursor moves to the home position when the top and
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.home()
-
-    def answer(self):
-        map(self.print, u"%s6c" % ctrl.CSI)
 
     def print(self, char):
         """Print a character at the current cursor position and advance
@@ -395,19 +390,14 @@ class screen(object):
 
         :param count: number of characters to delete.
         """
-        count = min(count, self.columns - self.x)
+        count = min(self.columns - self.x, count)
 
-        # First resize the text display ...
-        line = self.display[self.y]
-        self.display[self.y] = (line[:self.x] +
-                                line[self.x + count:] +
-                                array("u", u" " * count))
+        for _ in xrange(count):
+            self.display[self.y].pop(self.x)
+            self.display[self.y].append(u" ")
 
-        # .. then resize the attribute array too.
-        attrs = self.attributes[self.y]
-        self.attributes[self.y] = (attrs[:self.x] +
-                                   attrs[self.x + count:] +
-                                   [self.default_attributes] * count)
+            self.attributes[self.y].pop(self.x)
+            self.attributes[self.y].append(self.default_attributes)
 
     def erase_characters(self, count=0):
         """Erases the indicated # of characters, starting with the

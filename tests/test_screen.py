@@ -472,27 +472,61 @@ def test_insert_characters():
 def test_delete_characters():
     screen = vt102.screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
-    screen.delete_characters(2)
 
+    screen.delete_characters(2)
     assert repr(screen) == repr([u"m  ", u"is ", u"foo"])
 
     screen.y, screen.x = 2, 2
     screen.delete_characters(1)
-
     assert repr(screen) == repr([u"m  ", u"is ", u"fo "])
+
+    # ! extreme cases.
+    screen = vt102.screen(1, 5)
+    screen.display = _(["12345"])
+    screen.x = 1
+    screen.delete_characters(3)
+    assert repr(screen) == repr([u"15   "])
+
+    screen = vt102.screen(1, 5)
+    screen.display = _(["12345"])
+    screen.x = 2
+    screen.delete_characters(10)
+    assert repr(screen) == repr([u"12   "])
+
+    screen = vt102.screen(1, 5)
+    screen.display = _(["12345"])
+    screen.delete_characters(4)
+    assert repr(screen) == repr([u"5    "])
 
 
 def test_erase_character():
     screen = vt102.screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
-    screen.erase_characters(2)
 
+    screen.erase_characters(2)
     assert repr(screen) == repr([u"  m", u"is ", u"foo"])
 
     screen.y, screen.x = 2, 2
     screen.erase_characters(1)
-
     assert repr(screen) == repr([u"  m", u"is ", u"fo "])
+
+    # ! extreme cases.
+    screen = vt102.screen(1, 5)
+    screen.display = _(["12345"])
+    screen.x = 1
+    screen.erase_characters(3)
+    assert repr(screen) == repr([u"1   5"])
+
+    screen = vt102.screen(1, 5)
+    screen.display = _(["12345"])
+    screen.x = 2
+    screen.erase_characters(10)
+    assert repr(screen) == repr([u"12   "])
+
+    screen = vt102.screen(1, 5)
+    screen.display = _(["12345"])
+    screen.erase_characters(4)
+    assert repr(screen) == repr([u"    5"])
 
 
 def test_erase_in_line():
