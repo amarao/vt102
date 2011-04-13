@@ -15,6 +15,7 @@ from array import array
 from collections import namedtuple
 
 from .graphics import text, colors
+from . import modes as mo
 
 
 #: A container for screen's scroll margins.
@@ -107,11 +108,11 @@ class screen(object):
             ("set-tab-stop", self.set_tab_stop),
             ("clear-tab-stop", self.clear_tab_stop),
             ("set-margins", self.set_margins),
+            ("set-mode", self.set_mode),
+            ("reset-mode", self.reset_mode),
 
             # Not implemented
             # ...............
-            # ("set-mode", ...)
-            # ("reset-mode", ...)
             # ("status-report", ...)
             # ("answer", ...),
 
@@ -136,6 +137,7 @@ class screen(object):
 
         self.display = []
         self.attributes = []
+        self.mode = set([mo.DECAWM, mo.DECTCEM])
         self.margins = None
         self.cursor_attributes = self.default_attributes
         self.lines, self.columns = 0, 0
@@ -219,21 +221,32 @@ class screen(object):
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.home()
 
+    def set_mode(self, mode):
+        self.mode.add(mode)
+
+    def reset_mode(self, mode):
+        try:
+            self.mode.remove(mode)
+        except ValueError:
+            pass
+
     def print(self, char):
         """Print a character at the current cursor position and advance
         the cursor.
         """
+        # If this was the last column in a line and auto wrap mode is
+        # enabled, move the cursor to the next line.
+        if self.x == self.columns and mo.DECAWM in self.mode:
+            self.linefeed()
+            if not mo.LNM in self.mode:
+                self.carriage_return()
+
         self.display[self.y][self.x] = char
         self.attributes[self.y][self.x] = self.cursor_attributes
 
         # .. note:: We can't use :meth:`_cursor_forward()`, because that
         #           way, we'll never know when to linefeed.
         self.x += 1
-
-        # If this was the last column in a line, move the cursor to
-        # the next line.
-        if self.x == self.columns:
-            self.linefeed()
 
     def carriage_return(self):
         """Move the cursor to the beginning of the current line."""
@@ -270,9 +283,12 @@ class screen(object):
             self.cursor_up()
 
     def linefeed(self):
-        """Performs an index and then a carriage return."""
+        """Performs an index and, if :data:`modes.LNM` is set, a
+        carriage return."""
         self.index()
-        self.carriage_return()
+
+        if mo.LNM in self.mode:
+            self.carriage_return()
 
     def next_tab_stop(self):
         """Return the x value of the next available tabstop or the x
@@ -287,7 +303,7 @@ class screen(object):
         """Move to the next tab space, or the end of the screen if there
         aren't anymore left.
         """
-        self.x = self.next_tab_stop()
+        self.cursor_to_column(self.next_tab_stop())
 
     def backspace(self):
         """Move cursor to the left one or keep it in it's position if

@@ -116,15 +116,10 @@ HVP = 0x66
 """Clears a horizontal tab stop at cursor position."""
 TBC = 0x67
 
-"""Set mode:
-
-* ``ESC [ 3 h`` -- DECCRM, display control chars.
-* ``ESC [ 4 h`` -- DECIM, set insert mode.
-* ``ESC [ 20 h`` -- LF/NL, automatically follow echo of LF, VT or FF with CR.
-"""
+"""Set mode."""
 SM = 0x68
 
-"""Reset mode to defaults."""
+"""Reset mode."""
 RM = 0x6c
 
 """Select graphics rendition. The terminal can display the following

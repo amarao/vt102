@@ -7,8 +7,7 @@ from array import array
 import pytest
 
 import vt102
-import vt102.escape as esc
-import vt102.control as ctrl
+import vt102.modes as mo
 
 # A shortcut, which converts an iterable yielding byte strings
 # to a list of arrays in "utf-8".
@@ -137,19 +136,29 @@ def test_resize():
 
 
 def test_print():
+    # ``LNM`` off.
     screen = vt102.screen(3, 3)
+    map(screen.print, u"abc")
+
+    # No linefeed is issued on the end of the line ...
+    assert mo.LNM not in screen.mode
+    assert repr(screen) == repr([u"abc", u"   ", u"   "])
+    assert screen.cursor == (3, 0)
+
+    # ... one more character -- now we got a linefeed!
     screen.print(u"a")
-    screen.print(u"b")
-    screen.print(u"c")
+    assert screen.cursor == (1, 1)
+
+    # The above should work with ``LNM`` on.
+    screen = vt102.screen(3, 3)
+    screen.set_mode(mo.LNM)
+    map(screen.print, u"abc")
 
     assert repr(screen) == repr([u"abc", u"   ", u"   "])
-    assert screen.cursor == (0, 1)
+    assert screen.cursor == (3, 0)
 
     screen.print(u"a")
-    screen.print(u"b")
-
-    assert repr(screen) == repr([u"abc", u"ab ", u"   "])
-    assert screen.cursor == (2, 1)
+    assert screen.cursor == (1, 1)
 
 
 def test_carriage_return():
@@ -246,15 +255,21 @@ def test_reverse_index():
     assert screen.cursor == (0, 1)
 
 
-def test_line_feed():
-    # Line feeds are the same as indexes, except they move the cursor to
-    # the first character on the created/next line
+def test_linefeed():
     screen = vt102.screen(2, 2)
     screen.display = _(["bo", "sh"])
-    screen.x, screen.y = (1, 0)
-    screen.linefeed()
 
+    # a) LNM off (which is a recommended behaviour)
+    screen.x, screen.y = 1, 0
+    screen.linefeed()
+    assert screen.cursor == (1, 1)
+
+    # b) LNM on
+    screen.x, screen.y = 1, 0
+    screen.set_mode(mo.LNM)
+    screen.linefeed()
     assert screen.cursor == (0, 1)
+
 
 
 def test_tabstops():
