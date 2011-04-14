@@ -572,6 +572,10 @@ class screen(object):
     def cursor_position(self, line=0, column=0):
         """Set the cursor to a specific `line` and `column`.
 
+        Cursor is allowed to move out of the scrolling region only when
+        :data:`modes.DECOM` is reset, otherwise -- the position doesn't
+        change.
+
         .. note::
 
            Obnoxiously, line and column are 1-based, instead of zero
@@ -579,8 +583,14 @@ class screen(object):
            are still acceptable, and should move to the beginning of
            the line or column as if they were 1 -- *sigh*.
         """
-        self.cursor_to_line((line or 1) - 1)
-        self.cursor_to_column((column or 1) - 1)
+        line, column  = (line or 1) - 1, (column or 1) - 1
+        if (mo.DECOM in self.mode and
+            self.margins and
+            not self.margins.top < line < self.margins.bottom):
+            return
+        else:
+            self.cursor_to_line(line)
+            self.cursor_to_column(column)
 
     def cursor_to_column(self, column=0):
         """Moves cursor to a specific column in the current line.
@@ -588,17 +598,23 @@ class screen(object):
         :param column: column number to move the cursor to (starts
                        with ``0``).
         """
+
         self.x = min(max(0, column), self.columns - 1)
 
     def cursor_to_line(self, line=0, within_margins=False):
         """Moves cursor to a specific line in the current column.
+`
+        .. note::
+
+           ``within_margins`` is assumed to be allways ``True`` when
+           :data:`modes.DECOM` is set.
 
         :param line: line number to move the cursor to (starts with ``0``).
         :param within_margins: when ``True``, cursor is bounded by top
                                and bottom margins, otherwise :attr:`lines`
                                and ``0`` is used.
         """
-        if within_margins and self.margins:
+        if (within_margins or mo.DECOM in self.mode) and self.margins:
             top, bottom = self.margins
         else:
             top, bottom = -1, self.lines
@@ -606,11 +622,16 @@ class screen(object):
         self.y = min(max(top + 1, line), bottom - 1)
 
     def home(self):
-        """Set the cursor to the left upper corner ``(0, 0)``.
+        """Moves cursor to `home` position.
 
-        .. todo:: add support for `origin` mode (``DECOM``).
+        When :data:`modes.DECOM` is reset, `home` position is at the
+        left upper corner of the screen, otherwise it's at top margin
+        of the user-defined scrolling region.
         """
-        self.cursor_position(0, 0)
+        if mo.DECOM in self.mode:
+            self.cursor_position(0, self.margins.top)
+        else:
+            self.cursor_position(0, 0)
 
     def bell(self, *attrs):
         """Bell stub -- the actual implementation should probably be
