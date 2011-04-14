@@ -25,8 +25,9 @@
     .. seealso::
 
         `man console_codes <http://linux.die.net/man/4/console_codes>`_
-            For details on console codes listed bellow in :attr:`basic`,
-            :attr:`escape`, :attr:`csi`
+            For details on console codes listed bellow in
+            :attr:`stream.basic`, :attr:`stream.escape`,
+            :attr:`stream.csi`
 """
 
 from __future__ import absolute_import
@@ -107,7 +108,7 @@ class stream(object):
         """Consume a single character and advance the state as necessary."""
         handler = {
             "stream": self._stream,
-            "escape": self._escape_sequence,
+            "escape": self._escape,
             "arguments": self._arguments,
         }.get(self.state)
 
@@ -168,7 +169,7 @@ class stream(object):
         else:
             self.dispatch("print", char)
 
-    def _escape_sequence(self, char):
+    def _escape(self, char):
         """Handle characters seen when in an escape sequence.
 
         Most non-VT52 commands start with a left-bracket after the

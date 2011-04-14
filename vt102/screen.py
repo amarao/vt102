@@ -224,8 +224,8 @@ class screen(object):
     def set_mode(self, mode):
         """Sets (enables) a give mode.
 
-        :param modes: a mode to set, where mode is a constant from
-                      :mod:`modes`.
+        :param mode: a mode to set, where mode is a constant from
+                     :mod:`vt102.modes`.
         """
         self.mode.add(mode)
 
@@ -233,7 +233,7 @@ class screen(object):
         """Resets (disables) a given mode.
 
         :param mode: a mode to reset -- hopefully a constant from
-                     :mod:`modes`.
+                     :mod:`vt102.modes`.
         """
         try:
             self.mode.remove(mode)
@@ -242,7 +242,7 @@ class screen(object):
 
     def print(self, char):
         """Print a character at the current cursor position and advance
-        the cursor if :data:`modes.DECAWM` is set.
+        the cursor if :data:`vt102.modes.DECAWM` is set.
         """
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line.
@@ -293,7 +293,7 @@ class screen(object):
             self.cursor_up()
 
     def linefeed(self):
-        """Performs an index and, if :data:`modes.LNM` is set, a
+        """Performs an index and, if :data:`vt102.modes.LNM` is set, a
         carriage return."""
         self.index()
 
@@ -573,8 +573,8 @@ class screen(object):
         """Set the cursor to a specific `line` and `column`.
 
         Cursor is allowed to move out of the scrolling region only when
-        :data:`modes.DECOM` is reset, otherwise -- the position doesn't
-        change.
+        :data:`vt102.modes.DECOM` is reset, otherwise -- the position
+        doesn't change.
 
         .. note::
 
@@ -603,11 +603,11 @@ class screen(object):
 
     def cursor_to_line(self, line=0, within_margins=False):
         """Moves cursor to a specific line in the current column.
-`
+
         .. note::
 
            ``within_margins`` is assumed to be allways ``True`` when
-           :data:`modes.DECOM` is set.
+           :data:`vt102.modes.DECOM` is set.
 
         :param line: line number to move the cursor to (starts with ``0``).
         :param within_margins: when ``True``, cursor is bounded by top
@@ -624,8 +624,8 @@ class screen(object):
     def home(self):
         """Moves cursor to `home` position.
 
-        When :data:`modes.DECOM` is reset, `home` position is at the
-        left upper corner of the screen, otherwise it's at top margin
+        When :data:`vt102.modes.DECOM` is reset, `home` position is at
+        the left upper corner of the screen, otherwise it's at top margin
         of the user-defined scrolling region.
         """
         if mo.DECOM in self.mode:

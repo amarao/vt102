@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    vt102.mode
-    ~~~~~~~~~~
+    vt102.modes
+    ~~~~~~~~~~~
 
     A container for terminal mode switches.
 

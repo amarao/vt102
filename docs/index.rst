@@ -84,6 +84,9 @@ API
     :members:
     :undoc-members:
 
+.. automodule:: vt102.modes
+    :members:
+
 .. automodule:: vt102.control
     :members:
 
