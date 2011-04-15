@@ -13,6 +13,7 @@ from __future__ import print_function, absolute_import
 
 from array import array
 from collections import namedtuple
+from warnings import warn
 
 from .graphics import text, colors
 from . import modes as mo
@@ -221,12 +222,13 @@ class screen(object):
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.home()
 
-    def set_mode(self, mode):
-        """Sets (enables) a give mode.
+    def set_mode(self, mode, *extra):
+        """Sets (enables) a given mode.
 
         :param mode: a mode to set, where mode is a constant from
                      :mod:`vt102.modes`.
         """
+        warn("Got extra mode arguments -- %r" % (extra, ))
         self.mode.add(mode)
 
     def reset_mode(self, mode):
@@ -237,7 +239,7 @@ class screen(object):
         """
         try:
             self.mode.remove(mode)
-        except ValueError:
+        except KeyError:
             pass
 
     def print(self, char):
