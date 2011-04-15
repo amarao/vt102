@@ -55,7 +55,7 @@ class screen(object):
     default_attributes = (), "default", "default"
 
     def __init__(self, lines, columns):
-        self.tabstops = []
+        self.tabstops = set()
         self.cursor_save_stack = []
         self.lines, self.columns = lines, columns
         self.reset()
@@ -302,20 +302,18 @@ class screen(object):
         if mo.LNM in self.mode:
             self.carriage_return()
 
-    def next_tab_stop(self):
-        """Return the x value of the next available tabstop or the x
-        value of the margin if there are no more tabstops.
-        """
-        for stop in sorted(self.tabstops):
-            if self.x < stop:
-                return stop
-        return self.columns - 1
-
     def tab(self):
         """Move to the next tab space, or the end of the screen if there
         aren't anymore left.
         """
-        self.cursor_to_column(self.next_tab_stop())
+        for stop in sorted(self.tabstops):
+            if self.x < stop:
+                column = stop
+                break
+        else:
+            column = self.columns - 1
+
+        self.cursor_to_column(column)
 
     def backspace(self):
         """Move cursor to the left one or keep it in it's position if
@@ -324,10 +322,7 @@ class screen(object):
         self.cursor_back()
 
     def save_cursor(self):
-        """Push the current cursor position onto the stack.
-
-        .. todo:: save whole screen, not just cursor positions.
-        """
+        """Push the current cursor position onto the stack."""
         self.cursor_save_stack.append(self.cursor)
 
     def restore_cursor(self):
@@ -500,7 +495,7 @@ class screen(object):
 
     def set_tab_stop(self):
         """Sest a horizontal tab stop at cursor position."""
-        self.tabstops.append(self.x)
+        self.tabstops.add(self.x)
 
     def clear_tab_stop(self, type_of=None):
         """Clears a horizontal tab stop in a specific way, depending
@@ -514,7 +509,7 @@ class screen(object):
             # Clears a horizontal tab stop at cursor position.
             try:
                 self.tabstops.remove(self.x)
-            except ValueError:
+            except KeyError:
                 # If there is no tabstop at the current position, then
                 # just do nothing.
                 pass

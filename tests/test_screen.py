@@ -300,12 +300,12 @@ def test_clear_tabstops():
     screen.set_tab_stop()
     screen.clear_tab_stop()
 
-    assert screen.tabstops == [1]
+    assert screen.tabstops == set([1])
 
     screen.set_tab_stop()
     screen.clear_tab_stop(0)
 
-    assert screen.tabstops == [1]
+    assert screen.tabstops == set([1])
 
     # b) all tabstops
     screen.set_tab_stop()
