@@ -17,7 +17,7 @@ DESCRIPTION = "Simple vt102 emulator -- useful for screen scraping."
 try:
     LONG_DESCRIPTION = open(os.path.join(here, "README.rst")).read()
 except IOError:
-    pass
+    LONG_DESCRIPTION = ""
 
 
 CLASSIFIERS = (
