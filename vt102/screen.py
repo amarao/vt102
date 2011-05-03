@@ -55,7 +55,10 @@ class screen(object):
     default_attributes = (), "default", "default"
 
     def __init__(self, lines, columns):
-        self.tabstops = set()
+        # From ``man terminfo`` -- "... hardware tabs are initially set every
+        # `n` spaces when the terminal is powered up. Since we aim to support
+        # VT102 / VT220 and linux -- we use n = 8.
+        self.tabstops = set(xrange(0, columns, 8))
         self.cursor_save_stack = []
         self.lines, self.columns = lines, columns
         self.reset()
