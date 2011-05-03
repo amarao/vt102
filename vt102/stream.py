@@ -61,6 +61,7 @@ class stream(object):
         esc.HTS: "set-tab-stop",
         esc.DECSC: "save-cursor",
         esc.DECRC: "restore-cursor",
+        esc.DECALN: "alignment-display",
     }
 
     #: CSI escape sequences.
@@ -173,9 +174,13 @@ class stream(object):
         """Handle characters seen when in an escape sequence.
 
         Most non-VT52 commands start with a left-bracket after the
-        escape and then a stream of parameters and a command.
+        escape and then a stream of parameters and a command; with
+        a single notable exception -- :data:`escape.DECOM` sequence,
+        which starts with a sharp.
         """
-        if char == "[":
+        if char == "#":
+            pass
+        elif char == "[":
             self.state = "arguments"
         elif ord(char) in self.escape:
             self.state = "stream"

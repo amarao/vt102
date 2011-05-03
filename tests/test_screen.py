@@ -776,3 +776,24 @@ def test_unicode():
 
     assert repr(screen) == repr([u"тест", u"    "])
 
+
+def test_alignment_display():
+    screen = vt102.screen(5, 5)
+    screen.print(u"a")
+    screen.linefeed()
+    screen.linefeed()
+    screen.print(u"b")
+
+    assert repr(screen) == repr([u"a    ",
+                                 u"     ",
+                                 u"b    ",
+                                 u"     ",
+                                 u"     "])
+
+    screen.alignment_display()
+
+    assert repr(screen) == repr([u"EEEEE",
+                                 u"EEEEE",
+                                 u"EEEEE",
+                                 u"EEEEE",
+                                 u"EEEEE"])

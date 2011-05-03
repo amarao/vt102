@@ -148,6 +148,9 @@ parameters are top and bottom line. If called without any arguments,
 whole screen is used."""
 DECSTBM = 0x72
 
+"""Fills screen with uppercase E's for screen focus and alignment."""
+DECALN = 0x38
+
 """Same as :data:`CHA`."""
 HPA = 0x60
 

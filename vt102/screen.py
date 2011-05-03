@@ -114,6 +114,7 @@ class screen(object):
             ("set-margins", self.set_margins),
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
+            ("alignment-display", self.alignment_display),
 
             # Not implemented
             # ...............
@@ -639,10 +640,17 @@ class screen(object):
         else:
             self.cursor_position(0, 0)
 
-    def bell(self, *attrs):
+    def bell(self, *args):
         """Bell stub -- the actual implementation should probably be
         provided by the end-user.
         """
+
+    def alignment_display(self):
+        """Fills screen with uppercase E's for screen focus and alignment."""
+        for line in xrange(self.lines):
+            for column in xrange(self.columns):
+                self.display[line][column] = u"E"
+
 
     # The following methods weren't tested properly yet.
     # ..................................................
