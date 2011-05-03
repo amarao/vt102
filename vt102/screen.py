@@ -509,15 +509,11 @@ class screen(object):
         * ``3`` -- Clears all horizontal tab stops.
         """
         if not type_of:
-            # Clears a horizontal tab stop at cursor position.
-            try:
-                self.tabstops.remove(self.x)
-            except KeyError:
-                # If there is no tabstop at the current position, then
-                # just do nothing.
-                pass
+            # Clears a horizontal tab stop at cursor position, if it's
+            # present, or silently fails if otherwise.
+            self.tabstops.discard(self.x)
         elif type_of == 3:
-            self.tabstops = []  # Clears all horizontal tab stops
+            self.tabstops = set([])  # Clears all horizontal tab stops.
 
     def cursor_up(self, count=1):
         """Moves cursor up the indicated # of lines in same column.

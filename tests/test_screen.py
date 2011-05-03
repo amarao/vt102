@@ -274,6 +274,10 @@ def test_linefeed():
 
 def test_tabstops():
     screen = vt102.screen(10, 10)
+
+    # Making sure initial tabstops are in place.
+    assert screen.tabstops == set([0, 8])
+
     screen.x = 1
     screen.set_tab_stop()
     screen.x = 8
@@ -292,6 +296,7 @@ def test_tabstops():
 
 def test_clear_tabstops():
     screen = vt102.screen(10, 10)
+    screen.clear_tab_stop(3)
 
     # a) clear a tabstop at current cusor location
     screen.x = 1
