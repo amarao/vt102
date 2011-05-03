@@ -225,25 +225,30 @@ class screen(object):
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.home()
 
-    def set_mode(self, mode, *extra):
-        """Sets (enables) a given mode.
+    def set_mode(self, *modes):
+        """Sets (enables) a given list of modes.
 
-        :param mode: a mode to set, where mode is a constant from
+        :param modes: modes to set, where each mode is a constant from
                      :mod:`vt102.modes`.
         """
-        warn("Got extra mode arguments -- %r" % (extra, ))
-        self.mode.add(mode)
+        if mo.DECCOLM in modes:
+            self.resize(self.lines, 132)
 
-    def reset_mode(self, mode):
-        """Resets (disables) a given mode.
+        self.mode.update(modes)
 
-        :param mode: a mode to reset -- hopefully a constant from
-                     :mod:`vt102.modes`.
+    def reset_mode(self, *modes):
+        """Resets (disables) a given list of modes.
+
+        :param modes: modes to reset -- hopefully, each mode is a constant
+                      from :mod:`vt102.modes`.
         """
         try:
-            self.mode.remove(mode)
+            self.mode.difference_update(modes)
         except KeyError:
             pass
+        finally:
+            if mo.DECCOLM in modes:
+                self.resize(self.lines, 80)
 
     def print(self, char):
         """Print a character at the current cursor position and advance

@@ -39,3 +39,7 @@ DECOM = 6
 """Auto Wrap Mode: selects where received graphic characters appear
 when the cursor is at the right margin."""
 DECAWM = 7
+
+"""Column Mode: selects the number of columns per line (80 or 132) on
+the screen."""
+DECCOLM = 3
