@@ -136,29 +136,30 @@ def test_resize():
 
 
 def test_print():
-    # ``LNM`` off.
+    # ``DECAWM`` on (default).
     screen = vt102.screen(3, 3)
+    assert mo.DECAWM in screen.mode
+
     map(screen.print, u"abc")
+    assert repr(screen) == repr([u"abc", u"   ", u"   "])
+    assert screen.cursor == (3, 0)
+
+    # ... one` more character -- now we got a linefeed!
+    screen.print(u"a")
+    assert screen.cursor == (1, 1)
+
+    # ``DECAWM`` is off.
+    screen = vt102.screen(3, 3)
+    screen.reset_mode(mo.DECAWM)
+
+    map(screen.print, u"abc")
+    assert repr(screen) == repr([u"abc", u"   ", u"   "])
+    assert screen.cursor == (3, 0)
 
     # No linefeed is issued on the end of the line ...
-    assert mo.LNM not in screen.mode
-    assert repr(screen) == repr([u"abc", u"   ", u"   "])
-    assert screen.cursor == (3, 0)
-
-    # ... one more character -- now we got a linefeed!
     screen.print(u"a")
-    assert screen.cursor == (1, 1)
-
-    # The above should work with ``LNM`` on.
-    screen = vt102.screen(3, 3)
-    screen.set_mode(mo.LNM)
-    map(screen.print, u"abc")
-
-    assert repr(screen) == repr([u"abc", u"   ", u"   "])
+    assert repr(screen) == repr([u"aba", u"   ", u"   "])
     assert screen.cursor == (3, 0)
-
-    screen.print(u"a")
-    assert screen.cursor == (1, 1)
 
 
 def test_carriage_return():
@@ -259,24 +260,28 @@ def test_linefeed():
     screen = vt102.screen(2, 2)
     screen.display = _(["bo", "sh"])
 
-    # a) LNM off (which is a recommended behaviour)
+    # a) LNM on by default (that's what `vttest` forces us to do).
+    assert mo.LNM in screen.mode
     screen.x, screen.y = 1, 0
-    screen.linefeed()
-    assert screen.cursor == (1, 1)
-
-    # b) LNM on
-    screen.x, screen.y = 1, 0
-    screen.set_mode(mo.LNM)
     screen.linefeed()
     assert screen.cursor == (0, 1)
 
+    # b) LNM off.
+    screen.reset_mode(mo.LNM)
+    screen.x, screen.y = 1, 0
+    screen.linefeed()
+    assert screen.cursor == (1, 1)
 
 
 def test_tabstops():
     screen = vt102.screen(10, 10)
 
-    # Making sure initial tabstops are in place.
-    assert screen.tabstops == set([0, 8])
+    # Making sure initial tabstops are in place ...
+    assert screen.tabstops == set([7])
+
+    # ... and clearing them.
+    screen.clear_tab_stop(3)
+    assert not screen.tabstops
 
     screen.x = 1
     screen.set_tab_stop()

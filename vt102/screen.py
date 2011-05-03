@@ -58,7 +58,7 @@ class screen(object):
         # From ``man terminfo`` -- "... hardware tabs are initially set every
         # `n` spaces when the terminal is powered up. Since we aim to support
         # VT102 / VT220 and linux -- we use n = 8.
-        self.tabstops = set(xrange(0, columns, 8))
+        self.tabstops = set(xrange(7, columns, 8))
         self.cursor_save_stack = []
         self.lines, self.columns = lines, columns
         self.reset()
@@ -141,7 +141,7 @@ class screen(object):
 
         self.display = []
         self.attributes = []
-        self.mode = set([mo.DECAWM, mo.DECTCEM])
+        self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
         self.margins = None
         self.cursor_attributes = self.default_attributes
         self.lines, self.columns = 0, 0
@@ -255,14 +255,19 @@ class screen(object):
         the cursor if :data:`vt102.modes.DECAWM` is set.
         """
         # If this was the last column in a line and auto wrap mode is
-        # enabled, move the cursor to the next line.
-        if self.x == self.columns and mo.DECAWM in self.mode:
-            self.linefeed()
-            if not mo.LNM in self.mode:
-                self.carriage_return()
+        # enabled, move the cursor to the next line. Otherwise replace
+        # characters already displayed with newly entered.
+        if self.x == self.columns:
+            if mo.DECAWM in self.mode:
+                self.linefeed()
+            else:
+                self.x -= 1
 
-        self.display[self.y][self.x] = char
-        self.attributes[self.y][self.x] = self.cursor_attributes
+        try:
+            self.display[self.y][self.x] = char
+            self.attributes[self.y][self.x] = self.cursor_attributes
+        except IndexError as e:
+            if __debug__: print(e)
 
         # .. note:: We can't use :meth:`_cursor_forward()`, because that
         #           way, we'll never know when to linefeed.
