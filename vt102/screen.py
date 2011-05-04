@@ -119,11 +119,11 @@ class screen(object):
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
             ("alignment-display", self.alignment_display),
+            ("answer", self.answer)
 
             # Not implemented
             # ...............
             # ("status-report", ...)
-            # ("answer", ...)
 
             # Not supported
             # .............
@@ -146,6 +146,7 @@ class screen(object):
 
         self.display = []
         self.attributes = []
+        self.buffer = []
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
         self.margins = 0, self.lines - 1
         self.cursor_attributes = self.default_attributes
@@ -641,6 +642,32 @@ class screen(object):
         for line in xrange(self.lines):
             for column in xrange(self.columns):
                 self.display[line][column] = u"E"
+
+    def answer(self, *args):
+        """Reports device attributes.
+
+        There are two DA exchanges (dialogues) between the host computer
+        and the terminal:
+
+        * In the primary DA exchange, the host asks for the terminal's
+          service class code and the basic attributes.
+        * In the secondary DA exchange, the host asks for the terminal's
+          identification code, firmware version level, and an account
+          of the hardware options installed.
+
+        .. note::
+
+           ``vt102`` only implements primary DA exchange, since secondary
+           DA exchange doesn't make much sense in the case of a digital
+           terminal.
+        """
+        if len(args) == 1:
+            attrs = [
+                u"62",  # I'm a service class 2 terminal
+                u"1",   # with 132 columns
+                u"6",   # and selective erase.
+            ]
+            self.buffer.append(u"%s?%sc" % (unichr(ctrl.CSI), u";".join(attrs)))
 
     # The following methods weren't tested properly yet.
     # ..................................................
