@@ -3,9 +3,6 @@
     vt102.stream
     ~~~~~~~~~~~~
 
-    A stream is the state machine that parses a stream of terminal
-    characters and dispatches events based on what it sees.
-
     Quick example:
 
     >>> import vt102
@@ -39,6 +36,11 @@ from . import control as ctrl, escape as esc
 
 
 class stream(object):
+    """
+    A stream is the state machine that parses a stream of terminal
+    characters and dispatches events based on what it sees.
+    """
+
     #: Basic characters, which don't require any arguments.
     basic = {
         ctrl.BEL: "bell",
