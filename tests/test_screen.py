@@ -187,8 +187,8 @@ def test_index():
 
     # c) same with margins
     screen = vt102.screen(5, 2)
-    screen.set_margins(0, 4)
     screen.display = _(["bo", "sh", "th", "er", "oh"])
+    screen.set_margins(1, 3)
     screen.y = 3
 
     # ... go!
@@ -231,8 +231,8 @@ def test_reverse_index():
 
     # c) same with margins
     screen = vt102.screen(5, 2)
-    screen.set_margins(0, 4)
     screen.display = _(["bo", "sh", "th", "er", "oh"])
+    screen.set_margins(1, 3)
     screen.y = 1
 
     # ... go!
@@ -402,14 +402,28 @@ def test_insert_line():
     # b) with margins
     screen = vt102.screen(5, 3)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.set_margins(0, 4)
+    screen.set_margins(0, 3)
     screen.y = 1
     screen.insert_line(1)
 
     assert repr(screen) == repr([u"sam", u"   ", u"is ", u"foo", u"baz"])
 
+    screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.set_margins(0, 2)
+    screen.y = 1
+
+    screen.insert_line(1)
+    assert repr(screen) == repr([u"sam", u"   ", u"is ", u"bar",  u"baz"])
+
+    screen.insert_line(2)
+    assert repr(screen) == repr([u"sam", u"   ", u"   ", u"bar",  u"baz"])
+
     # c) with margins -- trying to insert more than we have available
-    screen.insert_line(5)
+    screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.set_margins(1, 3)
+    screen.y = 1
+    screen.insert_line(20)
+
     assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
 
     # d) with margins -- trying to insert outside scroll boundaries
@@ -438,7 +452,7 @@ def test_delete_line():
 
     # b) with margins
     screen = vt102.screen(5, 3)
-    screen.set_margins(0, 4)
+    screen.set_margins(0, 3)
     screen.y = 1
 
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])

@@ -13,10 +13,9 @@ from __future__ import print_function, absolute_import
 
 from array import array
 from collections import namedtuple
-from warnings import warn
 
 from .graphics import text, colors
-from . import modes as mo
+from . import modes as mo, control as ctrl
 
 
 #: A container for screen's scroll margins.
@@ -34,11 +33,6 @@ class screen(object):
        A matrix of character attributes, is allways the same size as
        :attr:`display`.
 
-    .. attribute:: margins
-
-       Top and bottom margins, defining the scrolling region; the actual
-       values are top and bottom line.
-
     .. attribute:: default_attributes
 
        Default colors and styling. The value of this attribute should
@@ -51,6 +45,16 @@ class screen(object):
        1. A tuple of all the text attributes: **bold**, `italic`, etc
        2. Foreground color as a string, see :attr:`vt102.graphics.colors`
        3. Background color as a string, see :attr:`vt102.graphics.colors`
+
+    .. attribute:: margins
+
+       Top and bottom margins, defining the scrolling region; the actual
+       values are top and bottom line.
+
+    .. attribute:: buffer
+
+       A list of string which should be sent to the host, for example
+       :data:`vt102.escape.DA` replies.
     """
     default_attributes = (), "default", "default"
 
@@ -119,7 +123,7 @@ class screen(object):
             # Not implemented
             # ...............
             # ("status-report", ...)
-            # ("answer", ...),
+            # ("answer", ...)
 
             # Not supported
             # .............
@@ -143,7 +147,7 @@ class screen(object):
         self.display = []
         self.attributes = []
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
-        self.margins = None
+        self.margins = 0, self.lines - 1
         self.cursor_attributes = self.default_attributes
         self.lines, self.columns = 0, 0
 
@@ -268,7 +272,7 @@ class screen(object):
             self.display[self.y][self.x] = char
             self.attributes[self.y][self.x] = self.cursor_attributes
         except IndexError as e:
-            if __debug__: print(e)
+            if __debug__: print(e, self.x, self.y, char)
 
         # .. note:: We can't use :meth:`_cursor_forward()`, because that
         #           way, we'll never know when to linefeed.
@@ -282,14 +286,11 @@ class screen(object):
         """Move the cursor down one line in the same column. If the
         cursor is at the last line, create a new line at the bottom.
         """
-        if self.margins:
-            top, bottom = self.margins
-        else:
-            top, bottom = -1, self.lines
+        top, bottom = self.margins
 
-        if self.y == bottom - 1:
-            self.display.pop(top + 1)
-            self.display.insert(bottom - 1, array("u", u" " * self.columns))
+        if self.y == bottom:
+            self.display.pop(top)
+            self.display.insert(bottom, array("u", u" " * self.columns))
         else:
             self.cursor_down()
 
@@ -297,14 +298,11 @@ class screen(object):
         """Move the cursor up one line in the same column. If the cursor
         is at the first line, create a new line at the top.
         """
-        if self.margins:
-            top, bottom = self.margins
-        else:
-            top, bottom = -1, self.lines
+        top, bottom = self.margins
 
-        if self.y == top + 1:
-            self.display.pop(bottom - 1)
-            self.display.insert(top + 1, array("u", u" " * self.columns))
+        if self.y == top:
+            self.display.pop(bottom)
+            self.display.insert(top, array("u", u" " * self.columns))
         else:
             self.cursor_up()
 
@@ -362,18 +360,15 @@ class screen(object):
 
         :param count: number of lines to delete.
         """
-        if self.margins:
-            top, bottom = self.margins
-        else:
-            top, bottom = -1, self.lines
+        top, bottom = self.margins
 
         # If cursor is outside scrolling margins it -- do nothin'.
-        if top < self.y < bottom:
+        if top <= self.y <= bottom:
             initial = u" " * self.columns
 
-            for line in xrange(self.y, min(bottom, self.y + count)):
-                self.display.insert(line, array("u", initial))
+            for line in xrange(self.y, min(bottom + 1, self.y + count)):
                 self.display.pop(bottom)
+                self.display.insert(line, array("u", initial))
 
             self.cursor_to_column(0)
 
@@ -387,18 +382,14 @@ class screen(object):
 
         :param count: number of lines to delete.
         """
-        if self.margins:
-            top, bottom = self.margins
-        else:
-            top, bottom = -1, self.lines
+        top, bottom = self.margins
 
         # If cursor is outside scrolling margins it -- do nothin'.
-        if top < self.y < bottom:
-            initial = u" " * self.columns
-
-            for _ in xrange(min(bottom - self.y, count)):
+        if top <= self.y <= bottom:
+            #                v -- +1 to include the bottom margin.
+            for _ in xrange(min(bottom - self.y + 1, count)):
                 self.display.pop(self.y)
-                self.display.insert(bottom - 1, array("u", initial))
+                self.display.insert(bottom, array("u", u" " * self.columns))
 
             self.cursor_to_column(0)
 
@@ -593,7 +584,7 @@ class screen(object):
         line, column  = (line or 1) - 1, (column or 1) - 1
         if (mo.DECOM in self.mode and
             self.margins and
-            not self.margins.top < line < self.margins.bottom):
+            not self.margins.top <= line <= self.margins.bottom):
             return
         else:
             self.cursor_to_line(line)
@@ -621,12 +612,12 @@ class screen(object):
                                and bottom margins, otherwise :attr:`lines`
                                and ``0`` is used.
         """
-        if (within_margins or mo.DECOM in self.mode) and self.margins:
+        if (within_margins or mo.DECOM in self.mode):
             top, bottom = self.margins
         else:
-            top, bottom = -1, self.lines
+            top, bottom = 0, self.lines - 1
 
-        self.y = min(max(top + 1, line), bottom - 1)
+        self.y = min(max(top, line), bottom)
 
     def home(self):
         """Moves cursor to `home` position.
@@ -650,7 +641,6 @@ class screen(object):
         for line in xrange(self.lines):
             for column in xrange(self.columns):
                 self.display[line][column] = u"E"
-
 
     # The following methods weren't tested properly yet.
     # ..................................................
