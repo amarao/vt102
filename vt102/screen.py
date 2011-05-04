@@ -488,10 +488,10 @@ class screen(object):
         interval = (
             # a) erase from cursor to the end of the display, including
             # the cursor,
-            xrange(self.y, self.lines),
+            xrange(self.y + 1, self.lines),
             # b) erase from the beginning of the display to the cursor,
-            # including it.
-            xrange(0, self.y + 1),
+            # including it,
+            xrange(0, self.y),
             # c) erase the whole display.
             xrange(0, self.lines)
         )[type_of]
@@ -499,6 +499,10 @@ class screen(object):
         for line in interval:
             self.display[line] = array("u", u" " * self.columns)
             self.attributes[line] = [self.default_attributes] * self.columns
+
+        # In case of 0 or 1 we have to erase the line with the cursor.
+        if type_of in [0, 1]:
+            self.erase_in_line(type_of)
 
     def set_tab_stop(self):
         """Sest a horizontal tab stop at cursor position."""

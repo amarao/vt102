@@ -574,8 +574,7 @@ def test_erase_in_line():
                         "but a",
                         "re yo",
                         "u?   "])
-    screen.x = 2
-    screen.y = 0
+    screen.cursor_position(1, 3)
 
     # Erase from cursor to the end of line
     screen.erase_in_line(0)
@@ -620,13 +619,13 @@ def test_erase_in_display():
                         "but a",
                         "re yo",
                         "u?   "])
-    screen.cursor_position(3, 1)
+    screen.cursor_position(3, 3)
 
     # Erase from the cursor to the end of the display.
     screen.erase_in_display(0)
     assert repr(screen) == repr([u"sam i",
                                  u"s foo",
-                                 u"     ",
+                                 u"bu   ",
                                  u"     ",
                                  u"     "])
     assert screen.attributes == [[screen.default_attributes] * 5] * 5
@@ -640,7 +639,7 @@ def test_erase_in_display():
     screen.erase_in_display(1)
     assert repr(screen) == repr([u"     ",
                                  u"     ",
-                                 u"     ",
+                                 u"    a",
                                  u"re yo",
                                  u"u?   "])
     assert screen.attributes == [[screen.default_attributes] * 5] * 5
