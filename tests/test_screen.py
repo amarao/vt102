@@ -188,7 +188,7 @@ def test_index():
     # c) same with margins
     screen = vt102.screen(5, 2)
     screen.display = _(["bo", "sh", "th", "er", "oh"])
-    screen.set_margins(1, 3)
+    screen.set_margins(2, 4)
     screen.y = 3
 
     # ... go!
@@ -232,7 +232,7 @@ def test_reverse_index():
     # c) same with margins
     screen = vt102.screen(5, 2)
     screen.display = _(["bo", "sh", "th", "er", "oh"])
-    screen.set_margins(1, 3)
+    screen.set_margins(2, 4)
     screen.y = 1
 
     # ... go!
@@ -402,14 +402,14 @@ def test_insert_line():
     # b) with margins
     screen = vt102.screen(5, 3)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.set_margins(0, 3)
+    screen.set_margins(1, 4)
     screen.y = 1
     screen.insert_line(1)
 
     assert repr(screen) == repr([u"sam", u"   ", u"is ", u"foo", u"baz"])
 
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.set_margins(0, 2)
+    screen.set_margins(1, 3)
     screen.y = 1
 
     screen.insert_line(1)
@@ -420,7 +420,7 @@ def test_insert_line():
 
     # c) with margins -- trying to insert more than we have available
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.set_margins(1, 3)
+    screen.set_margins(2, 4)
     screen.y = 1
     screen.insert_line(20)
 
@@ -429,7 +429,7 @@ def test_insert_line():
     # d) with margins -- trying to insert outside scroll boundaries
     screen = vt102.screen(5, 3)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.set_margins(1, 4)
+    screen.set_margins(2, 4)
     screen.insert_line(5)
 
     assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
@@ -439,7 +439,6 @@ def test_delete_line():
     # a) without margins
     screen = vt102.screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
-    screen.x = 2
     screen.delete_line(1)
 
     assert repr(screen) == repr([u"is ", u"foo", u"   "])
@@ -452,7 +451,7 @@ def test_delete_line():
 
     # b) with margins
     screen = vt102.screen(5, 3)
-    screen.set_margins(0, 3)
+    screen.set_margins(1, 4)
     screen.y = 1
 
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
@@ -471,7 +470,7 @@ def test_delete_line():
     # d) with margins -- trying to delete outside scroll boundaries
     screen = vt102.screen(5, 3)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.set_margins(1, 4)
+    screen.set_margins(2, 4)
     screen.delete_line(5)
 
     assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
@@ -621,7 +620,7 @@ def test_erase_in_display():
                         "but a",
                         "re yo",
                         "u?   "])
-    screen.y = 2
+    screen.cursor_position(3, 1)
 
     # Erase from the cursor to the end of the display.
     screen.erase_in_display(0)
@@ -738,18 +737,22 @@ def test_cursor_forward():
 def test_cursor_position():
     screen = vt102.screen(10, 10)
 
-    # Rows/columns are backwards of x/y and are 1-indexed instead of 0-indexed
+    # Note, that rows / columns are backwards of x / y and are 1-indexed
+    # instead of 0-indexed.
     screen.cursor_position(5, 10)
     assert screen.cursor == (9, 4)
 
     # Confusingly enough, however, 0-inputs are acceptable and should be
-    # the same a 1
+    # the same a 1.
     screen.cursor_position(0, 10)
     assert screen.cursor == (9, 0)
 
     # Moving outside the margins constrains to within the marginscreen.
-    screen.cursor_position(20, 20)
-    assert screen.cursor == (9, 9)
+    screen.cursor_position(100, 5)
+    assert screen.cursor == (4, 9)
+
+    screen.cursor_position(5, 100)
+    assert screen.cursor == (9, 4)
 
 
 def test_home():
@@ -811,3 +814,22 @@ def test_alignment_display():
                                  u"EEEEE",
                                  u"EEEEE",
                                  u"EEEEE"])
+
+def test_set_margins():
+    screen = vt102.screen(10, 10)
+
+    assert screen.margins == (0, 9)
+
+    # a) ok-case
+    screen.set_margins(1, 5)
+    assert screen.margins == (0, 4)
+
+    # b) one of the margins is out of bounds
+    screen.set_margins(100, 10)
+    assert screen.margins != (99, 9)
+    assert screen.margins == (0, 4)
+
+    # c) no margins provided
+    screen.set_margins()
+    assert screen.margins != (None, None)
+    assert screen.margins == (0, 4)

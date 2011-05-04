@@ -146,6 +146,8 @@ class stream(object):
         """
         if event not in self.listeners:
             warn("no listner found for %s(%s)" % (event, args))
+        elif event not in ("print", "select-graphic-rendition"):
+            print event, args
 
         for callback in self.listeners.get(event, []):
             if args:

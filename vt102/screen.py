@@ -119,7 +119,7 @@ class screen(object):
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
             ("alignment-display", self.alignment_display),
-            ("answer", self.answer)
+            ("answer", self.answer),
 
             # Not implemented
             # ...............
@@ -224,9 +224,16 @@ class screen(object):
         if top is None or bottom is None:
             return
 
+        # Arguments are 1-based, while :attr:`margins` are zero based --
+        # so we have to decrement them by one. We also make sure that
+        # both of them is bounded by [0, lines - 1].
+        top = max(0, min(top - 1, self.lines - 1))
+        bottom = max(0, min(bottom - 1, self.lines - 1))
+
         # The minimum size of the scrolling region is two lines.
         if bottom - top >= 2:
             self.margins = margins(top, bottom)
+
             # The cursor moves to the home position when the top and
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.home()
@@ -281,7 +288,7 @@ class screen(object):
 
     def carriage_return(self):
         """Move the cursor to the beginning of the current line."""
-        self.cursor_to_column(0)
+        self.x = 0
 
     def index(self):
         """Move the cursor down one line in the same column. If the
@@ -326,7 +333,7 @@ class screen(object):
         else:
             column = self.columns - 1
 
-        self.cursor_to_column(column)
+        self.x = column
 
     def backspace(self):
         """Move cursor to the left one or keep it in it's position if
@@ -365,13 +372,11 @@ class screen(object):
 
         # If cursor is outside scrolling margins it -- do nothin'.
         if top <= self.y <= bottom:
-            initial = u" " * self.columns
-
             for line in xrange(self.y, min(bottom + 1, self.y + count)):
                 self.display.pop(bottom)
-                self.display.insert(line, array("u", initial))
+                self.display.insert(line, array("u", u" " * self.columns))
 
-            self.cursor_to_column(0)
+            self.x = 0
 
     def delete_line(self, count=1):
         """Deletes the indicated # of lines, starting at line with
@@ -392,7 +397,7 @@ class screen(object):
                 self.display.pop(self.y)
                 self.display.insert(bottom, array("u", u" " * self.columns))
 
-            self.cursor_to_column(0)
+            self.x = 0
 
     def insert_characters(self, count=0):
         """Inserts the indicated # of blank characters at the cursor
@@ -483,7 +488,6 @@ class screen(object):
         * ``2`` -- Erases complete display. All lines are erased and
           changed to single-width. Cursor does not move.
         """
-        initial = u" " * self.columns
         interval = (
             # a) erase from cursor to the end of the display, including
             # the cursor,
@@ -496,7 +500,7 @@ class screen(object):
         )[type_of]
 
         for line in interval:
-            self.display[line] = array("u", initial)
+            self.display[line] = array("u", u" " * self.columns)
             self.attributes[line] = [self.default_attributes] * self.columns
 
     def set_tab_stop(self):
@@ -516,7 +520,27 @@ class screen(object):
             # present, or silently fails if otherwise.
             self.tabstops.discard(self.x)
         elif type_of == 3:
-            self.tabstops = set([])  # Clears all horizontal tab stops.
+            self.tabstops = set()  # Clears all horizontal tab stops.
+
+    def ensure_bounds(self, use_margins=None):
+        """Ensure that cursor is within screen bounds.
+
+        .. note::
+
+           ``use_margins`` is assumed to be allways ``True`` when
+           :data:`vt102.modes.DECOM` is set.
+
+        :param use_margins: when ``True``, cursor is bounded by top and
+                            and bottom margins, instead of
+                            ``[0; lines - 1]``.
+        """
+        if use_margins or mo.DECOM in self.mode:
+            top, bottom = self.margins
+        else:
+            top, bottom = 0, self.lines - 1
+
+        self.x = min(max(0, self.x), self.columns - 1)
+        self.y = min(max(top, self.y), bottom)
 
     def cursor_up(self, count=1):
         """Moves cursor up the indicated # of lines in same column.
@@ -524,7 +548,8 @@ class screen(object):
 
         :param count: number of lines to skip.
         """
-        self.cursor_to_line(self.y - count, within_margins=True)
+        self.y -= count or 1
+        self.ensure_bounds(use_margins=True)
 
     def cursor_up1(self, count=1):
         """Moves cursor up the indicated # of lines to column 1. Cursor
@@ -541,7 +566,8 @@ class screen(object):
 
         :param count: number of lines to skip.
         """
-        self.cursor_to_line(self.y + count, within_margins=True)
+        self.y += count or 1
+        self.ensure_bounds(use_margins=True)
 
     def cursor_down1(self, count=1):
         """Moves cursor down the indicated # of lines to column 1.
@@ -558,7 +584,8 @@ class screen(object):
 
         :param count: number of columns to skip.
         """
-        self.cursor_to_column(self.x - count)
+        self.x -= count or 1
+        self.ensure_bounds()
 
     def cursor_forward(self, count=1):
         """Moves cursor right the indicated # of columns. Cursor stops
@@ -566,7 +593,8 @@ class screen(object):
 
         :param count: number of columns to skip.
         """
-        self.cursor_to_column(self.x + count)
+        self.x += count or 1
+        self.ensure_bounds()
 
     def cursor_position(self, line=0, column=0):
         """Set the cursor to a specific `line` and `column`.
@@ -584,12 +612,12 @@ class screen(object):
         """
         line, column  = (line or 1) - 1, (column or 1) - 1
         if (mo.DECOM in self.mode and
-            self.margins and
             not self.margins.top <= line <= self.margins.bottom):
             return
         else:
-            self.cursor_to_line(line)
-            self.cursor_to_column(column)
+            self.x, self.y = column, line
+
+        self.ensure_bounds()
 
     def cursor_to_column(self, column=0):
         """Moves cursor to a specific column in the current line.
@@ -597,28 +625,16 @@ class screen(object):
         :param column: column number to move the cursor to (starts
                        with ``0``).
         """
+        self.x = (column or 1) - 1  # Uses 1-based indices.
+        self.ensure_bounds()
 
-        self.x = min(max(0, column), self.columns - 1)
-
-    def cursor_to_line(self, line=0, within_margins=False):
+    def cursor_to_line(self, line=0):
         """Moves cursor to a specific line in the current column.
 
-        .. note::
-
-           ``within_margins`` is assumed to be allways ``True`` when
-           :data:`vt102.modes.DECOM` is set.
-
         :param line: line number to move the cursor to (starts with ``0``).
-        :param within_margins: when ``True``, cursor is bounded by top
-                               and bottom margins, otherwise :attr:`lines`
-                               and ``0`` is used.
         """
-        if (within_margins or mo.DECOM in self.mode):
-            top, bottom = self.margins
-        else:
-            top, bottom = 0, self.lines - 1
-
-        self.y = min(max(top, line), bottom)
+        self.y = (line or 1) - 1
+        self.ensure_bounds()
 
     def home(self):
         """Moves cursor to `home` position.
@@ -628,9 +644,9 @@ class screen(object):
         of the user-defined scrolling region.
         """
         if mo.DECOM in self.mode:
-            self.cursor_position(0, self.margins.top)
+            self.cursor_position(1, self.margins.top)
         else:
-            self.cursor_position(0, 0)
+            self.cursor_position(1, 1)
 
     def bell(self, *args):
         """Bell stub -- the actual implementation should probably be
