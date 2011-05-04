@@ -255,13 +255,10 @@ class screen(object):
         :param modes: modes to reset -- hopefully, each mode is a constant
                       from :mod:`vt102.modes`.
         """
-        try:
-            self.mode.difference_update(modes)
-        except KeyError:
-            pass
-        finally:
-            if mo.DECCOLM in modes:
-                self.resize(self.lines, 80)
+        self.mode.difference_update(modes)
+
+        if mo.DECCOLM in modes:
+            self.resize(self.lines, 80)
 
     def print(self, char):
         """Print a character at the current cursor position and advance
