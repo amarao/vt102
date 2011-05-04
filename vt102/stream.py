@@ -18,7 +18,7 @@
     >>> dummy = dummy()
     >>> stream = vt102.stream()
     >>> stream.connect("cursor-up", dummy.up)
-    >>> stream.process(u"\u001B[5A") # Move the cursor up 5 rows.
+    >>> stream.feed(u"\u001B[5A") # Move the cursor up 5 rows.
     >>> dummy.foo
     5
 
