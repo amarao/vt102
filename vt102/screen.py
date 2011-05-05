@@ -28,7 +28,7 @@ margins = namedtuple("margins", "top bottom")
 #:   1. A tuple of all the text attributes: **bold**, `italic`, etc
 #:   2. Foreground color as a string, see :attr:`vt102.graphics.colors`
 #:   3. Background color as a string, see :attr:`vt102.graphics.colors`
-attributes = namedtuple("text", "fg", "bg")
+attributes = namedtuple("attributes", "text fg bg")
 
 
 class screen(object):
@@ -62,7 +62,7 @@ class screen(object):
        A list of string which should be sent to the host, for example
        :data:`vt102.escape.DA` replies.
     """
-    default_attributes = (), "default", "default"
+    default_attributes = attributes((), "default", "default")
 
     def __init__(self, lines, columns):
         # From ``man terminfo`` -- "... hardware tabs are initially set every
@@ -154,14 +154,15 @@ class screen(object):
         self.attributes = []
         self.buffer = []
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
-        self.margins = 0, self.lines - 1
+        self.margins = margins(0, self.lines - 1)
         self.cursor_attributes = self.default_attributes
-        self.lines, self.columns = 0, 0
+        self.lines = self.columns = 0
+        self.x = self.y = 0
 
         self.resize(*size)
-        self.home()
+        self.cursor_position()
 
-    def resize(self, lines, columns):
+    def resize(self, lines=None, columns=None):
         """Resize the screen.
 
         If the requested screen size has more lines than the existing
@@ -173,6 +174,9 @@ class screen(object):
         requested size, columns will be added at the right, and it
         has more, columns will be clipped at the right.
         """
+        lines = lines or self.lines
+        columns = columns or self.columns
+
         # First resize the lines ...
         if self.lines < lines:
             # If the current display size is shorter than the requested
@@ -240,7 +244,7 @@ class screen(object):
 
             # The cursor moves to the home position when the top and
             # bottom margins of the scrolling region (DECSTBM) changes.
-            self.home()
+            self.cursor_position()
 
     def set_mode(self, *modes):
         """Sets (enables) a given list of modes.
@@ -249,7 +253,11 @@ class screen(object):
                      :mod:`vt102.modes`.
         """
         if mo.DECCOLM in modes:
-            self.resize(self.lines, 132)
+            self.resize(columns=132)
+            self.erase_in_display(2)
+            self.cursor_position()
+        elif mo.DECOM in modes:
+            self.cursor_position()
 
         self.mode.update(modes)
 
@@ -262,7 +270,11 @@ class screen(object):
         self.mode.difference_update(modes)
 
         if mo.DECCOLM in modes:
-            self.resize(self.lines, 80)
+            self.resize(columns=80)
+            self.erase_in_display(2)
+            self.cursor_position()
+        elif mo.DECOM in modes:
+            self.cursor_position()
 
     def print(self, char):
         """Print a character at the current cursor position and advance
@@ -360,7 +372,7 @@ class screen(object):
             # characteristics were saved, the cursor moves to home position;
             # origin mode is reset; no character attributes are assigned;
             # and the default character set mapping is established."
-            self.home()
+            self.cursor_position()
 
     def insert_lines(self, count=None):
         """Inserts the indicated # of lines at line with cursor. Lines
@@ -622,13 +634,19 @@ class screen(object):
            are still acceptable, and should move to the beginning of
            the line or column as if they were 1 -- *sigh*.
         """
-        line, column  = (line or 1) - 1, (column or 1) - 1
-        if (mo.DECOM in self.mode and
-            not self.margins.top <= line <= self.margins.bottom):
-            return
-        else:
-            self.x, self.y = column, line
+        column = (column or 1) - 1
+        line = (line or 1) - 1
 
+        # If origin mode (DECOM) is set, line number are relative to
+        # the top scrolling margin.
+        if mo.DECOM in self.mode:
+            line += self.margins.top
+
+            # Cursor is not allowed to move out of the scrolling region.
+            if not self.margins.top <= line <= self.margins.bottom:
+                return
+
+        self.x, self.y = column, line
         self.ensure_bounds()
 
     def cursor_to_column(self, column=None):
@@ -646,20 +664,16 @@ class screen(object):
         :param line: line number to move the cursor to.
         """
         self.y = (line or 1) - 1    # Uses 1-based indices.
-        self.ensure_bounds()
 
-    def home(self):
-        """Moves cursor to `home` position.
-
-        When :data:`vt102.modes.DECOM` is reset, `home` position is at
-        the left upper corner of the screen, otherwise it's at top margin
-        of the user-defined scrolling region.
-        """
-        # Note, that CUP expects 1-based indices.
+        # If origin mode (DECOM) is set, line number are relative to
+        # the top scrolling margin.
         if mo.DECOM in self.mode:
-            self.cursor_position(1, self.margins.top)
-        else:
-            self.cursor_position(1, 1)
+            self.y += self.margins.top
+
+            # FIXME: should we also restrict the cursor to the scrolling
+            # region?
+
+        self.ensure_bounds()
 
     def bell(self, *args):
         """Bell stub -- the actual implementation should probably be

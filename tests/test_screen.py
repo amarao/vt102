@@ -108,7 +108,7 @@ def test_attributes_reset():
         [(("bold",), "default", "default"), screen.default_attributes],
     ]
 
-    screen.home()
+    screen.cursor_position()
     screen.select_graphic_rendition(0) # Reset
     screen.print(u"f")
     assert screen.attributes == [
@@ -497,12 +497,12 @@ def test_insert_characters():
 
     # d) 0 is 1
     screen.display = _(["sam", "is ", "foo"])
-    screen.home()
+    screen.cursor_position()
     screen.insert_characters()
     assert repr(screen) == repr([u" sa", u"is ", u"foo"])
 
     screen.display = _(["sam", "is ", "foo"])
-    screen.home()
+    screen.cursor_position()
     screen.insert_characters(0)
     assert repr(screen) == repr([u" sa", u"is ", u"foo"])
 
@@ -745,30 +745,34 @@ def test_cursor_forward():
 def test_cursor_position():
     screen = vt102.screen(10, 10)
 
-    # Note, that rows / columns are backwards of x / y and are 1-indexed
-    # instead of 0-indexed.
+    # a) testing that we expect 1-indexed values
     screen.cursor_position(5, 10)
     assert screen.cursor == (9, 4)
 
-    # Confusingly enough, however, 0-inputs are acceptable and should be
-    # the same a 1.
+    # b) but (0, 0) is also accepted and should be the same as (1, 1)
     screen.cursor_position(0, 10)
     assert screen.cursor == (9, 0)
 
-    # Moving outside the margins constrains to within the marginscreen.
+    # c) moving outside the margins constrains to within the screen
+    #    bounds
     screen.cursor_position(100, 5)
     assert screen.cursor == (4, 9)
 
     screen.cursor_position(5, 100)
     assert screen.cursor == (9, 4)
 
+    # d) DECOM on
+    screen.set_margins(5, 9)
+    screen.set_mode(mo.DECOM)
+    screen.cursor_position()
+    assert screen.cursor == (0, 4)
 
-def test_home():
-    screen = vt102.screen(10, 10)
-    screen.x, screen.y = 5, 5
-    screen.home()
+    screen.cursor_position(2, 0)
+    assert screen.cursor == (0, 5)
 
-    assert screen.cursor == (0, 0)
+    # Note that cursor position doesn't change.
+    screen.cursor_position(10, 0)
+    assert screen.cursor == (0, 5)
 
 
 def test_resize_shifts_vertical():
