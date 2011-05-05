@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-import vt102
 import sys
+
+sys.path.append("..")
+import vt102
 import time
 
 """
