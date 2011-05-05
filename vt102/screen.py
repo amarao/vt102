@@ -252,14 +252,19 @@ class screen(object):
         :param modes: modes to set, where each mode is a constant from
                      :mod:`vt102.modes`.
         """
+        self.mode.update(modes)
+
+        # When DECOLM mode is set, the screen is erased and the cursor
+        # moves to the home position.
         if mo.DECCOLM in modes:
             self.resize(columns=132)
             self.erase_in_display(2)
             self.cursor_position()
-        elif mo.DECOM in modes:
-            self.cursor_position()
 
-        self.mode.update(modes)
+        # According to `vttest`, DECOM should also home the cursor, see
+        # vttest/main.c:303.
+        if mo.DECOM in modes:
+            self.cursor_position()
 
     def reset_mode(self, *modes):
         """Resets (disables) a given list of modes.
@@ -269,11 +274,13 @@ class screen(object):
         """
         self.mode.difference_update(modes)
 
+        # Lines below follow the logic in :meth:`set_mode`.
         if mo.DECCOLM in modes:
             self.resize(columns=80)
             self.erase_in_display(2)
             self.cursor_position()
-        elif mo.DECOM in modes:
+
+        if mo.DECOM in modes:
             self.cursor_position()
 
     def print(self, char):
