@@ -32,6 +32,7 @@
 
 from __future__ import absolute_import
 
+import codecs
 from warnings import warn
 from collections import defaultdict
 
@@ -41,6 +42,12 @@ from . import control as ctrl, escape as esc
 class Stream(object):
     """A stream is the state machine that parses a stream of terminal
     characters and dispatches events based on what it sees.
+
+    .. note::
+
+       Stream only accepts unicode string as input, if for some reason
+       you want to feed it with byte strings, use
+       :class:`vt102.streams.ByteStream`.
     """
 
     #: Basic characters, which don't require any arguments.
@@ -56,7 +63,7 @@ class Stream(object):
         ctrl.SI: "shift-in",
     }
 
-    #: non-CSI escape squences.
+    #: non-CSI escape sequences.
     escape = {
         esc.RIS: "reset",
         esc.IND: "index",
@@ -120,7 +127,12 @@ class Stream(object):
         handler and handler(char)
 
     def feed(self, chars):
-        """Consume a string of chars and advance the state as necessary."""
+        """Consume a unicode string of chars and advance the state as
+        necessary."""
+        if not isinstance(chars, unicode):
+            raise TypeError(
+                "%s requires input in unicode" % self.__class__.__name__)
+
         map(self.consume, chars)
 
     def connect(self, event, callback):
@@ -230,3 +242,22 @@ class Stream(object):
                                   u";".join(map(unicode, self.params)) + char)
 
                 self.reset()
+
+
+class ByteStream(Stream):
+    """Stream, which can handle byte strings as input; it uses
+    :class:`codecs.IncrementalDecoder` to decode bytes into unicode.
+
+    :param encoding: input encoding.
+    """
+
+    def __init__(self, encoding="utf-8"):
+        self.decoder = codecs.getincrementaldecoder(encoding)()
+        super(ByteStream, self).__init__()
+
+    def feed(self, chars):
+        if not isinstance(chars, bytes):
+            raise TypeError(
+                "%s requires input in bytes" % self.__class__.__name__)
+
+        super(ByteStream, self).feed(self.decoder.decode(chars))

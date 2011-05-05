@@ -117,3 +117,17 @@ def test_mode_csi_sequences():
     assert not bugger.count
     assert handler.count == 1
     assert handler.args == (9, 2)
+
+
+def test_byte_stream():
+    def validator(char):
+        assert u"\uFFFD" not in char
+
+    stream = vt102.ByteStream("utf-8")
+    stream.connect("draw", validator)
+
+    bytes = u"Garðabær".encode("utf-8")
+
+    for byte in bytes:
+        stream.feed(byte)
+
