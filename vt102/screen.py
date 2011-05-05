@@ -238,8 +238,10 @@ class screen(object):
         top = max(0, min(top - 1, self.lines - 1))
         bottom = max(0, min(bottom - 1, self.lines - 1))
 
-        # The minimum size of the scrolling region is two lines.
-        if bottom - top >= 2:
+        # Even though VT102 and VT220 require DECSTBM to ignore regions
+        # of width less than 2, some programs (like aptitude for example)
+        # rely on it. Practicality beats purity.
+        if bottom - top >= 1:
             self.margins = margins(top, bottom)
 
             # The cursor moves to the home position when the top and
