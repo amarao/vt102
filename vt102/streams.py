@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-    vt102.stream
-    ~~~~~~~~~~~~
+    vt102.streams
+    ~~~~~~~~~~~~~
 
     Quick example:
 
     >>> import vt102
+    >>>
     >>> class Dummy(object):
     ...     def __init__(self):
     ...         self.foo = 0
@@ -15,16 +16,10 @@
     >>> dummy = Dummy()
     >>> stream = vt102.Stream()
     >>> stream.connect("cursor-up", dummy.up)
+    >>>
     >>> stream.feed(u"\u001B[5A") # Move the cursor up 5 rows.
     >>> dummy.foo
     5
-
-    .. seealso::
-
-        `man console_codes <http://linux.die.net/man/4/console_codes>`_
-            For details on console codes listed bellow in
-            :attr:`stream.basic`, :attr:`stream.escape`,
-            :attr:`stream.csi`
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
@@ -40,14 +35,20 @@ from . import control as ctrl, escape as esc
 
 
 class Stream(object):
-    """A stream is the state machine that parses a stream of terminal
+    """A stream is a state machine that parses a stream of terminal
     characters and dispatches events based on what it sees.
 
     .. note::
 
-       Stream only accepts unicode string as input, if for some reason
-       you want to feed it with byte strings, use
+       Stream only accepts unicode strings as input, but if for some
+       reason you need to feed it with byte strings, use
        :class:`vt102.streams.ByteStream`.
+
+    .. seealso::
+
+        `man console_codes <http://linux.die.net/man/4/console_codes>`_
+            For details on console codes listed bellow in :attr:`basic`,
+            :attr:`escape`, :attr:`csi`
     """
 
     #: Basic characters, which don't require any arguments.
@@ -111,13 +112,21 @@ class Stream(object):
         self.reset()
 
     def reset(self):
-        """Resets state to ``"stream"`` and empties parameter attributes."""
+        """Reset state to ``"stream"`` and empty parameter attributes."""
         self.state = "stream"
         self.params = []
         self.current = ""
 
     def consume(self, char):
-        """Consume a single character and advance the state as necessary."""
+        """Consume a single unicode character and advance the state as
+        necessary.
+
+        :param char: a unicode character to consume.
+        """
+        if not isinstance(char, unicode):
+            raise TypeError(
+                "%s requires unicode input" % self.__class__.__name__)
+
         handler = {
             "stream": self._stream,
             "escape": self._escape,
@@ -127,11 +136,13 @@ class Stream(object):
         handler and handler(char)
 
     def feed(self, chars):
-        """Consume a unicode string of chars and advance the state as
-        necessary."""
+        """Consume a unicode string and advance the state as necessary.
+
+        :param chars: a unicode string to feed from.
+        """
         if not isinstance(chars, unicode):
             raise TypeError(
-                "%s requires input in unicode" % self.__class__.__name__)
+                "%s requires unicode input" % self.__class__.__name__)
 
         map(self.consume, chars)
 
@@ -139,10 +150,9 @@ class Stream(object):
         """Add an event listener for a particular event.
 
         Depending on the event, there may or may not be parameters
-        passed to the callback. Most escape streams also allow for
-        an empty set of parameters (with a default value). Providing
-        these default values and accepting variable arguments is the
-        responsibility of the callback.
+        passed to the callback. Some escape sequences might also have
+        default values, but providing these defaults is responsibility
+        of the callback.
 
         :param event: event to listen for.
         :param function: callable to invoke when a given event occurs.
@@ -153,12 +163,12 @@ class Stream(object):
         """Dispatch an event.
 
         :param event: event to dispatch.
-        :param args: a tuple of the arguments to send to each callback.
+        :param args: a tuple of arguments to send to each callback.
 
         .. note::
 
            If any callback throws an exception, the subsequent callbacks
-           will be aborted.
+           are be aborted.
         """
         if event not in self.listeners:
             warn("no listner found for %s(%s)" % (event, args))
@@ -245,8 +255,9 @@ class Stream(object):
 
 
 class ByteStream(Stream):
-    """Stream, which can handle byte strings as input; it uses
-    :class:`codecs.IncrementalDecoder` to decode bytes into unicode.
+    """Stream, which takes byte strings (instead of unicode) as input.
+    It uses :class:`codecs.IncrementalDecoder` to decode bytes fed into
+    a predefined encoding, so broken bytes is not an issue.
 
     :param encoding: input encoding.
     """

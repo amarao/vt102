@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-    vt102.screen
-    ~~~~~~~~~~~~
+    vt102.screens
+    ~~~~~~~~~~~~~
 
-    This module provides a base class for terminal screens, currently
-    there's only a one screen implementation, but who knows what the
+    This module provides a classes for terminal screens, currently
+    there's only one screen implementation, but who knows what the
     future will bring :).
 
-    :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
+    :copyright: (c) 2011 Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """
 
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import
 
 from array import array
 from collections import namedtuple
@@ -26,8 +26,8 @@ Margins = namedtuple("Margins", "top bottom")
 #: A container for character attributes, which consists of the following:
 #:
 #:   1. A tuple of all the text attributes: **bold**, `italic`, etc
-#:   2. Foreground color as a string, see :attr:`vt102.graphics.colors`
-#:   3. Background color as a string, see :attr:`vt102.graphics.colors`
+#:   2. Foreground color as a string, see :data:`vt102.graphics.colors`
+#:   3. Background color as a string, see :data:`vt102.graphics.colors`
 Attributes = namedtuple("Attributes", "text fg bg")
 
 

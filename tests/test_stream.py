@@ -69,10 +69,10 @@ def test_non_csi_sequences():
         stream.consume(unichr(ctrl.ESC))
         assert stream.state == "escape"
 
-        stream.consume("[")
+        stream.consume(u"[")
         assert stream.state == "arguments"
 
-        stream.consume("5")
+        stream.consume(u"5")
         stream.consume(unichr(cmd))
 
         assert handler.count == 1
@@ -85,9 +85,9 @@ def test_non_csi_sequences():
         stream.consume(unichr(ctrl.CSI))
         assert stream.state == "arguments"
 
-        stream.consume("5")
-        stream.consume(";")
-        stream.consume("12")
+        stream.consume(u"5")
+        stream.consume(u";")
+        stream.consume(u"12")
         stream.consume(unichr(cmd))
 
         assert handler.count == 1

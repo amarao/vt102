@@ -22,29 +22,30 @@ Why would you want to use a terminal emulator?
 Usage
 =====
 
-There are two important classes in ``vt102``: :class:`vt102.screen` and
-:class:`vt102.stream`. The ``screen`` is the terminal screen emulator.
-It maintains an in-memory buffer of text and text-attributes to display
-on screen. The ``stream`` is the stream processor. It manages the state
-of the input and dispatches events to anything that's listening about
-things that are going on. Events are things like ``linefeed``, ``print "a"``,
-or ``cursor-position 10,10``. See the :ref:`API <api>` for more details.
+There are two important classes in ``vt102``:
+:class:`vt102.screens.Screen` and :class:`vt102.streams.Stream`. The
+``Screen`` is the terminal screen emulator. It maintains an in-memory
+buffer of text and text-attributes to display on screen. The ``Stream``
+is the stream processor. It manages the state of the input and dispatches
+events to anything that's listening about things that are going on.
+Events are things like ``linefeed``, ``draw "a"``, or ``cursor-position 10,10``.
+See the :ref:`API <api>` for more details.
 
 In general, if you just want to know what's being displayed on screen you
 can do something like the following:
 
     >>> import vt102
-    >>> stream = vt102.stream()
-    >>> screen = vt102.screen(24, 80)
+    >>> stream = vt102.Stream()
+    >>> screen = vt102.Screen(80, 24)
     >>> screen.attach(stream)
-    >>> stream.process(u"\u001b7\u001b[?47h\u001b)0\u001b[H\u001b[2J\u001b[H"
-                       u"\u001b[2;1HNetHack, Copyright 1985-2003\r\u001b[3;1"
-                       u"H         By Stichting Mathematisch Centrum and M. "
-                       u"Stephenson.\r\u001b[4;1H         See license for de"
-                       u"tails.\r\u001b[5;1H\u001b[6;1H\u001b[7;1HShall I pi"
-                       u"ck a character's race, role, gender and alignment f"
-                       u"or you? [ynq] ")
-    >>> screen.display
+    >>> stream.feed(u"\u001b7\u001b[?47h\u001b)0\u001b[H\u001b[2J\u001b[H"
+                    u"\u001b[2;1HNetHack, Copyright 1985-2003\r\u001b[3;1"
+                    u"H         By Stichting Mathematisch Centrum and M. "
+                    u"Stephenson.\r\u001b[4;1H         See license for de"
+                    u"tails.\r\u001b[5;1H\u001b[6;1H\u001b[7;1HShall I pi"
+                    u"ck a character's race, role, gender and alignment f"
+                    u"or you? [ynq] ")
+    >>> map(lambda l: l.tounicode(), screen.display)
         ['                                                                                ',
          'NetHack, Copyright 1985-2003                                                    ',
          '         By Stichting Mathematisch Centrum and M. Stephenson.                   ',
@@ -76,11 +77,10 @@ can do something like the following:
 API
 ===
 
-.. automodule:: vt102.stream
+.. automodule:: vt102.streams
     :members:
-    :undoc-members:
 
-.. automodule:: vt102.screen
+.. automodule:: vt102.screens
     :members:
     :undoc-members:
 
@@ -95,4 +95,3 @@ API
 
 .. automodule:: vt102.graphics
     :members:
-    :undoc-members:

@@ -9,7 +9,13 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-text = {
+"""A mapping of ANSI text style codes to style names, example:
+
+>>> text[1]
+'bold'
+>>> text[7]
+'reverse'"""
+TEXT = {
     0: "reset",
     1: "bold" ,
     2: "dim" ,
@@ -21,7 +27,14 @@ text = {
     27: "reverse-off",
 }
 
-colors = {
+
+"""A mapping of ANSI color codes to color names, example:
+
+>>> colors["foreground"][30]
+'black'
+>>> colors["background"][42]
+'green'"""
+COLORS = {
     "foreground": {
         30: "black",
         31: "red",
@@ -50,3 +63,6 @@ colors = {
         49: "default",
     }
 }
+
+# Compatibility aliases.
+colors, text = COLORS, TEXT
