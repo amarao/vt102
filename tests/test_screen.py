@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from array import array
 
 import pytest
@@ -43,7 +41,7 @@ def test_attributes():
     ] * 2
     assert screen.cursor_attributes == (("bold",), "default", "default")
 
-    screen.print(u"f")
+    screen.draw(u"f")
     assert screen.attributes == [
         [(("bold",), "default", "default"), screen.default_attributes],
         [screen.default_attributes, screen.default_attributes]
@@ -99,9 +97,9 @@ def test_attributes_reset():
          screen.default_attributes]
     ] * 2
     screen.select_graphic_rendition(1) # Bold
-    screen.print(u"f")
-    screen.print(u"o")
-    screen.print(u"o")
+    screen.draw(u"f")
+    screen.draw(u"o")
+    screen.draw(u"o")
     assert screen.attributes == [
         [(("bold",), "default", "default"),
          (("bold",), "default", "default")],
@@ -110,7 +108,7 @@ def test_attributes_reset():
 
     screen.cursor_position()
     screen.select_graphic_rendition(0) # Reset
-    screen.print(u"f")
+    screen.draw(u"f")
     assert screen.attributes == [
         [screen.default_attributes, (("bold",), "default", "default")],
         [(("bold",), "default", "default"), screen.default_attributes],
@@ -135,31 +133,42 @@ def test_resize():
                                   screen.default_attributes]] * 2
 
 
-def test_print():
+def test_draw():
     # ``DECAWM`` on (default).
     screen = vt102.screen(3, 3)
     assert mo.DECAWM in screen.mode
 
-    map(screen.print, u"abc")
+    map(screen.draw, u"abc")
     assert repr(screen) == repr([u"abc", u"   ", u"   "])
     assert screen.cursor == (3, 0)
 
     # ... one` more character -- now we got a linefeed!
-    screen.print(u"a")
+    screen.draw(u"a")
     assert screen.cursor == (1, 1)
 
     # ``DECAWM`` is off.
     screen = vt102.screen(3, 3)
     screen.reset_mode(mo.DECAWM)
 
-    map(screen.print, u"abc")
+    map(screen.draw, u"abc")
     assert repr(screen) == repr([u"abc", u"   ", u"   "])
     assert screen.cursor == (3, 0)
 
     # No linefeed is issued on the end of the line ...
-    screen.print(u"a")
+    screen.draw(u"a")
     assert repr(screen) == repr([u"aba", u"   ", u"   "])
     assert screen.cursor == (3, 0)
+
+    # ``IRM`` mode is on, expecting new characters to move the old ones
+    # instead of replacing them.
+    screen.set_mode(mo.IRM)
+    screen.cursor_position()
+    screen.draw(u"x")
+    assert repr(screen) == repr([u"xab", u"   ", u"   "])
+
+    screen.cursor_position()
+    screen.draw(u"y")
+    assert repr(screen) == repr([u"yxa", u"   ", u"   "])
 
 
 def test_carriage_return():
@@ -808,10 +817,10 @@ def test_unicode():
 
 def test_alignment_display():
     screen = vt102.screen(5, 5)
-    screen.print(u"a")
+    screen.draw(u"a")
     screen.linefeed()
     screen.linefeed()
-    screen.print(u"b")
+    screen.draw(u"b")
 
     assert repr(screen) == repr([u"a    ",
                                  u"     ",

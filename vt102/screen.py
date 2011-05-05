@@ -92,7 +92,7 @@ class screen(object):
         """
         handlers = [
             ("reset", self.reset),
-            ("print", self.print),
+            ("draw", self.draw),
             ("backspace", self.backspace),
             ("tab", self.tab),
             ("linefeed", self.linefeed),
@@ -283,8 +283,8 @@ class screen(object):
         if mo.DECOM in modes:
             self.cursor_position()
 
-    def print(self, char):
-        """Print a character at the current cursor position and advance
+    def draw(self, char):
+        """Display a character at the current cursor position and advance
         the cursor if :data:`vt102.modes.DECAWM` is set.
         """
         # If this was the last column in a line and auto wrap mode is
@@ -296,13 +296,16 @@ class screen(object):
             else:
                 self.x -= 1
 
-        try:
-            self.display[self.y][self.x] = char
-            self.attributes[self.y][self.x] = self.cursor_attributes
-        except IndexError as e:
-            if __debug__: print(e, self.x, self.y, char)
+        # If Insert mode is set, new characters move old characters to
+        # the right, otherwise terminal is in Replace mode and new
+        # characters replace old characters at cursor position.
+        if mo.IRM in self.mode:
+            self.insert_characters(1)
 
-        # .. note:: We can't use :meth:`_cursor_forward()`, because that
+        self.display[self.y][self.x] = char
+        self.attributes[self.y][self.x] = self.cursor_attributes
+
+        # .. note:: We can't use :meth:`cursor_forward()`, because that
         #           way, we'll never know when to linefeed.
         self.x += 1
 
@@ -437,7 +440,7 @@ class screen(object):
 
         for _ in xrange(min(self.columns - self.y, count)):
             self.display[self.y].insert(self.x, u" ")
-            self.display[self.y].pop(-1)
+            self.display[self.y].pop()
 
             self.attributes[self.y][self.x] = self.default_attributes
 

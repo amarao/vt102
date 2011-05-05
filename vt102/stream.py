@@ -151,8 +151,6 @@ class stream(object):
         """
         if event not in self.listeners:
             warn("no listner found for %s(%s)" % (event, args))
-        elif event not in ("print", "select-graphic-rendition"):
-            print event, args
 
         for callback in self.listeners.get(event, []):
             if args:
@@ -175,7 +173,7 @@ class stream(object):
         elif not num:
             pass  # nulls are just ignored.
         else:
-            self.dispatch("print", char)
+            self.dispatch("draw", char)
 
     def _escape(self, char):
         """Handle characters seen when in an escape sequence.
