@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-import vt102
 import sys
+
+sys.path.append("..")
+import vt102
 import time
 
 """
@@ -49,7 +51,7 @@ while 1:
 			if utf8_state:
 				continue
 			else:
-				char = reduce(lambda x, y: x+y,utf8_buff).decode("utf-8")
+				char = "".join(utf8_buff).decode("utf-8")
 				utf8_buff=[]
 				char_counter+=1
 		else:
