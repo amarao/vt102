@@ -21,14 +21,14 @@ from . import modes as mo, control as ctrl
 
 
 #: A container for screen's scroll margins.
-Margins = namedtuple("margins", "top bottom")
+Margins = namedtuple("Margins", "top bottom")
 
 #: A container for character attributes, which consists of the following:
 #:
 #:   1. A tuple of all the text attributes: **bold**, `italic`, etc
 #:   2. Foreground color as a string, see :attr:`vt102.graphics.colors`
 #:   3. Background color as a string, see :attr:`vt102.graphics.colors`
-Attributes = namedtuple("attributes", "text fg bg")
+Attributes = namedtuple("Attributes", "text fg bg")
 
 
 class Screen(object):
