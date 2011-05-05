@@ -15,8 +15,8 @@ import vt102
 
 
 if __name__ == "__main__":
-    stream = vt102.stream()
-    screen = vt102.screen(24, 80)
+    stream = vt102.Stream()
+    screen = vt102.Screen(24, 80)
     screen.attach(stream)
     stream.feed(u"Hello world!")
 

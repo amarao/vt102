@@ -21,17 +21,17 @@ from . import modes as mo, control as ctrl
 
 
 #: A container for screen's scroll margins.
-margins = namedtuple("margins", "top bottom")
+Margins = namedtuple("margins", "top bottom")
 
 #: A container for character attributes, which consists of the following:
 #:
 #:   1. A tuple of all the text attributes: **bold**, `italic`, etc
 #:   2. Foreground color as a string, see :attr:`vt102.graphics.colors`
 #:   3. Background color as a string, see :attr:`vt102.graphics.colors`
-attributes = namedtuple("attributes", "text fg bg")
+Attributes = namedtuple("attributes", "text fg bg")
 
 
-class screen(object):
+class Screen(object):
     """
     A screen is an in memory buffer of strings that represents the
     screen display of the terminal. It can be instantiated on it's own
@@ -62,9 +62,9 @@ class screen(object):
        A list of string which should be sent to the host, for example
        :data:`vt102.escape.DA` replies.
     """
-    default_attributes = attributes((), "default", "default")
+    default_attributes = Attributes((), "default", "default")
 
-    def __init__(self, lines, columns):
+    def __init__(self, columns, lines):
         # From ``man terminfo`` -- "... hardware tabs are initially set every
         # `n` spaces when the terminal is powered up. Since we aim to support
         # VT102 / VT220 and linux -- we use n = 8.
@@ -154,7 +154,7 @@ class screen(object):
         self.attributes = []
         self.buffer = []
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
-        self.margins = margins(0, self.lines - 1)
+        self.margins = Margins(0, self.lines - 1)
         self.cursor_attributes = self.default_attributes
         self.lines = self.columns = 0
         self.x = self.y = 0
@@ -242,7 +242,7 @@ class screen(object):
         # of width less than 2, some programs (like aptitude for example)
         # rely on it. Practicality beats purity.
         if bottom - top >= 1:
-            self.margins = margins(top, bottom)
+            self.margins = Margins(top, bottom)
 
             # The cursor moves to the home position when the top and
             # bottom margins of the scrolling region (DECSTBM) changes.

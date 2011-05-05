@@ -21,7 +21,7 @@ class argcheck(counter):
 
 
 def test_basic_sequences():
-    stream = vt102.stream()
+    stream = vt102.Stream()
 
     for cmd, event in stream.escape.iteritems():
         handler = counter()
@@ -47,7 +47,7 @@ def test_basic_sequences():
 
 def test_unknown_sequences():
     handler = argcheck()
-    stream = vt102.stream()
+    stream = vt102.Stream()
     stream.connect("debug", handler)
 
     try:
@@ -60,7 +60,7 @@ def test_unknown_sequences():
 
 
 def test_non_csi_sequences():
-    stream = vt102.stream()
+    stream = vt102.Stream()
 
     for cmd, event in stream.csi.iteritems():
         # a) single param
@@ -97,7 +97,7 @@ def test_non_csi_sequences():
 
 def test_mode_csi_sequences():
     bugger = counter()
-    stream = vt102.stream()
+    stream = vt102.Stream()
     stream.connect("debug", bugger)
 
     # a) set-mode
@@ -117,5 +117,3 @@ def test_mode_csi_sequences():
     assert not bugger.count
     assert handler.count == 1
     assert handler.args == (9, 2)
-
-

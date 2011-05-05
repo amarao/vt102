@@ -13,7 +13,7 @@ _ = lambda lines: [array("u", l.decode("utf-8")) for l in lines]
 
 
 def test_remove_non_existant_attribute():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert screen.attributes == [
         [screen.default_attributes,
          screen.default_attributes]
@@ -27,7 +27,7 @@ def test_remove_non_existant_attribute():
 
 
 def test_attributes():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert screen.attributes == [
         [screen.default_attributes,
          screen.default_attributes]
@@ -49,7 +49,7 @@ def test_attributes():
 
 
 def test_colors():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert screen.attributes == [
         [screen.default_attributes,
          screen.default_attributes]
@@ -64,7 +64,7 @@ def test_colors():
 
 
 def test_reset_resets_colors():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert screen.attributes == [
         [screen.default_attributes,
          screen.default_attributes]
@@ -79,7 +79,7 @@ def test_reset_resets_colors():
 
 
 def test_multi_attribs():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert screen.attributes == [
         [screen.default_attributes,
          screen.default_attributes]
@@ -91,7 +91,7 @@ def test_multi_attribs():
 
 
 def test_attributes_reset():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert screen.attributes == [
         [screen.default_attributes,
          screen.default_attributes]
@@ -116,7 +116,7 @@ def test_attributes_reset():
 
 
 def test_resize():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert repr(screen) == repr([u"  ", u"  "])
     assert screen.attributes == [[screen.default_attributes,
                                   screen.default_attributes]] * 2
@@ -135,7 +135,7 @@ def test_resize():
 
 def test_draw():
     # ``DECAWM`` on (default).
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     assert mo.DECAWM in screen.mode
 
     map(screen.draw, u"abc")
@@ -147,7 +147,7 @@ def test_draw():
     assert screen.cursor == (1, 1)
 
     # ``DECAWM`` is off.
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     screen.reset_mode(mo.DECAWM)
 
     map(screen.draw, u"abc")
@@ -172,7 +172,7 @@ def test_draw():
 
 
 def test_carriage_return():
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     screen.x = 2
     screen.carriage_return()
 
@@ -180,7 +180,7 @@ def test_carriage_return():
 
 
 def test_index():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     screen.display = _(["bo", "sh"])
 
     # a) indexing on a row that isn't the last should just move
@@ -195,7 +195,7 @@ def test_index():
     assert screen.y == 1
 
     # c) same with margins
-    screen = vt102.screen(5, 2)
+    screen = vt102.Screen(2, 5)
     screen.display = _(["bo", "sh", "th", "er", "oh"])
     screen.set_margins(2, 4)
     screen.y = 3
@@ -222,7 +222,7 @@ def test_index():
 
 
 def test_reverse_index():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     screen.display = _(["bo", "sh"])
 
     # a) reverse indexing on the first row should push rows down
@@ -239,7 +239,7 @@ def test_reverse_index():
     assert screen.cursor == (0, 0)
 
     # c) same with margins
-    screen = vt102.screen(5, 2)
+    screen = vt102.Screen(2, 5)
     screen.display = _(["bo", "sh", "th", "er", "oh"])
     screen.set_margins(2, 4)
     screen.y = 1
@@ -266,7 +266,7 @@ def test_reverse_index():
 
 
 def test_linefeed():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     screen.display = _(["bo", "sh"])
 
     # a) LNM on by default (that's what `vttest` forces us to do).
@@ -283,7 +283,7 @@ def test_linefeed():
 
 
 def test_tabstops():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
 
     # Making sure initial tabstops are in place ...
     assert screen.tabstops == set([7])
@@ -309,7 +309,7 @@ def test_tabstops():
 
 
 def test_clear_tabstops():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
     screen.clear_tab_stop(3)
 
     # a) clear a tabstop at current cusor location
@@ -337,7 +337,7 @@ def test_clear_tabstops():
 
 def test_resize_shifts_horizontal():
     # If the current display is thinner than the requested size...
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     screen.display = _(["bo", "sh"])
     # New columns should get added to the right.
     screen.resize(2, 3)
@@ -345,7 +345,7 @@ def test_resize_shifts_horizontal():
     assert repr(screen) == repr([u"bo ", u"sh "])
 
     # If the current display is wider than the requested size...
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     screen.display = _(["bo", "sh"])
     # Columns should be removed from the right...
     screen.resize(2, 1)
@@ -354,7 +354,7 @@ def test_resize_shifts_horizontal():
 
 
 def test_backspace():
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     assert screen.x == 0
     screen.backspace()
     assert screen.x == 0
@@ -364,7 +364,7 @@ def test_backspace():
 
 
 def test_save_cursor():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
     screen.save_cursor()
 
     screen.x = 3
@@ -384,7 +384,7 @@ def test_save_cursor():
 
 
 def test_restore_cursor_with_none_saved():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
     screen.x = 5
     screen.y = 5
     screen.restore_cursor()
@@ -394,7 +394,7 @@ def test_restore_cursor_with_none_saved():
 
 def test_insert_lines():
     # a) without margins
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     assert screen.cursor == (0, 0)
 
     screen.display = _(["sam", "is ", "foo"])
@@ -409,7 +409,7 @@ def test_insert_lines():
     assert repr(screen) == repr([u"   ", u"   ", u"sam"])
 
     # b) with margins
-    screen = vt102.screen(5, 3)
+    screen = vt102.Screen(3, 5)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
     screen.set_margins(1, 4)
     screen.y = 1
@@ -436,7 +436,7 @@ def test_insert_lines():
     assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
 
     # d) with margins -- trying to insert outside scroll boundaries
-    screen = vt102.screen(5, 3)
+    screen = vt102.Screen(3, 5)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
     screen.set_margins(2, 4)
     screen.insert_lines(5)
@@ -446,7 +446,7 @@ def test_insert_lines():
 
 def test_delete_lines():
     # a) without margins
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
     screen.delete_lines()
 
@@ -459,7 +459,7 @@ def test_delete_lines():
     assert screen.cursor == (0, 0)
 
     # b) with margins
-    screen = vt102.screen(5, 3)
+    screen = vt102.Screen(3, 5)
     screen.set_margins(1, 4)
     screen.y = 1
 
@@ -477,7 +477,7 @@ def test_delete_lines():
     assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
 
     # d) with margins -- trying to delete outside scroll boundaries
-    screen = vt102.screen(5, 3)
+    screen = vt102.Screen(3, 5)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
     screen.set_margins(2, 4)
     screen.delete_lines(5)
@@ -486,7 +486,7 @@ def test_delete_lines():
 
 
 def test_insert_characters():
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
 
     # a) normal case
@@ -517,7 +517,7 @@ def test_insert_characters():
 
 
 def test_delete_characters():
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
 
     screen.delete_characters(2)
@@ -533,26 +533,26 @@ def test_delete_characters():
 
 
     # ! extreme cases.
-    screen = vt102.screen(1, 5)
+    screen = vt102.Screen(5, 1)
     screen.display = _(["12345"])
     screen.x = 1
     screen.delete_characters(3)
     assert repr(screen) == repr([u"15   "])
 
-    screen = vt102.screen(1, 5)
+    screen = vt102.Screen(5, 1)
     screen.display = _(["12345"])
     screen.x = 2
     screen.delete_characters(10)
     assert repr(screen) == repr([u"12   "])
 
-    screen = vt102.screen(1, 5)
+    screen = vt102.Screen(5, 1)
     screen.display = _(["12345"])
     screen.delete_characters(4)
     assert repr(screen) == repr([u"5    "])
 
 
 def test_erase_character():
-    screen = vt102.screen(3, 3)
+    screen = vt102.Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
 
     screen.erase_characters(2)
@@ -567,26 +567,26 @@ def test_erase_character():
     assert repr(screen) == repr([u"  m", u"i  ", u"fo "])
 
     # ! extreme cases.
-    screen = vt102.screen(1, 5)
+    screen = vt102.Screen(5, 1)
     screen.display = _(["12345"])
     screen.x = 1
     screen.erase_characters(3)
     assert repr(screen) == repr([u"1   5"])
 
-    screen = vt102.screen(1, 5)
+    screen = vt102.Screen(5, 1)
     screen.display = _(["12345"])
     screen.x = 2
     screen.erase_characters(10)
     assert repr(screen) == repr([u"12   "])
 
-    screen = vt102.screen(1, 5)
+    screen = vt102.Screen(5, 1)
     screen.display = _(["12345"])
     screen.erase_characters(4)
     assert repr(screen) == repr([u"    5"])
 
 
 def test_erase_in_line():
-    screen = vt102.screen(5, 5)
+    screen = vt102.Screen(5, 5)
     screen.display = _(["sam i",
                         "s foo",
                         "but a",
@@ -631,7 +631,7 @@ def test_erase_in_line():
 
 
 def test_erase_in_display():
-    screen = vt102.screen(5, 5)
+    screen = vt102.Screen(5, 5)
     screen.display = _(["sam i",
                         "s foo",
                         "but a",
@@ -674,7 +674,7 @@ def test_erase_in_display():
 
 
 def test_cursor_up():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
 
     # Moving the cursor up at the top doesn't do anything
     screen.cursor_up(1)
@@ -693,7 +693,7 @@ def test_cursor_up():
 
 
 def test_cursor_down():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
 
     # Moving the cursor down at the bottom doesn't do anything
     screen.y = 9
@@ -713,7 +713,7 @@ def test_cursor_down():
 
 
 def test_cursor_back():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
 
     # Moving the cursor left at the margin doesn't do anything
     screen.x = 0
@@ -733,7 +733,7 @@ def test_cursor_back():
 
 
 def test_cursor_forward():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
 
     # Moving the cursor right at the margin doesn't do anything
     screen.x = 9
@@ -752,7 +752,7 @@ def test_cursor_forward():
 
 
 def test_cursor_position():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
 
     # a) testing that we expect 1-indexed values
     screen.cursor_position(5, 10)
@@ -786,7 +786,7 @@ def test_cursor_position():
 
 def test_resize_shifts_vertical():
     # If the current display is shorter than the requested screen size...
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     screen.display = _(["bo", "sh"])
     # New rows should get added on the bottom...
     screen.resize(3, 2)
@@ -794,7 +794,7 @@ def test_resize_shifts_vertical():
     assert repr(screen) == repr([u"bo", u"sh", u"  "])
 
     # If the current display is taller than the requested screen size...
-    screen = vt102.screen(2, 2)
+    screen = vt102.Screen(2, 2)
     screen.display = _(["bo", "sh"])
     # Rows should be removed from the top...
     screen.resize(1, 2)
@@ -803,8 +803,8 @@ def test_resize_shifts_vertical():
 
 
 def test_unicode():
-    stream = vt102.stream()
-    screen = vt102.screen(2, 4)
+    stream = vt102.Stream()
+    screen = vt102.Screen(4, 2)
     screen.attach(stream)
 
     try:
@@ -816,7 +816,7 @@ def test_unicode():
 
 
 def test_alignment_display():
-    screen = vt102.screen(5, 5)
+    screen = vt102.Screen(5, 5)
     screen.draw(u"a")
     screen.linefeed()
     screen.linefeed()
@@ -837,7 +837,7 @@ def test_alignment_display():
                                  u"EEEEE"])
 
 def test_set_margins():
-    screen = vt102.screen(10, 10)
+    screen = vt102.Screen(10, 10)
 
     assert screen.margins == (0, 9)
 

@@ -21,8 +21,8 @@ try:
 except:
 	delay=0
 
-stream = vt102.stream()
-screen = vt102.screen(24, 80)
+stream = vt102.Stream()
+screen = vt102.Screen(80, 24)
 screen.attach(stream)
 
 utf8_state=0
@@ -71,7 +71,7 @@ while 1:
 				utf8_state=0
 		else:
 			char=byte.decode("utf-8")
-			char_counter+=1	
+			char_counter+=1
 
 	if utf8_state:
 		continue

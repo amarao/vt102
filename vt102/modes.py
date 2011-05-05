@@ -3,7 +3,8 @@
     vt102.modes
     ~~~~~~~~~~~
 
-    A container for terminal mode switches.
+    This module defines terminal mode switches, used by
+    :class:`vt102.screens.Screen`.
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.

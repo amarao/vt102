@@ -3,14 +3,12 @@
     vt102.escape
     ~~~~~~~~~~~~
 
-    A container for escape sequences, recognized by :class:`vt102.stream`
+    This module defines escape (but not CSI) sequences, recognized by
+    :class:`vt102.streams.Stream`.
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """
-
-# ESC- but not CSI-sequences (incomplete -- missing at least ``DECALN`,
-# ``DECPNM``, ``DECPAM``, ``OSC``).
 
 """Reset."""
 RIS = 0x63
@@ -19,7 +17,7 @@ RIS = 0x63
 at the bottom margin, the screen performs a scroll-up."""
 IND = 0x44
 
-"""Next line: Same as :data:`control.LF`."""
+"""Next line: Same as :data:`vt102.control.LF`."""
 NEL = 0x45
 
 """Tabulation set: Set a horizontal tab stop at cursor position."""
@@ -153,6 +151,3 @@ DECALN = 0x38
 
 """Same as :data:`CHA`."""
 HPA = 0x60
-
-# .. todo: missing -- ``DECLL``, ``DECSTBM`` and many-many-MANY
-#          more ...

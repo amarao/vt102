@@ -3,9 +3,10 @@
     vt102.control
     ~~~~~~~~~~~~~
 
-    A container for control sequences, recognized by :class:`vt102.stream`,
-    although named `vt102`, the set of codes here is for ``TERM=linux``,
-    which is a superset of `vt102`.
+    This module defines control (CSI) sequences, recognized by
+    :class:`vt102.streams.Stream`, although named `vt102`, the set
+    of codes here is for ``TERM=linux`` which is a superset of
+    `vt102`.
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.

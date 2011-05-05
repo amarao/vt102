@@ -6,14 +6,14 @@
     Quick example:
 
     >>> import vt102
-    >>> class dummy(object):
+    >>> class Dummy(object):
     ...     def __init__(self):
     ...         self.foo = 0
     ...     def up(self, bar):
     ...         self.foo += bar
     ...
-    >>> dummy = dummy()
-    >>> stream = vt102.stream()
+    >>> dummy = Dummy()
+    >>> stream = vt102.Stream()
     >>> stream.connect("cursor-up", dummy.up)
     >>> stream.feed(u"\u001B[5A") # Move the cursor up 5 rows.
     >>> dummy.foo
@@ -38,9 +38,8 @@ from collections import defaultdict
 from . import control as ctrl, escape as esc
 
 
-class stream(object):
-    """
-    A stream is the state machine that parses a stream of terminal
+class Stream(object):
+    """A stream is the state machine that parses a stream of terminal
     characters and dispatches events based on what it sees.
     """
 
