@@ -383,19 +383,19 @@ def test_restore_cursor_with_none_saved():
     assert screen.cursor == (0, 0)
 
 
-def test_insert_line():
+def test_insert_lines():
     # a) without margins
     screen = vt102.screen(3, 3)
     assert screen.cursor == (0, 0)
 
     screen.display = _(["sam", "is ", "foo"])
-    screen.insert_line(1)
+    screen.insert_lines()
 
     assert repr(screen) == repr([u"   ", u"sam", u"is "])
     assert screen.cursor == (0, 0)
 
     screen.display = _(["sam", "is ", "foo"])
-    screen.insert_line(2)
+    screen.insert_lines(2)
 
     assert repr(screen) == repr([u"   ", u"   ", u"sam"])
 
@@ -404,7 +404,7 @@ def test_insert_line():
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
     screen.set_margins(1, 4)
     screen.y = 1
-    screen.insert_line(1)
+    screen.insert_lines(1)
 
     assert repr(screen) == repr([u"sam", u"   ", u"is ", u"foo", u"baz"])
 
@@ -412,17 +412,17 @@ def test_insert_line():
     screen.set_margins(1, 3)
     screen.y = 1
 
-    screen.insert_line(1)
+    screen.insert_lines(1)
     assert repr(screen) == repr([u"sam", u"   ", u"is ", u"bar",  u"baz"])
 
-    screen.insert_line(2)
+    screen.insert_lines(2)
     assert repr(screen) == repr([u"sam", u"   ", u"   ", u"bar",  u"baz"])
 
     # c) with margins -- trying to insert more than we have available
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
     screen.set_margins(2, 4)
     screen.y = 1
-    screen.insert_line(20)
+    screen.insert_lines(20)
 
     assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
 
@@ -430,21 +430,21 @@ def test_insert_line():
     screen = vt102.screen(5, 3)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
     screen.set_margins(2, 4)
-    screen.insert_line(5)
+    screen.insert_lines(5)
 
     assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
 
 
-def test_delete_line():
+def test_delete_lines():
     # a) without margins
     screen = vt102.screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
-    screen.delete_line(1)
+    screen.delete_lines()
 
     assert repr(screen) == repr([u"is ", u"foo", u"   "])
     assert screen.cursor == (0, 0)
 
-    screen.delete_line(1)
+    screen.delete_lines(0)
 
     assert repr(screen) == repr([u"foo", u"   ", u"   "])
     assert screen.cursor == (0, 0)
@@ -455,23 +455,23 @@ def test_delete_line():
     screen.y = 1
 
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.delete_line(1)
+    screen.delete_lines(1)
     assert repr(screen) == repr([u"sam", u"foo", u"bar", u"   ", u"baz"])
 
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.delete_line(2)
+    screen.delete_lines(2)
     assert repr(screen) == repr([u"sam", u"bar", u"   ", u"   ", u"baz"])
 
     # c) with margins -- trying to delete  more than we have available
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
-    screen.delete_line(5)
+    screen.delete_lines(5)
     assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
 
     # d) with margins -- trying to delete outside scroll boundaries
     screen = vt102.screen(5, 3)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
     screen.set_margins(2, 4)
-    screen.delete_line(5)
+    screen.delete_lines(5)
 
     assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
 
@@ -515,8 +515,13 @@ def test_delete_characters():
     assert repr(screen) == repr([u"m  ", u"is ", u"foo"])
 
     screen.y, screen.x = 2, 2
-    screen.delete_characters(1)
+    screen.delete_characters()
     assert repr(screen) == repr([u"m  ", u"is ", u"fo "])
+
+    screen.y, screen.x = 1, 1
+    screen.delete_characters(0)
+    assert repr(screen) == repr([u"m  ", u"i  ", u"fo "])
+
 
     # ! extreme cases.
     screen = vt102.screen(1, 5)
@@ -545,8 +550,12 @@ def test_erase_character():
     assert repr(screen) == repr([u"  m", u"is ", u"foo"])
 
     screen.y, screen.x = 2, 2
-    screen.erase_characters(1)
+    screen.erase_characters()
     assert repr(screen) == repr([u"  m", u"is ", u"fo "])
+
+    screen.y, screen.x = 1, 1
+    screen.erase_characters(0)
+    assert repr(screen) == repr([u"  m", u"i  ", u"fo "])
 
     # ! extreme cases.
     screen = vt102.screen(1, 5)

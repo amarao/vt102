@@ -3,10 +3,12 @@
     vt102.screen
     ~~~~~~~~~~~~
 
-    A screen is an in memory buffer of strings that represents the screen
-    display of the terminal. It can be instantiated on it's own and given
-    explicit commands, or it can be attached to a stream and will respond
-    to events.
+    This module provides a base class for terminal screens, currently
+    there's only a one screen implementation, but who knows what the
+    future will bring :).
+
+    :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
+    :license: LGPL, see LICENSE for more details.
 """
 
 from __future__ import print_function, absolute_import
@@ -21,9 +23,21 @@ from . import modes as mo, control as ctrl
 #: A container for screen's scroll margins.
 margins = namedtuple("margins", "top bottom")
 
+#: A container for character attributes, which consists of the following:
+#:
+#:   1. A tuple of all the text attributes: **bold**, `italic`, etc
+#:   2. Foreground color as a string, see :attr:`vt102.graphics.colors`
+#:   3. Background color as a string, see :attr:`vt102.graphics.colors`
+attributes = namedtuple("text", "fg", "bg")
+
 
 class screen(object):
     """
+    A screen is an in memory buffer of strings that represents the
+    screen display of the terminal. It can be instantiated on it's own
+    and given explicit commands, or it can be attached to a stream and
+    will respond to events.
+
     .. attribute:: display
 
        A list of :class:`array.array` objects, holding screen buffer.
@@ -35,21 +49,13 @@ class screen(object):
 
     .. attribute:: default_attributes
 
-       Default colors and styling. The value of this attribute should
-       always be immutable, since shallow copies are made when resizing /
-       applying / deleting / printing.
-
-       Attributes are represented by a three-tuple that consists of the
-       following:
-
-       1. A tuple of all the text attributes: **bold**, `italic`, etc
-       2. Foreground color as a string, see :attr:`vt102.graphics.colors`
-       3. Background color as a string, see :attr:`vt102.graphics.colors`
+       Default character attributes, which are used for screen
+       initialization and *obviously* for resetting character style.
 
     .. attribute:: margins
 
-       Top and bottom margins, defining the scrolling region; the actual
-       values are top and bottom line.
+       Top and bottom screen margins, defining the scrolling region;
+       the actual values are top and bottom line.
 
     .. attribute:: buffer
 
@@ -106,8 +112,8 @@ class screen(object):
             ("cursor-to-line", self.cursor_to_line),
             ("erase-in-line", self.erase_in_line),
             ("erase-in-display", self.erase_in_display),
-            ("insert-lines", self.insert_line),
-            ("delete-lines", self.delete_line),
+            ("insert-lines", self.insert_lines),
+            ("delete-lines", self.delete_lines),
             ("insert-characters", self.insert_characters),
             ("delete-characters", self.delete_characters),
             ("erase-characters", self.erase_characters),
@@ -167,8 +173,6 @@ class screen(object):
         requested size, columns will be added at the right, and it
         has more, columns will be clipped at the right.
         """
-        assert lines and columns
-
         # First resize the lines ...
         if self.lines < lines:
             # If the current display size is shorter than the requested
@@ -348,6 +352,8 @@ class screen(object):
         """
         if self.cursor_save_stack:
             # .. todo:: use _cursor_position()
+            # .. todo:: ensure that the poped cursor is within screen
+            #           boundaries?
             self.x, self.y = self.cursor_save_stack.pop()
         else:
             # From VT220 Programming Reference Manual: "If none of the
@@ -356,7 +362,7 @@ class screen(object):
             # and the default character set mapping is established."
             self.home()
 
-    def insert_line(self, count=1):
+    def insert_lines(self, count=None):
         """Inserts the indicated # of lines at line with cursor. Lines
         displayed **at** and below the cursor move down. Lines moved
         past the bottom margin are lost.
@@ -365,17 +371,19 @@ class screen(object):
 
         :param count: number of lines to delete.
         """
+        count = count or 1
         top, bottom = self.margins
 
         # If cursor is outside scrolling margins it -- do nothin'.
         if top <= self.y <= bottom:
+            #                           v +1, because xrange() is exclusive.
             for line in xrange(self.y, min(bottom + 1, self.y + count)):
                 self.display.pop(bottom)
                 self.display.insert(line, array("u", u" " * self.columns))
 
             self.x = 0
 
-    def delete_line(self, count=1):
+    def delete_lines(self, count=None):
         """Deletes the indicated # of lines, starting at line with
         cursor. As lines are deleted, lines displayed below cursor
         move up. Lines added to bottom of screen have spaces with same
@@ -385,6 +393,7 @@ class screen(object):
 
         :param count: number of lines to delete.
         """
+        count = count or 1
         top, bottom = self.margins
 
         # If cursor is outside scrolling margins it -- do nothin'.
@@ -396,7 +405,7 @@ class screen(object):
 
             self.x = 0
 
-    def insert_characters(self, count=0):
+    def insert_characters(self, count=None):
         """Inserts the indicated # of blank characters at the cursor
         position. The cursor does not move and remains at the beginning
         of the inserted blank characters.
@@ -413,7 +422,7 @@ class screen(object):
 
             self.attributes[self.y][self.x] = self.default_attributes
 
-    def delete_characters(self, count=1):
+    def delete_characters(self, count=None):
         """Deletes the indicated # of characters, starting with the
         character at cursor position. When a character is deleted, all
         characters to the right of cursor move left. Character attributes
@@ -421,6 +430,8 @@ class screen(object):
 
         :param count: number of characters to delete.
         """
+        count = count or 1
+
         for _ in xrange(min(self.columns - self.x, count)):
             self.display[self.y].pop(self.x)
             self.display[self.y].append(u" ")
@@ -428,7 +439,7 @@ class screen(object):
             self.attributes[self.y].pop(self.x)
             self.attributes[self.y].append(self.default_attributes)
 
-    def erase_characters(self, count=0):
+    def erase_characters(self, count=None):
         """Erases the indicated # of characters, starting with the
         character at cursor position.  Character attributes are set
         to normal. The cursor remains in the same position.
@@ -524,7 +535,7 @@ class screen(object):
             self.tabstops = set()  # Clears all horizontal tab stops.
 
     def ensure_bounds(self, use_margins=None):
-        """Ensure that cursor is within screen bounds.
+        """Ensure that current cursor position is within screen bounds.
 
         .. note::
 
@@ -543,7 +554,7 @@ class screen(object):
         self.x = min(max(0, self.x), self.columns - 1)
         self.y = min(max(top, self.y), bottom)
 
-    def cursor_up(self, count=1):
+    def cursor_up(self, count=None):
         """Moves cursor up the indicated # of lines in same column.
         Cursor stops at top margin.
 
@@ -552,7 +563,7 @@ class screen(object):
         self.y -= count or 1
         self.ensure_bounds(use_margins=True)
 
-    def cursor_up1(self, count=1):
+    def cursor_up1(self, count=None):
         """Moves cursor up the indicated # of lines to column 1. Cursor
         stops at bottom margin.
 
@@ -561,7 +572,7 @@ class screen(object):
         self.cursor_up(count)
         self.carriage_return()
 
-    def cursor_down(self, count=1):
+    def cursor_down(self, count=None):
         """Moves cursor down the indicated # of lines in same column.
         Cursor stops at bottom margin.
 
@@ -570,7 +581,7 @@ class screen(object):
         self.y += count or 1
         self.ensure_bounds(use_margins=True)
 
-    def cursor_down1(self, count=1):
+    def cursor_down1(self, count=None):
         """Moves cursor down the indicated # of lines to column 1.
         Cursor stops at bottom margin.
 
@@ -579,7 +590,7 @@ class screen(object):
         self.cursor_down(count)
         self.carriage_return()
 
-    def cursor_back(self, count=1):
+    def cursor_back(self, count=None):
         """Moves cursor left the indicated # of columns. Cursor stops
         at left margin.
 
@@ -588,7 +599,7 @@ class screen(object):
         self.x -= count or 1
         self.ensure_bounds()
 
-    def cursor_forward(self, count=1):
+    def cursor_forward(self, count=None):
         """Moves cursor right the indicated # of columns. Cursor stops
         at right margin.
 
@@ -597,7 +608,7 @@ class screen(object):
         self.x += count or 1
         self.ensure_bounds()
 
-    def cursor_position(self, line=0, column=0):
+    def cursor_position(self, line=None, column=None):
         """Set the cursor to a specific `line` and `column`.
 
         Cursor is allowed to move out of the scrolling region only when
@@ -620,7 +631,7 @@ class screen(object):
 
         self.ensure_bounds()
 
-    def cursor_to_column(self, column=0):
+    def cursor_to_column(self, column=None):
         """Moves cursor to a specific column in the current line.
 
         :param column: column number to move the cursor to (starts
@@ -629,12 +640,12 @@ class screen(object):
         self.x = (column or 1) - 1  # Uses 1-based indices.
         self.ensure_bounds()
 
-    def cursor_to_line(self, line=0):
+    def cursor_to_line(self, line=None):
         """Moves cursor to a specific line in the current column.
 
-        :param line: line number to move the cursor to (starts with ``0``).
+        :param line: line number to move the cursor to.
         """
-        self.y = (line or 1) - 1
+        self.y = (line or 1) - 1    # Uses 1-based indices.
         self.ensure_bounds()
 
     def home(self):
@@ -644,6 +655,7 @@ class screen(object):
         the left upper corner of the screen, otherwise it's at top margin
         of the user-defined scrolling region.
         """
+        # Note, that CUP expects 1-based indices.
         if mo.DECOM in self.mode:
             self.cursor_position(1, self.margins.top)
         else:
