@@ -5,7 +5,7 @@
 
     A container for terminal mode switches.
 
-    :copyright: (c) 2011 by Sergei Lebedev, see AUTHORS for more details.
+    :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """
 

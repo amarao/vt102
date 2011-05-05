@@ -7,7 +7,7 @@
     although named `vt102`, the set of codes here is for ``TERM=linux``,
     which is a superset of `vt102`.
 
-    :copyright: (c) 2011 by Sam Gibson, see AUTHORS for more details.
+    :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """
 

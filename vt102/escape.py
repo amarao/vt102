@@ -5,7 +5,7 @@
 
     A container for escape sequences, recognized by :class:`vt102.stream`
 
-    :copyright: (c) 2011 by Sam Gibson, see AUTHORS for more details.
+    :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """
 
