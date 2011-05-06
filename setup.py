@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import os
@@ -51,7 +52,7 @@ class PyTest(Command):
 
 setup(name="vt102",
       version="0.3.4",
-      packages=find_packages(),
+      packages=find_packages(exclude=["tests"]),
       cmdclass={"test": PyTest},
       platforms=["any"],
 
