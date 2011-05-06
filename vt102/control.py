@@ -3,7 +3,7 @@
     vt102.control
     ~~~~~~~~~~~~~
 
-    This module defines control (CSI) sequences, recognized by
+    This module defines simple control sequences, recognized by
     :class:`vt102.streams.Stream`, although named `vt102`, the set
     of codes here is for ``TERM=linux`` which is a superset of
     `vt102`.
@@ -12,39 +12,42 @@
     :license: LGPL, see LICENSE for more details.
 """
 
+"""Null: Does nothing."""
+NUL = u"\x00"
+
 """Bell: Beeps."""
-BEL = 0x07
+BEL = u"\x07"
 
 """Backspace: Backspaces one column, but not past the begining of the line."""
-BS = 0x08
+BS = u"\x08"
 
 """Horizontal tab: Moves cursor to the next tab stop, or to the end of
 the line if there is no earlier tab stop."""
-HT = 0x09
+HT = u"\x09"
 
 """Linefeed, vertical tab, form feed: all give a line feed, and if LF/NL
 (new line mode) is set also a carriage return."""
-LF, VT, FF = 0x0A, 0x0B, 0x0C
+LF, VT, FF = u"\n", u"\x0b", u"\x0c"
 
 """Carriage return: Moves cursor to left margin on current line."""
-CR = 0x0D
+CR = u"\r"
 
 """Shift out: Activates G1 character set."""
-SO = 0x0E
+SO = u"\x0e"
 
 """Shift in: Activates G0 character set."""
-SI = 0x0F
+SI = u"\x0f"
 
 """Cancel, substitute: interrupt escape sequences. If received during
 an escape or control sequence, cancels the sequence and displays
 substitution character."""
-CAN, SUB = 0x18, 0x1A
+CAN, SUB = u"\x18", u"\x1a"
 
 """Escape: Starts an escape sequence."""
-ESC = 0x1B
+ESC = u"\x1b"
 
 """Delete: is ingored."""
-DEL = 0x7F
+DEL = u"\x7f"
 
 """Control sequence introducer: is equavalent for ``ESC [``."""
-CSI = 0x9B
+CSI = u"\x9b"

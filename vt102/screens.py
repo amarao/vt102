@@ -722,7 +722,7 @@ class Screen(object):
                 u"1",   # with 132 columns
                 u"6",   # and selective erase.
             ]
-            self.buffer.append(u"%s?%sc" % (unichr(ctrl.CSI), u";".join(attrs)))
+            self.buffer.append(u"%s?%sc" % (ctrl.CSI, u";".join(attrs)))
 
     # The following methods weren't tested properly yet.
     # ..................................................

@@ -27,10 +27,10 @@ def test_basic_sequences():
         handler = counter()
         stream.connect(event, handler)
 
-        stream.consume(unichr(ctrl.ESC))
+        stream.consume(ctrl.ESC)
         assert stream.state == "escape"
 
-        stream.consume(unichr(cmd))
+        stream.consume(cmd)
         assert handler.count == 1
         assert stream.state == "stream"
 
@@ -39,7 +39,7 @@ def test_basic_sequences():
     handler = counter()
 
     stream.connect("linefeed", handler)
-    stream.feed(unichr(ctrl.LF) + unichr(ctrl.VT) + unichr(ctrl.FF))
+    stream.feed(ctrl.LF + ctrl.VT + ctrl.FF)
 
     assert handler.count == 3
     assert stream.state == "stream"
@@ -51,12 +51,12 @@ def test_unknown_sequences():
     stream.connect("debug", handler)
 
     try:
-        stream.feed(u"\000" + unichr(ctrl.ESC) + u"[6;7!")
+        stream.feed(u"\00" + ctrl.ESC + u"[6;7!")
     except Exception as e:
         pytest.fail("No exception should've raised, got: %s" % e)
     else:
         assert handler.count == 1
-        assert handler.args == (unichr(ctrl.CSI) + u"6;7!", )
+        assert handler.args == (ctrl.CSI + u"6;7!", )
 
 
 def test_non_csi_sequences():
@@ -66,14 +66,14 @@ def test_non_csi_sequences():
         # a) single param
         handler = argcheck()
         stream.connect(event, handler)
-        stream.consume(unichr(ctrl.ESC))
+        stream.consume(ctrl.ESC)
         assert stream.state == "escape"
 
         stream.consume(u"[")
         assert stream.state == "arguments"
 
         stream.consume(u"5")
-        stream.consume(unichr(cmd))
+        stream.consume(cmd)
 
         assert handler.count == 1
         assert handler.args == (5, )
@@ -82,13 +82,13 @@ def test_non_csi_sequences():
         # b) multiple params, and starts with CSI, not ESC [
         handler = argcheck()
         stream.connect(event, handler)
-        stream.consume(unichr(ctrl.CSI))
+        stream.consume(ctrl.CSI)
         assert stream.state == "arguments"
 
         stream.consume(u"5")
         stream.consume(u";")
         stream.consume(u"12")
-        stream.consume(unichr(cmd))
+        stream.consume(cmd)
 
         assert handler.count == 1
         assert handler.args == (5, 12)
@@ -103,7 +103,7 @@ def test_mode_csi_sequences():
     # a) set-mode
     handler = argcheck()
     stream.connect("set-mode", handler)
-    stream.feed(unichr(ctrl.CSI) + "?9;2h")
+    stream.feed(ctrl.CSI + "?9;2h")
 
     assert not bugger.count
     assert handler.count == 1
@@ -112,7 +112,7 @@ def test_mode_csi_sequences():
     # a) reset-mode
     handler = argcheck()
     stream.connect("reset-mode", handler)
-    stream.feed(unichr(ctrl.CSI) + "?9;2l")
+    stream.feed(ctrl.CSI + "?9;2l")
 
     assert not bugger.count
     assert handler.count == 1

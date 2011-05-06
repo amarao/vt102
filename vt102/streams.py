@@ -184,16 +184,13 @@ class Stream(object):
 
     def _stream(self, char):
         """Process a character when in the default ``"stream"`` state."""
-        num = ord(char)
-        if num in self.basic:
-            self.dispatch(self.basic[num])
-        elif num == ctrl.ESC:
+        if char in self.basic:
+            self.dispatch(self.basic[char])
+        elif char == ctrl.ESC:
             self.state = "escape"
-        elif num == ctrl.CSI:
+        elif char == ctrl.CSI:
             self.state = "arguments"
-        elif not num:
-            pass  # nulls are just ignored.
-        else:
+        elif char != ctrl.NUL:
             self.dispatch("draw", char)
 
     def _escape(self, char):
@@ -208,9 +205,9 @@ class Stream(object):
             pass
         elif char == "[":
             self.state = "arguments"
-        elif ord(char) in self.escape:
+        elif char in self.escape:
             self.state = "stream"
-            self.dispatch(self.escape[ord(char)])
+            self.dispatch(self.escape[char])
         else:
             self.state = "stream"
 
@@ -243,12 +240,12 @@ class Stream(object):
             if char == ";":
                 self.current = ""
             else:
-                event = self.csi.get(ord(char))
+                event = self.csi.get(char)
                 if event:
                     self.dispatch(event, *self.params)
                 else:
                     self.dispatch("debug",
-                                  unichr(ctrl.CSI) +
+                                  ctrl.CSI +
                                   u";".join(map(unicode, self.params)) + char)
 
                 self.reset()
