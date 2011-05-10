@@ -364,32 +364,41 @@ def test_backspace():
 
 
 def test_save_cursor():
+    # a) cursor position
     screen = vt102.Screen(10, 10)
     screen.save_cursor()
-
-    screen.x = 3
-    screen.y = 5
+    screen.x, screen.y = 3, 5
     screen.save_cursor()
-    screen.x = 4
-    screen.y = 4
-    screen.restore_cursor()
+    screen.x, screen.y = 4, 4
 
+    screen.restore_cursor()
     assert screen.x == 3
     assert screen.y == 5
 
     screen.restore_cursor()
-
     assert screen.x == 0
     assert screen.y == 0
+
+    # b) modes
+    screen = vt102.Screen(10, 10)
+    screen.set_mode(mo.DECAWM, mo.DECOM)
+    screen.save_cursor()
+
+    screen.reset_mode(mo.DECAWM)
+
+    screen.restore_cursor()
+    assert mo.DECAWM in screen.mode
+    assert mo.DECOM in screen.mode
 
 
 def test_restore_cursor_with_none_saved():
     screen = vt102.Screen(10, 10)
-    screen.x = 5
-    screen.y = 5
+    screen.set_mode(mo.DECOM)
+    screen.x, screen.y = 5, 5
     screen.restore_cursor()
 
     assert screen.cursor == (0, 0)
+    assert mo.DECOM not in screen.mode
 
 
 def test_insert_lines():

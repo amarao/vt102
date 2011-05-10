@@ -30,6 +30,9 @@ Margins = namedtuple("Margins", "top bottom")
 #:   3. Background color as a string, see :data:`vt102.graphics.colors`
 Attributes = namedtuple("Attributes", "text fg bg")
 
+#: A container for savepoint, created on :data:`vt102.escape.DECSC`.
+Savepoint = namedtuple("Savepoint", "cursor origin wrap")
+
 
 class Screen(object):
     """
@@ -69,7 +72,7 @@ class Screen(object):
         # `n` spaces when the terminal is powered up. Since we aim to support
         # VT102 / VT220 and linux -- we use n = 8.
         self.tabstops = set(xrange(7, columns, 8))
-        self.cursor_save_stack = []
+        self.savepoints = []
         self.lines, self.columns = lines, columns
         self.reset()
 
@@ -368,22 +371,27 @@ class Screen(object):
 
     def save_cursor(self):
         """Push the current cursor position onto the stack."""
-        self.cursor_save_stack.append(self.cursor)
+        self.savepoints.append(Savepoint(self.cursor,
+                                         mo.DECOM in self.mode,
+                                         mo.DECAWM in self.mode))
 
     def restore_cursor(self):
         """Set the current cursor position to whatever cursor is on top
         of the stack.
         """
-        if self.cursor_save_stack:
+        if self.savepoints:
             # .. todo:: use _cursor_position()
             # .. todo:: ensure that the poped cursor is within screen
             #           boundaries?
-            self.x, self.y = self.cursor_save_stack.pop()
+            savepoint = self.savepoints.pop()
+            self.x, self.y = savepoint.cursor
+
+            if savepoint.origin: self.set_mode(mo.DECOM)
+            if savepoint.wrap: self.set_mode(mo.DECAWM)
         else:
-            # From VT220 Programming Reference Manual: "If none of the
-            # characteristics were saved, the cursor moves to home position;
-            # origin mode is reset; no character attributes are assigned;
-            # and the default character set mapping is established."
+            # If nothing was saved, the cursor moves to home position;
+            # origin mode is reset. :todo: DECAWM?
+            self.reset_mode(mo.DECOM)
             self.cursor_position()
 
     def insert_lines(self, count=None):
