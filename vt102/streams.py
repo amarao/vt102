@@ -41,8 +41,8 @@ class Stream(object):
     .. note::
 
        Stream only accepts unicode strings as input, but if for some
-       reason you need to feed it with byte strings, use
-       :class:`vt102.streams.ByteStream`.
+       reason you need to feed it with byte strings, consider using
+       :class:`vt102.streams.ByteStream` instead.
 
     .. seealso::
 
@@ -104,7 +104,7 @@ class Stream(object):
         esc.SGR: "select-graphic-rendition",
         esc.DSR: "status-report",
         esc.DECSTBM: "set-margins",
-        esc.HPA: "cursor-to-column",
+        esc.HPA: "cursor-to-column"
     }
 
     def __init__(self):
@@ -190,7 +190,7 @@ class Stream(object):
             self.state = "escape"
         elif char == ctrl.CSI:
             self.state = "arguments"
-        elif char != ctrl.NUL:
+        elif char not in (ctrl.NUL, ctrl.DEL):
             self.dispatch("draw", char)
 
     def _escape(self, char):
@@ -214,9 +214,10 @@ class Stream(object):
     def _arguments(self, char):
         """Parse arguments of an escape sequence.
 
-        Parameters are a list of numbers in ASCII (e.g. ``12``, ``4``,
-        ``42``, etc) separated by a semicolon (e.g. ``12;4;42``). If
-        any of the given param is not a number it's skipped silently.
+        All parameters are unsigned, positive decimal integers, with
+        the most significant digit sent first. Any parameter greater
+        than 9999 is set to 9999. If you do not specify a value, a 0
+        value is assumed.
 
         .. seealso::
 
@@ -235,7 +236,7 @@ class Stream(object):
             # .. todo: joining strings with `+` is way too slow!
             self.current += char
         else:
-            self.current and self.params.append(int(self.current))
+            self.params.append(min(int(self.current or 0), 9999))
 
             if char == ";":
                 self.current = ""

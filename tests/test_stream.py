@@ -3,7 +3,7 @@
 import pytest
 
 import vt102
-import vt102.control as ctrl
+import vt102.control as ctrl, vt102.escape as esc
 
 
 class counter(object):
@@ -131,3 +131,22 @@ def test_byte_stream():
     for byte in bytes:
         stream.feed(byte)
 
+
+def test_missing_params():
+    handler = argcheck()
+    stream = vt102.Stream()
+    stream.connect("cursor-position", handler)
+
+    stream.feed(ctrl.CSI + ";" + esc.HVP)
+    assert handler.count == 1
+    assert handler.args == (0, 0)
+
+
+def test_overflow():
+    handler = argcheck()
+    stream = vt102.Stream()
+    stream.connect("cursor-position", handler)
+
+    stream.feed(ctrl.CSI + "999999999999999;99999999999999" + esc.HVP)
+    assert handler.count == 1
+    assert handler.args == (9999, 9999)
