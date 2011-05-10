@@ -269,10 +269,11 @@ class ByteStream(Stream):
     a predefined encoding, so broken bytes is not an issue.
 
     :param encoding: input encoding.
+    :param errors: how to handle decoding errors.
     """
 
-    def __init__(self, encoding="utf-8"):
-        self.decoder = codecs.getincrementaldecoder(encoding)()
+    def __init__(self, encoding="utf-8", errors="replace"):
+        self.decoder = codecs.getincrementaldecoder(encoding)(errors)
         super(ByteStream, self).__init__()
 
     def feed(self, chars):
