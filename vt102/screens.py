@@ -16,8 +16,7 @@ from __future__ import absolute_import
 from array import array
 from collections import namedtuple
 
-from .graphics import text, colors
-from . import modes as mo, control as ctrl
+from . import modes as mo, control as ctrl, graphics as g
 
 
 #: A container for screen's scroll margins.
@@ -756,7 +755,7 @@ class Screen(object):
         """
         Given a text attribute, set the current cursor appropriately.
         """
-        attr = text[attr]
+        attr = g.TEXT[attr]
         if attr == "reset":
             self.cursor_attributes = self.default_attributes
         elif attr == "underline-off":
@@ -772,7 +771,7 @@ class Screen(object):
         """
         Given a color attribute, set the current cursor appropriately.
         """
-        attr = colors[ground][attr]
+        attr = g.COLORS[ground][attr]
         attrs = self.cursor_attributes
         if ground == "foreground":
             self.cursor_attributes = (attrs[0], attr, attrs[2])
@@ -784,11 +783,11 @@ class Screen(object):
         Given some text attribute, set the current cursor attributes
         appropriately.
         """
-        if attr in text:
+        if attr in g.TEXT:
             self.text_attr(attr)
-        elif attr in colors["foreground"]:
+        elif attr in g.COLORS["foreground"]:
             self.color_attr("foreground", attr)
-        elif attr in colors["background"]:
+        elif attr in g.COLORS["background"]:
             self.color_attr("background", attr)
 
     def select_graphic_rendition(self, *attrs):
@@ -802,4 +801,3 @@ class Screen(object):
 
         for attr in attrs:
             self.set_attr(attr)
-

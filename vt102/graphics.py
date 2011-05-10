@@ -18,8 +18,8 @@
 TEXT = {
     0: "reset",
     1: "bold" ,
-    2: "dim" ,
-    4: "underline",
+    2: "half-bright" ,
+    4: "underscore",
     5: "blink",
     7: "reverse",
     24: "underline-off",
@@ -44,11 +44,7 @@ COLORS = {
         35: "magenta",
         36: "cyan",
         37: "white",
-        39: "default",
-        # This is technically "default with underscore", but I don't
-        # understand the utility of mixing the text styling with the
-        # colors. Instead I'm going to just leave it as "default" until
-        # I see something buggy or someone complains.
+        39: "default with underscore",
         38: "default",
     },
     "background": {
