@@ -11,7 +11,7 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from array import array
 from collections import namedtuple
@@ -319,8 +319,12 @@ class Screen(object):
         if mo.IRM in self.mode:
             self.insert_characters(1)
 
-        self.display[self.y][self.x] = char
-        self.attributes[self.y][self.x] = self.cursor_attributes
+        try:
+            self.display[self.y][self.x] = char
+            self.attributes[self.y][self.x] = self.cursor_attributes
+        except IndexError:
+            # cat /dev/urandom to reproduce
+            if __debug__: print(self.x, self.y, char)
 
         # .. note:: We can't use :meth:`cursor_forward()`, because that
         #           way, we'll never know when to linefeed.
