@@ -20,6 +20,14 @@ class argcheck(counter):
         super(argcheck, self).__call__()
 
 
+class argstore(object):
+    def __init__(self):
+        self.seen = []
+
+    def __call__(self, *args):
+        self.seen.extend(args)
+
+
 def test_basic_sequences():
     stream = vt102.Stream()
 
@@ -137,7 +145,7 @@ def test_missing_params():
     stream = vt102.Stream()
     stream.connect("cursor-position", handler)
 
-    stream.feed(ctrl.CSI + ";" + esc.HVP)
+    stream.feed(ctrl.CSI + u";" + esc.HVP)
     assert handler.count == 1
     assert handler.args == (0, 0)
 
@@ -147,6 +155,22 @@ def test_overflow():
     stream = vt102.Stream()
     stream.connect("cursor-position", handler)
 
-    stream.feed(ctrl.CSI + "999999999999999;99999999999999" + esc.HVP)
+    stream.feed(ctrl.CSI + u"999999999999999;99999999999999" + esc.HVP)
     assert handler.count == 1
     assert handler.args == (9999, 9999)
+
+
+def test_interrupt():
+    bugger, handler = argstore(), argcheck()
+    stream = vt102.Stream()
+    stream.connect("draw", bugger)
+    stream.connect("cursor-position", handler)
+
+    stream.feed(ctrl.CSI + u"10;" + ctrl.SUB + "10" + esc.HVP)
+
+    assert not handler.count
+    assert bugger.seen == [
+        ctrl.SUB, "1", "0", esc.HVP
+    ]
+
+

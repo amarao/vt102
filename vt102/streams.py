@@ -235,6 +235,13 @@ class Stream(object):
         elif char.isdigit():
             # .. todo: joining strings with `+` is way too slow!
             self.current += char
+        elif char in (ctrl.CAN, ctrl.SUB):
+            # If CAN or SUB is received during a sequence, the current
+            # sequence is aborted; terminal displays the substitute
+            # character, followed by characters in the sequence received
+            # after CAN or SUB.
+            self.dispatch("draw", char)
+            self.state = "stream"
         else:
             self.params.append(min(int(self.current or 0), 9999))
 
