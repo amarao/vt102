@@ -174,3 +174,13 @@ def test_interrupt():
     ]
 
 
+def test_control_characters():
+    handler = argcheck()
+    stream = vt102.Stream()
+    stream.connect("cursor-position", handler)
+
+    stream.feed(ctrl.CSI + u"10;\t\t\n\r\n10" + esc.HVP)
+
+    assert handler.count == 1
+    assert handler.args == (10, 10)
+
