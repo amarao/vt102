@@ -115,7 +115,7 @@ class Stream(object):
         """Reset state to ``"stream"`` and empty parameter attributes."""
         self.state = "stream"
         self.params = []
-        self.current = ""
+        self.current = u""
 
     def consume(self, char):
         """Consume a single unicode character and advance the state as
@@ -201,9 +201,9 @@ class Stream(object):
         a single notable exception -- :data:`escape.DECOM` sequence,
         which starts with a sharp.
         """
-        if char == "#":
+        if char == u"#":
             pass
-        elif char == "[":
+        elif char == u"[":
             self.state = "arguments"
         elif char in self.escape:
             self.state = "stream"
@@ -227,7 +227,7 @@ class Stream(object):
            `VT220 Programmer Reference <http://http://vt100.net/docs/vt220-rm/>`_
                For details on the characters valid for use as arguments.
         """
-        if char == "?":
+        if char == u"?":
             # At this point we don't distinguish DEC private modes from
             # ANSI modes, since the latter are pretty much useless for
             # a library to handle.
@@ -249,8 +249,8 @@ class Stream(object):
         else:
             self.params.append(min(int(self.current or 0), 9999))
 
-            if char == ";":
-                self.current = ""
+            if char == u";":
+                self.current = u""
             else:
                 event = self.csi.get(char)
                 if event:
