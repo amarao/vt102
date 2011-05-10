@@ -82,7 +82,6 @@ API
 
 .. automodule:: vt102.screens
     :members:
-    :undoc-members:
 
 .. automodule:: vt102.modes
     :members:
