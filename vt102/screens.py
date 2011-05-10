@@ -64,6 +64,19 @@ class Screen(object):
 
        A list of string which should be sent to the host, for example
        :data:`vt102.escape.DA` replies.
+
+    .. note::
+
+       According to ``ECMA-48`` standard, **lines and columnns are
+       1-indexed**, so, for instance ``ESC [ 10;10 f`` really means
+       -- move cursor to position (9, 9) in the display matrix.
+
+    .. seealso::
+
+       `Standard ECMA-48, Section 6.1.1 \
+       <http://www.ecma-international.org/publications/standards/Ecma-048.htm>`_
+         For a description of the presentational component, implemented
+         by ``Screen``.
     """
     default_attributes = Attributes((), "default", "default")
 
@@ -646,13 +659,6 @@ class Screen(object):
         Cursor is allowed to move out of the scrolling region only when
         :data:`vt102.modes.DECOM` is reset, otherwise -- the position
         doesn't change.
-
-        .. note::
-
-           Obnoxiously, line and column are 1-based, instead of zero
-           based, so we need to compensate. Confoundingly, inputs of 0
-           are still acceptable, and should move to the beginning of
-           the line or column as if they were 1 -- *sigh*.
         """
         column = (column or 1) - 1
         line = (line or 1) - 1
@@ -672,10 +678,9 @@ class Screen(object):
     def cursor_to_column(self, column=None):
         """Moves cursor to a specific column in the current line.
 
-        :param column: column number to move the cursor to (starts
-                       with ``0``).
+        :param column: column number to move the cursor to.
         """
-        self.x = (column or 1) - 1  # Uses 1-based indices.
+        self.x = (column or 1) - 1
         self.ensure_bounds()
 
     def cursor_to_line(self, line=None):
@@ -683,7 +688,7 @@ class Screen(object):
 
         :param line: line number to move the cursor to.
         """
-        self.y = (line or 1) - 1    # Uses 1-based indices.
+        self.y = (line or 1) - 1
 
         # If origin mode (DECOM) is set, line number are relative to
         # the top scrolling margin.
