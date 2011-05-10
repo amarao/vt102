@@ -59,6 +59,3 @@ COLORS = {
         49: "default",
     }
 }
-
-# Compatibility aliases.
-colors, text = COLORS, TEXT
