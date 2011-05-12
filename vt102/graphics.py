@@ -28,34 +28,39 @@ TEXT = {
 }
 
 
-"""A mapping of ANSI color codes to color names, example:
+"""A mapping of ANSI foreground color codes to color names, example:
 
->>> colors["foreground"][30]
+>>> FG[30]
 'black'
->>> colors["background"][42]
-'green'"""
-COLORS = {
-    "foreground": {
-        30: "black",
-        31: "red",
-        32: "green",
-        33: "brown",
-        34: "blue",
-        35: "magenta",
-        36: "cyan",
-        37: "white",
-        39: "default with underscore",
-        38: "default",
-    },
-    "background": {
-        40: "black",
-        41: "red",
-        42: "green",
-        43: "brown",
-        44: "blue",
-        45: "magenta",
-        46: "cyan",
-        47: "white",
-        49: "default",
-    }
+>>> FG[38]
+'default'"""
+FG = {
+    30: "black",
+    31: "red",
+    32: "green",
+    33: "brown",
+    34: "blue",
+    35: "magenta",
+    36: "cyan",
+    37: "white",
+    39: "default with underscore",
+    38: "default",
+}
+
+"""A mapping of ANSI background color codes to color names, example:
+
+>>> BG[40]
+'black'
+>>> FG[48]
+'default'"""
+BG = {
+    40: "black",
+    41: "red",
+    42: "green",
+    43: "brown",
+    44: "blue",
+    45: "magenta",
+    46: "cyan",
+    47: "white",
+    49: "default",
 }

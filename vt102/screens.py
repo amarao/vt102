@@ -13,6 +13,7 @@
 
 from __future__ import absolute_import, print_function
 
+import copy
 from array import array
 from collections import namedtuple
 
@@ -24,10 +25,10 @@ Margins = namedtuple("Margins", "top bottom")
 
 #: A container for character attributes, which consists of the following:
 #:
-#:   1. A tuple of all the text attributes: **bold**, `italic`, etc
-#:   2. Foreground color as a string, see :data:`vt102.graphics.colors`
-#:   3. Background color as a string, see :data:`vt102.graphics.colors`
-Attributes = namedtuple("Attributes", "text fg bg")
+#:   1. Foreground color as a string, see :data:`vt102.graphics.colors`
+#:   2. Background color as a string, see :data:`vt102.graphics.colors`
+#:   3. A tuple of all the text attributes: **bold**, underline, etc
+Attributes = namedtuple("Attributes", "fg bg text")
 
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", "cursor origin wrap")
@@ -77,7 +78,7 @@ class Screen(object):
          For a description of the presentational component, implemented
          by ``Screen``.
     """
-    default_attributes = Attributes((), "default", "default")
+    default_attributes = Attributes("default", "default", set())
 
     def __init__(self, columns, lines):
         # From ``man terminfo`` -- "... hardware tabs are initially set every
@@ -740,71 +741,31 @@ class Screen(object):
             ]
             self.buffer.append(u"%s?%sc" % (ctrl.CSI, u";".join(attrs)))
 
-    # The following methods weren't tested properly yet.
-    # ..................................................
-
-    def remove_text_attr(self, attr):
-        current = set(self.cursor_attributes[0])
-        if attr in current:
-            current.remove(attr)
-        return tuple(current) + self.cursor_attributes[1:]
-
-    def add_text_attr(self, attr):
-        current = set(self.cursor_attributes[0])
-        current.add(attr)
-        attrs = self.cursor_attributes[1:]
-        return (tuple(current), attrs[0], attrs[1])
-
-    def text_attr(self, attr):
-        """
-        Given a text attribute, set the current cursor appropriately.
-        """
-        attr = g.TEXT[attr]
-        if attr == "reset":
-            self.cursor_attributes = self.default_attributes
-        elif attr == "underline-off":
-            self.cursor_attributes = self.remove_text_attr("underline")
-        elif attr == "blink-off":
-            self.cursor_attributes = self.remove_text_attr("blink")
-        elif attr == "reverse-off":
-            self.cursor_attributes = self.remove_text_attr("reverse")
-        else:
-            self.cursor_attributes = self.add_text_attr(attr)
-
-    def color_attr(self, ground, attr):
-        """
-        Given a color attribute, set the current cursor appropriately.
-        """
-        attr = g.COLORS[ground][attr]
-        attrs = self.cursor_attributes
-        if ground == "foreground":
-            self.cursor_attributes = (attrs[0], attr, attrs[2])
-        elif ground == "background":
-            self.cursor_attributes = (attrs[0], attrs[1], attr)
-
-    def set_attr(self, attr):
-        """
-        Given some text attribute, set the current cursor attributes
-        appropriately.
-        """
-        if attr in g.TEXT:
-            self.text_attr(attr)
-        elif attr in g.COLORS["foreground"]:
-            self.color_attr("foreground", attr)
-        elif attr in g.COLORS["background"]:
-            self.color_attr("background", attr)
-
     def select_graphic_rendition(self, *attrs):
-        """
-        Set the current text attribute.
-        """
+        """Set display attributes."""
+        for attr in attrs or [0]:
+            if not attr:
+                cursor_attributes = self.default_attributes
+            elif attr in g.FG:
+                cursor_attributes = self.cursor_attributes._replace(fg=g.FG[attr])
+            elif attr in g.BG:
+                cursor_attributes = self.cursor_attributes._replace(bg=g.BG[attr])
+            elif attr in g.TEXT:
+                attr = g.TEXT[attr]
+                text = copy.copy(self.cursor_attributes.text)
 
-        if not attrs:
-            # No arguments means that we're really trying to do a reset.
-            attrs = [0]
+                if attr == "underline-off":
+                    text.discard("underline")
+                elif attr == "blink-off":
+                    text.discard("blink")
+                elif attr == "reverse-off":
+                    text.discard("reverse")
+                else:
+                    text.add(attr)
 
-        for attr in attrs:
-            self.set_attr(attr)
+                cursor_attributes = self.cursor_attributes._replace(text=text)
+
+            self.cursor_attributes = cursor_attributes
 
 
 class DiffScreen(Screen):

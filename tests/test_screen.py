@@ -19,7 +19,7 @@ def test_remove_non_existant_attribute():
          screen.default_attributes]
     ] * 2
 
-    screen.remove_text_attr("underline")
+    screen.select_graphic_rendition(24)  # underline-off.
     assert screen.attributes == [
         [screen.default_attributes,
          screen.default_attributes]
@@ -39,11 +39,11 @@ def test_attributes():
         [screen.default_attributes,
          screen.default_attributes]
     ] * 2
-    assert screen.cursor_attributes == (("bold",), "default", "default")
+    assert screen.cursor_attributes == ("default", "default", set(["bold"]))
 
     screen.draw(u"f")
     assert screen.attributes == [
-        [(("bold",), "default", "default"), screen.default_attributes],
+        [("default", "default", set(["bold"])), screen.default_attributes],
         [screen.default_attributes, screen.default_attributes]
     ]
 
@@ -57,10 +57,10 @@ def test_colors():
 
     screen.select_graphic_rendition(30) # black foreground
     screen.select_graphic_rendition(40) # black background
-    assert screen.cursor_attributes == ((), "black", "black")
+    assert screen.cursor_attributes == ("black", "black", set())
 
     screen.select_graphic_rendition(31) # red foreground
-    assert screen.cursor_attributes == ((), "red", "black")
+    assert screen.cursor_attributes == ("red", "black", set())
 
 
 def test_reset_resets_colors():
@@ -72,7 +72,7 @@ def test_reset_resets_colors():
 
     screen.select_graphic_rendition(30) # black foreground
     screen.select_graphic_rendition(40) # black background
-    assert screen.cursor_attributes == ((), "black", "black")
+    assert screen.cursor_attributes == ("black", "black", set())
 
     screen.select_graphic_rendition(0)
     assert screen.cursor_attributes == screen.default_attributes
@@ -87,7 +87,7 @@ def test_multi_attribs():
     screen.select_graphic_rendition(1) # Bold
     screen.select_graphic_rendition(5) # Blinke
 
-    assert screen.cursor_attributes == (("bold", "blink"), "default", "default")
+    assert screen.cursor_attributes == ("default", "default", set(["bold", "blink"]))
 
 
 def test_attributes_reset():
@@ -101,17 +101,18 @@ def test_attributes_reset():
     screen.draw(u"o")
     screen.draw(u"o")
     assert screen.attributes == [
-        [(("bold",), "default", "default"),
-         (("bold",), "default", "default")],
-        [(("bold",), "default", "default"), screen.default_attributes],
+        [("default", "default", set(["bold"])),
+         ("default", "default", set(["bold"]))],
+        [("default", "default", set(["bold"])),
+         screen.default_attributes],
     ]
 
     screen.cursor_position()
     screen.select_graphic_rendition(0) # Reset
     screen.draw(u"f")
     assert screen.attributes == [
-        [screen.default_attributes, (("bold",), "default", "default")],
-        [(("bold",), "default", "default"), screen.default_attributes],
+        [screen.default_attributes, ("default", "default", set(["bold"]))],
+        [("default", "default", set(["bold"])), screen.default_attributes],
     ]
 
 
