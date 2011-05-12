@@ -27,7 +27,7 @@ Margins = namedtuple("Margins", "top bottom")
 #:
 #:   1. Foreground color as a string, see :data:`vt102.graphics.colors`
 #:   2. Background color as a string, see :data:`vt102.graphics.colors`
-#:   3. A tuple of all the text attributes: **bold**, underline, etc
+#:   3. A set of all the text attributes: **bold**, underline, etc
 Attributes = namedtuple("Attributes", "fg bg text")
 
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
