@@ -817,6 +817,7 @@ class DiffScreen(Screen):
        A set of line numbers, which should be re-drawn.
 
        >>> screen = DiffScreen(80, 24)
+       >>> screen.dirty.clear()
        >>> screen.draw(u"!")
        >>> screen.dirty
        set([0])
@@ -824,26 +825,29 @@ class DiffScreen(Screen):
     def __init__(self, *args):
         self.dirty = set()
         super(DiffScreen, self).__init__(*args)
-        self.dirty.clear()
 
     def reset(self):
         self.dirty.update(xrange(self.lines))
         super(DiffScreen, self).reset()
 
-    def resize(self, *args):
+    def resize(self, *args, **kwargs):
         self.dirty.update(xrange(self.lines))
-        super(DiffScreen, self).resize(*args)
+        super(DiffScreen, self).resize(*args, **kwargs)
 
     def draw(self, *args):
         self.dirty.add(self.y)
         super(DiffScreen, self).draw(*args)
 
     def index(self):
-        self.dirty.update(xrange(self.lines))
+        if self.y == self.margins.bottom:
+            self.dirty.update(xrange(self.lines))
+
         super(DiffScreen, self).index()
 
     def reverse_index(self):
-        self.dirty.update(xrange(self.lines))
+        if self.y == self.margins.top:
+            self.dirty.update(xrange(self.lines))
+
         super(DiffScreen, self).reverse_index()
 
     def insert_lines(self, *args):
