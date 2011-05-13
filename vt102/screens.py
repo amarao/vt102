@@ -746,6 +746,11 @@ class Screen(object):
         for attr in attrs or [0]:
             if not attr:
                 cursor_attributes = self.default_attributes
+            elif attr in g.SPECIAL:
+                cursor_attributes = self.cursor_attributes._replace(
+                    fg=self.cursor_attributes.bg,
+                    bg=self.cursor_attributes.fg
+                )
             elif attr in g.FG:
                 cursor_attributes = self.cursor_attributes._replace(fg=g.FG[attr])
             elif attr in g.BG:
@@ -754,12 +759,14 @@ class Screen(object):
                 attr = g.TEXT[attr]
                 text = copy.copy(self.cursor_attributes.text)
 
-                if attr == "underline-off":
-                    text.discard("underline")
+                if attr == "underscore-off":
+                    text.discard("underscore")
                 elif attr == "blink-off":
                     text.discard("blink")
-                elif attr == "reverse-off":
-                    text.discard("reverse")
+                elif attr == "bold-off":
+                    # According to ANSI this should reset both.
+                    text.discard("bold")
+                    text.discard("half-bright")
                 else:
                     text.add(attr)
 

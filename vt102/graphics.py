@@ -9,6 +9,12 @@
     :license: LGPL, see LICENSE for more details.
 """
 
+SPECIAL = {
+    0: "reset",
+    7: "reverse",
+    27: "reverse-off",
+}
+
 """A mapping of ANSI text style codes to style names, example:
 
 >>> text[1]
@@ -16,15 +22,13 @@
 >>> text[7]
 'reverse'"""
 TEXT = {
-    0: "reset",
     1: "bold" ,
     2: "half-bright" ,
     4: "underscore",
     5: "blink",
-    7: "reverse",
-    24: "underline-off",
+    22: "bold-off",
+    24: "underscore-off",
     25: "blink-off",
-    27: "reverse-off",
 }
 
 
