@@ -85,9 +85,10 @@ def test_multi_attribs():
          screen.default_attributes]
     ] * 2
     screen.select_graphic_rendition(1) # Bold
-    screen.select_graphic_rendition(5) # Blinke
+    screen.select_graphic_rendition(3) # Italics
 
-    assert screen.cursor_attributes == ("default", "default", set(["bold", "blink"]))
+    assert screen.cursor_attributes == \
+        ("default", "default", set(["bold", "italics"]))
 
 
 def test_attributes_reset():

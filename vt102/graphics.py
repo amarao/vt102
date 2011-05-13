@@ -3,7 +3,9 @@
     vt102.graphics
     ~~~~~~~~~~~~~~
 
-    This module defines graphic-related constants.
+    This module defines graphic-related constants, mostly taken from
+    ``man console_codes`` and
+    http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html.
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
@@ -12,23 +14,24 @@
 SPECIAL = {
     0: "reset",
     7: "reverse",
-    27: "reverse-off",
+    27: "-reverse"
 }
 
 """A mapping of ANSI text style codes to style names, example:
 
 >>> text[1]
 'bold'
->>> text[7]
-'reverse'"""
+>>> text[9]
+'strikethrough'"""
 TEXT = {
     1: "bold" ,
-    2: "half-bright" ,
+    3: "italics",
     4: "underscore",
-    5: "blink",
-    22: "bold-off",
-    24: "underscore-off",
-    25: "blink-off",
+    9: "strikethrough",
+    22: "-bold",
+    24: "-underscore",
+    25: "-blink",
+    29: "-strikethrough"
 }
 
 
@@ -47,15 +50,14 @@ FG = {
     35: "magenta",
     36: "cyan",
     37: "white",
-    39: "default with underscore",
-    38: "default",
+    39: "default"  # white.
 }
 
 """A mapping of ANSI background color codes to color names, example:
 
 >>> BG[40]
 'black'
->>> FG[48]
+>>> BG[48]
 'default'"""
 BG = {
     40: "black",
@@ -66,5 +68,5 @@ BG = {
     45: "magenta",
     46: "cyan",
     47: "white",
-    49: "default",
+    49: "default"  # black.
 }

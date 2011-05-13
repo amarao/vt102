@@ -759,17 +759,13 @@ class Screen(object):
                 attr = g.TEXT[attr]
                 text = copy.copy(self.cursor_attributes.text)
 
-                if attr == "underscore-off":
-                    text.discard("underscore")
-                elif attr == "blink-off":
-                    text.discard("blink")
-                elif attr == "bold-off":
-                    # According to ANSI this should reset both.
-                    text.discard("bold")
-                    text.discard("half-bright")
+                if attr.startswith("-"):
+                    text.discard(attr[1:])
                 else:
                     text.add(attr)
 
                 cursor_attributes = self.cursor_attributes._replace(text=text)
+            else:
+                continue  # Silently skipping unknown attributes.
 
             self.cursor_attributes = cursor_attributes
