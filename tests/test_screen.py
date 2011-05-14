@@ -836,35 +836,76 @@ def test_delete_characters():
 def test_erase_character():
     screen = Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3]
+
 
     screen.erase_characters(2)
-    assert repr(screen) == repr([u"  m", u"is ", u"foo"])
+    assert screen.cursor == (0, 0)
+    assert screen.display == _([u"  m", u"is ", u"foo"])
+    screen.attributes = [
+        [screen.default_attributes,
+         screen.default_attributes,
+         Attributes("red", "default", set())],
+        [screen.default_attributes] * 3,
+        [screen.default_attributes] * 3
+    ]
 
     screen.y, screen.x = 2, 2
     screen.erase_characters()
-    assert repr(screen) == repr([u"  m", u"is ", u"fo "])
+    assert screen.cursor == (2, 2)
+    assert screen.display == _([u"  m", u"is ", u"fo "])
 
     screen.y, screen.x = 1, 1
     screen.erase_characters(0)
-    assert repr(screen) == repr([u"  m", u"i  ", u"fo "])
+    assert screen.cursor == (1, 1)
+    assert screen.display == _([u"  m", u"i  ", u"fo "])
 
     # ! extreme cases.
     screen = Screen(5, 1)
     screen.display = _(["12345"])
+    screen.attributes = [[Attributes("red", "default", set())] * 5]
     screen.x = 1
     screen.erase_characters(3)
-    assert repr(screen) == repr([u"1   5"])
+    assert screen.cursor == (1, 0)
+    assert screen.display == _([u"1   5"])
+    assert screen.attributes == [[
+        Attributes("red", "default", set()),
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes,
+        Attributes("red", "default", set())
+    ]]
 
     screen = Screen(5, 1)
     screen.display = _(["12345"])
+    screen.attributes = [[Attributes("red", "default", set())] * 5]
     screen.x = 2
     screen.erase_characters(10)
-    assert repr(screen) == repr([u"12   "])
+    assert screen.cursor == (2, 0)
+    assert screen.display == _([u"12   "])
+    assert screen.attributes == [[
+        Attributes("red", "default", set()),
+        Attributes("red", "default", set()),
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes
+    ]]
 
     screen = Screen(5, 1)
     screen.display = _(["12345"])
+    screen.attributes = [[Attributes("red", "default", set())] * 5]
     screen.erase_characters(4)
-    assert repr(screen) == repr([u"    5"])
+    assert screen.cursor == (0, 0)
+    assert screen.display == _([u"    5"])
+    assert screen.attributes == [[
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes,
+        Attributes("red", "default", set())
+    ]]
 
 
 def test_erase_in_line():
@@ -874,42 +915,89 @@ def test_erase_in_line():
                         "but a",
                         "re yo",
                         "u?   "])
+    screen.attributes = [[Attributes("red", "default", set())] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5]
     screen.cursor_position(1, 3)
 
-    # Erase from cursor to the end of line
+    # a) erase from cursor to the end of line
     screen.erase_in_line(0)
-    assert repr(screen) == repr([u"sa   ",
-                                 u"s foo",
-                                 u"but a",
-                                 u"re yo",
-                                 u"u?   "])
+    assert screen.cursor == (2, 0)
+    assert screen.display == _([u"sa   ",
+                                u"s foo",
+                                u"but a",
+                                u"re yo",
+                                u"u?   "])
+    assert screen.attributes == [
+        [Attributes("red", "default", set()),
+         Attributes("red", "default", set()),
+         screen.default_attributes,
+         screen.default_attributes,
+         screen.default_attributes],
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5
+    ]
 
-    # Erase from the beginning of the line to the cursor
-    screen.display = _(["sam i",
+    # b) erase from the beginning of the line to the cursor
+    screen.display = _(["sam*i",
                         "s foo",
                         "but a",
                         "re yo",
                         "u?   "])
+    screen.attributes = [[Attributes("red", "default", set())] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5]
     screen.erase_in_line(1)
-    assert repr(screen) == repr([u"    i",
-                                 u"s foo",
-                                 u"but a",
-                                 u"re yo",
-                                 u"u?   "])
+    assert screen.cursor == (2, 0)
+    assert screen.display == _([u"   *i",
+                               u"s foo",
+                               u"but a",
+                               u"re yo",
+                               u"u?   "])
+    assert screen.attributes == [
+        [screen.default_attributes,
+         screen.default_attributes,
+         screen.default_attributes,
+         Attributes("red", "default", set()),
+         Attributes("red", "default", set())],
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5
+    ]
 
-    screen.y = 1
-    # Erase the entire line
+    # c) erase the entire line
     screen.display = _(["sam i",
                         "s foo",
                         "but a",
                         "re yo",
                         "u?   "])
+    screen.attributes = [[Attributes("red", "default", set())] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5]
     screen.erase_in_line(2)
-    assert repr(screen) == repr([u"sam i",
-                                 u"     ",
-                                 u"but a",
-                                 u"re yo",
-                                 u"u?   "])
+    assert screen.cursor == (2, 0)
+    assert screen.display == _([u"     ",
+                                u"s foo",
+                                u"but a",
+                                u"re yo",
+                                u"u?   "])
+    assert screen.attributes == [
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5
+    ]
+
 
 
 def test_erase_in_display():
@@ -919,39 +1007,73 @@ def test_erase_in_display():
                         "but a",
                         "re yo",
                         "u?   "])
+    screen.attributes = [[screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [Attributes("red", "default", set())] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5]
     screen.cursor_position(3, 3)
 
-    # Erase from the cursor to the end of the display.
+    # a) erase from cursor to the end of the display, including
+    #    the cursor
     screen.erase_in_display(0)
-    assert repr(screen) == repr([u"sam i",
-                                 u"s foo",
-                                 u"bu   ",
-                                 u"     ",
-                                 u"     "])
-    assert screen.attributes == [[screen.default_attributes] * 5] * 5
+    assert screen.cursor == (2, 2)
+    assert screen.display == _([u"sam i",
+                                u"s foo",
+                                u"bu   ",
+                                u"     ",
+                                u"     "])
+    assert screen.attributes == [
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [Attributes("red", "default", set()),
+         Attributes("red", "default", set()),
+         screen.default_attributes,
+         screen.default_attributes,
+         screen.default_attributes],
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5
+    ]
 
-    # Erase from cursor to the beginning of the display.
+    # b) erase from the beginning of the display to the cursor,
+    #    including it
     screen.display = _(["sam i",
                         "s foo",
                         "but a",
                         "re yo",
                         "u?   "])
+    screen.attributes = [[screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5,
+                         [Attributes("red", "default", set())] * 5,
+                         [screen.default_attributes] * 5,
+                         [screen.default_attributes] * 5]
     screen.erase_in_display(1)
-    assert repr(screen) == repr([u"     ",
-                                 u"     ",
-                                 u"    a",
-                                 u"re yo",
-                                 u"u?   "])
-    assert screen.attributes == [[screen.default_attributes] * 5] * 5
+    assert screen.cursor == (2, 2)
+    assert screen.display == _([u"     ",
+                                u"     ",
+                                u"    a",
+                                u"re yo",
+                                u"u?   "])
+    assert screen.attributes == [
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5,
+        [screen.default_attributes,
+         screen.default_attributes,
+         screen.default_attributes,
+         Attributes("red", "default", set()),
+         Attributes("red", "default", set())],
+        [screen.default_attributes] * 5,
+        [screen.default_attributes] * 5
+    ]
 
-    screen.y = 1
-    # Erase the entire screen
+    # c) erase the while display
     screen.erase_in_display(2)
-    assert repr(screen) == repr([u"     ",
-                                 u"     ",
-                                 u"     ",
-                                 u"     ",
-                                 u"     "])
+    assert screen.cursor == (2, 2)
+    assert screen.display == _([u"     ",
+                                u"     ",
+                                u"     ",
+                                u"     ",
+                                u"     "])
     assert screen.attributes == [[screen.default_attributes] * 5] * 5
 
 

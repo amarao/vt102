@@ -526,6 +526,9 @@ class Screen(object):
         * ``1`` -- Erases from beginning of line to cursor, including cursor
           position.
         * ``2`` -- Erases complete line.
+
+        .. todo:: add support for private ``"?"`` flag toggling selective
+                  erase.
         """
         line = self.display[self.y]
         attrs = self.attributes[self.y]
@@ -559,6 +562,9 @@ class Screen(object):
           cursor position.
         * ``2`` -- Erases complete display. All lines are erased and
           changed to single-width. Cursor does not move.
+
+        .. todo:: add support for private ``"?"`` flag toggling selective
+                  erase.
         """
         interval = (
             # a) erase from cursor to the end of the display, including
