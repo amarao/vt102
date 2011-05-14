@@ -698,67 +698,139 @@ def test_delete_lines():
 def test_insert_characters():
     screen = Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3]
 
     # a) normal case
     cursor = screen.cursor
     screen.insert_characters(2)
-    assert repr(screen) == repr([u"  s", u"is ", u"foo"])
     assert screen.cursor == cursor
+    assert screen.display == _([u"  s", u"is ", u"foo"])
+    assert screen.attributes == [
+        [screen.default_attributes,
+         screen.default_attributes,
+         Attributes("red", "default", set())],
+        [screen.default_attributes] * 3,
+        [screen.default_attributes] * 3
+    ]
 
     # b) now inserting from the middle of the line
     screen.y, screen.x = 2, 1
     screen.insert_characters(1)
-    assert repr(screen) == repr([u"  s", u"is ", u"f o"])
+    assert screen.display == _([u"  s", u"is ", u"f o"])
 
     # c) inserting more than we have
     screen.insert_characters(10)
-    assert repr(screen) == repr([u"  s", u"is ", u"f  "])
+    assert screen.display == _([u"  s", u"is ", u"f  "])
 
     # d) 0 is 1
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3]
     screen.cursor_position()
     screen.insert_characters()
-    assert repr(screen) == repr([u" sa", u"is ", u"foo"])
+    assert screen.display == _([u" sa", u"is ", u"foo"])
+    assert screen.attributes == [
+        [screen.default_attributes,
+         Attributes("red", "default", set()),
+         Attributes("red", "default", set())],
+        [screen.default_attributes] * 3,
+        [screen.default_attributes] * 3
+    ]
 
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3]
     screen.cursor_position()
     screen.insert_characters(0)
-    assert repr(screen) == repr([u" sa", u"is ", u"foo"])
+    assert screen.display == _([u" sa", u"is ", u"foo"])
+    assert screen.attributes == [
+        [screen.default_attributes,
+         Attributes("red", "default", set()),
+         Attributes("red", "default", set())],
+        [screen.default_attributes] * 3,
+        [screen.default_attributes] * 3
+    ]
+
 
 
 def test_delete_characters():
     screen = Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3]
 
     screen.delete_characters(2)
-    assert repr(screen) == repr([u"m  ", u"is ", u"foo"])
+    assert screen.cursor == (0, 0)
+    assert screen.display == _([u"m  ", u"is ", u"foo"])
+    assert screen.attributes == [
+        [Attributes("red", "default", set()),
+         screen.default_attributes,
+         screen.default_attributes],
+        [screen.default_attributes] * 3,
+        [screen.default_attributes] * 3
+    ]
 
     screen.y, screen.x = 2, 2
     screen.delete_characters()
-    assert repr(screen) == repr([u"m  ", u"is ", u"fo "])
+    assert screen.cursor == (2, 2)
+    assert screen.display == _([u"m  ", u"is ", u"fo "])
 
     screen.y, screen.x = 1, 1
     screen.delete_characters(0)
-    assert repr(screen) == repr([u"m  ", u"i  ", u"fo "])
+    assert screen.cursor == (1, 1)
+    assert screen.display == _([u"m  ", u"i  ", u"fo "])
 
 
     # ! extreme cases.
     screen = Screen(5, 1)
     screen.display = _(["12345"])
+    screen.attributes = [[Attributes("red", "default", set())] * 5]
     screen.x = 1
     screen.delete_characters(3)
-    assert repr(screen) == repr([u"15   "])
+    assert screen.cursor == (1, 0)
+    assert screen.display == _([u"15   "])
+    assert screen.attributes == [[
+        Attributes("red", "default", set()),
+        Attributes("red", "default", set()),
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes
+
+    ]]
 
     screen = Screen(5, 1)
     screen.display = _(["12345"])
+    screen.attributes = [[Attributes("red", "default", set())] * 5]
     screen.x = 2
     screen.delete_characters(10)
-    assert repr(screen) == repr([u"12   "])
+    assert screen.cursor == (2, 0)
+    assert screen.display == _([u"12   "])
+    assert screen.attributes == [[
+        Attributes("red", "default", set()),
+        Attributes("red", "default", set()),
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes
+    ]]
 
     screen = Screen(5, 1)
     screen.display = _(["12345"])
+    screen.attributes = [[Attributes("red", "default", set())] * 5]
     screen.delete_characters(4)
-    assert repr(screen) == repr([u"5    "])
+    assert screen.cursor == (0, 0)
+    assert screen.display == _([u"5    "])
+    assert screen.attributes == [[
+        Attributes("red", "default", set()),
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes,
+        screen.default_attributes
+    ]]
 
 
 def test_erase_character():

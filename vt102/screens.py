@@ -344,6 +344,7 @@ class Screen(object):
         if self.y == bottom:
             self.display.pop(top)
             self.display.insert(bottom, array("u", u" " * self.columns))
+
             self.attributes.pop(top)
             self.attributes.insert(bottom,
                 [self.default_attributes] * self.columns)
@@ -359,6 +360,7 @@ class Screen(object):
         if self.y == top:
             self.display.pop(bottom)
             self.display.insert(top, array("u", u" " * self.columns))
+
             self.attributes.pop(bottom)
             self.attributes.insert(top,
                 [self.default_attributes] * self.columns)
@@ -436,6 +438,7 @@ class Screen(object):
             for line in xrange(self.y, min(bottom + 1, self.y + count)):
                 self.display.pop(bottom)
                 self.display.insert(line, array("u", u" " * self.columns))
+
                 self.attributes.pop(bottom)
                 self.attributes.insert(line,
                     [self.default_attributes] * self.columns)
@@ -459,6 +462,7 @@ class Screen(object):
             for _ in xrange(min(bottom - self.y + 1, count)):
                 self.display.pop(self.y)
                 self.display.insert(bottom, array("u", u" " * self.columns))
+
                 self.attributes.pop(self.y)
                 self.attributes.insert(bottom,
                     [self.default_attributes] * self.columns)
@@ -468,19 +472,19 @@ class Screen(object):
     def insert_characters(self, count=None):
         """Inserts the indicated # of blank characters at the cursor
         position. The cursor does not move and remains at the beginning
-        of the inserted blank characters.
+        of the inserted blank characters. Data on the line is shifted
+        forward.
 
-        :param count: number of characters to delete.
+        :param count: number of characters to insert.
         """
-        # From VT220 Programming Reference Manual: "A parameter of 0
-        # or 1 inserts one blank character."
         count = count or 1
 
         for _ in xrange(min(self.columns - self.y, count)):
             self.display[self.y].insert(self.x, u" ")
             self.display[self.y].pop()
 
-            self.attributes[self.y][self.x] = self.default_attributes
+            self.attributes[self.y].insert(self.x, self.default_attributes)
+            self.attributes[self.y].pop()
 
     def delete_characters(self, count=None):
         """Deletes the indicated # of characters, starting with the
