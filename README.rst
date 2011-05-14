@@ -1,22 +1,18 @@
 vt102
 =====
 
-:Info: Scrap'in on my scrapper screen.
-:Author: Sam Gibson <sam@ifdown.net>
+«Chicks dig dudes with terminals» © `@samfoo <http://github.com/samfoo>`_
 
 
 About
 -----
 
-``vt102`` is an in memory vt102 terminal emulator. It supports all the
-most common terminal escape sequences, including text attributes and
-color.
-
-Why would you want to use a terminal emulator?
-
-* Screen scraping some terminal or curses app.
-* Chicks dig dudes with terminals.
-* ... seriously, that's about it.
+``vt102`` is an in-memory VTXXX-compatible terminal emulator. Like almost
+`all <http://sourceforge.net/projects/termemulator>`_
+`of <http://hg.logilab.org/pyqonsole/file/bf7fb8ce56a1/pyqonsole/emuVt102.py>`_
+`the <http://code.google.com/p/webtty/source/browse/trunk/lib/app_comet.py>`_
+pure-Python VT100 emulation labraries, it claims to «support all the most
+common terminal escape sequences, including text attributes, color and more!».
 
 
 Installation
