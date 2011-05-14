@@ -344,6 +344,9 @@ class Screen(object):
         if self.y == bottom:
             self.display.pop(top)
             self.display.insert(bottom, array("u", u" " * self.columns))
+            self.attributes.pop(top)
+            self.attributes.insert(bottom,
+                [self.default_attributes] * self.columns)
         else:
             self.cursor_down()
 
@@ -356,6 +359,9 @@ class Screen(object):
         if self.y == top:
             self.display.pop(bottom)
             self.display.insert(top, array("u", u" " * self.columns))
+            self.attributes.pop(bottom)
+            self.attributes.insert(top,
+                [self.default_attributes] * self.columns)
         else:
             self.cursor_up()
 
