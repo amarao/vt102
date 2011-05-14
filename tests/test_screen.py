@@ -483,94 +483,216 @@ def test_restore_cursor_with_none_saved():
 def test_insert_lines():
     # a) without margins
     screen = Screen(3, 3)
-    assert screen.cursor == (0, 0)
-
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.insert_lines()
 
-    assert repr(screen) == repr([u"   ", u"sam", u"is "])
     assert screen.cursor == (0, 0)
+    assert screen.display == _([u"   ", u"sam", u"is "])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3]
 
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3]
     screen.insert_lines(2)
 
-    assert repr(screen) == repr([u"   ", u"   ", u"sam"])
+    assert screen.cursor == (0, 0)
+    assert screen.display == _([u"   ", u"   ", u"sam"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3]
 
     # b) with margins
     screen = Screen(3, 5)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.set_margins(1, 4)
     screen.y = 1
     screen.insert_lines(1)
 
-    assert repr(screen) == repr([u"sam", u"   ", u"is ", u"foo", u"baz"])
+    assert screen.cursor == (0, 1)
+    assert screen.display == _([u"sam", u"   ", u"is ", u"foo", u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3]
+
 
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.set_margins(1, 3)
     screen.y = 1
-
     screen.insert_lines(1)
-    assert repr(screen) == repr([u"sam", u"   ", u"is ", u"bar",  u"baz"])
+
+    assert screen.cursor == (0, 1)
+    assert screen.display == _([u"sam", u"   ", u"is ", u"bar",  u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3]
+
 
     screen.insert_lines(2)
-    assert repr(screen) == repr([u"sam", u"   ", u"   ", u"bar",  u"baz"])
+    assert screen.cursor == (0, 1)
+    assert screen.display == _([u"sam", u"   ", u"   ", u"bar",  u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3]
 
     # c) with margins -- trying to insert more than we have available
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.set_margins(2, 4)
     screen.y = 1
     screen.insert_lines(20)
 
-    assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
+    assert screen.cursor == (0, 1)
+    assert screen.display == _([u"sam", u"   ", u"   ", u"   ", u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3]
 
-    # d) with margins -- trying to insert outside scroll boundaries
+    # d) with margins -- trying to insert outside scroll boundaries;
+    #    expecting nothing to change
     screen = Screen(3, 5)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.set_margins(2, 4)
     screen.insert_lines(5)
 
-    assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
+    assert screen.cursor == (0, 0)
+    assert screen.display == _([u"sam", u"is ", u"foo", u"bar", u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3]
 
 
 def test_delete_lines():
     # a) without margins
     screen = Screen(3, 3)
     screen.display = _(["sam", "is ", "foo"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.delete_lines()
 
-    assert repr(screen) == repr([u"is ", u"foo", u"   "])
     assert screen.cursor == (0, 0)
+    assert screen.display == _([u"is ", u"foo", u"   "])
+    assert screen.attributes == [[Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3]
 
     screen.delete_lines(0)
 
-    assert repr(screen) == repr([u"foo", u"   ", u"   "])
     assert screen.cursor == (0, 0)
+    assert screen.display == _([u"foo", u"   ", u"   "])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3]
 
     # b) with margins
     screen = Screen(3, 5)
     screen.set_margins(1, 4)
     screen.y = 1
-
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.delete_lines(1)
-    assert repr(screen) == repr([u"sam", u"foo", u"bar", u"   ", u"baz"])
+
+    assert screen.cursor == (0, 1)
+    assert screen.display == _([u"sam", u"foo", u"bar", u"   ", u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3]
 
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.delete_lines(2)
-    assert repr(screen) == repr([u"sam", u"bar", u"   ", u"   ", u"baz"])
+
+    assert screen.cursor == (0, 1)
+    assert screen.display == _([u"sam", u"bar", u"   ", u"   ", u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3]
 
     # c) with margins -- trying to delete  more than we have available
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.delete_lines(5)
-    assert repr(screen) == repr([u"sam", u"   ", u"   ", u"   ", u"baz"])
 
-    # d) with margins -- trying to delete outside scroll boundaries
+    assert screen.cursor == (0, 1)
+    assert screen.display == _([u"sam", u"   ", u"   ", u"   ", u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3]
+
+    # d) with margins -- trying to delete outside scroll boundaries;
+    #    expecting nothing to change
     screen = Screen(3, 5)
     screen.display = _(["sam", "is ", "foo", "bar", "baz"])
+    screen.attributes = [[screen.default_attributes] * 3,
+                         [screen.default_attributes] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [Attributes("red", "default", set())] * 3,
+                         [screen.default_attributes] * 3]
     screen.set_margins(2, 4)
     screen.delete_lines(5)
 
-    assert repr(screen) == repr([u"sam", u"is ", u"foo", u"bar", u"baz"])
+    assert screen.cursor == (0, 0)
+    assert screen.display == _([u"sam", u"is ", u"foo", u"bar", u"baz"])
+    assert screen.attributes == [[screen.default_attributes] * 3,
+                                 [screen.default_attributes] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [Attributes("red", "default", set())] * 3,
+                                 [screen.default_attributes] * 3]
+
+
 
 
 def test_insert_characters():

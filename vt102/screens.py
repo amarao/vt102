@@ -425,8 +425,6 @@ class Screen(object):
         displayed **at** and below the cursor move down. Lines moved
         past the bottom margin are lost.
 
-        .. todo:: reset attributes of the newly inserted lines?
-
         :param count: number of lines to delete.
         """
         count = count or 1
@@ -438,6 +436,9 @@ class Screen(object):
             for line in xrange(self.y, min(bottom + 1, self.y + count)):
                 self.display.pop(bottom)
                 self.display.insert(line, array("u", u" " * self.columns))
+                self.attributes.pop(bottom)
+                self.attributes.insert(line,
+                    [self.default_attributes] * self.columns)
 
             self.x = 0
 
@@ -446,8 +447,6 @@ class Screen(object):
         cursor. As lines are deleted, lines displayed below cursor
         move up. Lines added to bottom of screen have spaces with same
         character attributes as last line moved up.
-
-        .. todo:: reset attributes of the deleted lines?
 
         :param count: number of lines to delete.
         """
@@ -460,6 +459,9 @@ class Screen(object):
             for _ in xrange(min(bottom - self.y + 1, count)):
                 self.display.pop(self.y)
                 self.display.insert(bottom, array("u", u" " * self.columns))
+                self.attributes.pop(self.y)
+                self.attributes.insert(bottom,
+                    [self.default_attributes] * self.columns)
 
             self.x = 0
 
