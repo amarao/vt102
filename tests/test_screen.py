@@ -456,6 +456,19 @@ def test_save_cursor():
     assert mo.DECAWM in screen.mode
     assert mo.DECOM in screen.mode
 
+    # c) attributes
+    screen = Screen(10, 10)
+    screen.select_graphic_rendition(4)
+    screen.save_cursor()
+    screen.select_graphic_rendition(24)
+
+    assert screen.cursor_attributes == screen.default_attributes
+
+    screen.restore_cursor()
+
+    assert screen.cursor_attributes != screen.default_attributes
+    assert screen.cursor_attributes == ("default", "default", set(["underscore"]))
+
 
 def test_restore_cursor_with_none_saved():
     screen = Screen(10, 10)

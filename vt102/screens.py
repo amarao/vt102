@@ -31,7 +31,7 @@ Margins = namedtuple("Margins", "top bottom")
 Attributes = namedtuple("Attributes", "fg bg text")
 
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
-Savepoint = namedtuple("Savepoint", "cursor origin wrap")
+Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
 
 
 class Screen(object):
@@ -395,6 +395,7 @@ class Screen(object):
     def save_cursor(self):
         """Push the current cursor position onto the stack."""
         self.savepoints.append(Savepoint(self.cursor,
+                                         self.cursor_attributes,
                                          mo.DECOM in self.mode,
                                          mo.DECAWM in self.mode))
 
@@ -408,6 +409,8 @@ class Screen(object):
             #           boundaries?
             savepoint = self.savepoints.pop()
             self.x, self.y = savepoint.cursor
+
+            self.cursor_attributes = savepoint.attributes
 
             if savepoint.origin: self.set_mode(mo.DECOM)
             if savepoint.wrap: self.set_mode(mo.DECAWM)
