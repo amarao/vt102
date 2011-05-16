@@ -64,6 +64,12 @@ class Screen(list):
        1-indexed**, so, for instance ``ESC [ 10;10 f`` really means
        -- move cursor to position (9, 9) in the display matrix.
 
+    .. warning::
+
+       Custom character sets and related CSI sequnces (ex.
+       :data:`vt102.control.SI` and :data:`vt102.control.SO`) are
+       currently **not supported**.
+
     .. seealso::
 
        `Standard ECMA-48, Section 6.1.1 \
@@ -143,16 +149,7 @@ class Screen(list):
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
             ("alignment-display", self.alignment_display),
-            ("answer", self.answer),
-
-            # Not implemented
-            # ...............
-            # ("status-report", ...)
-
-            # Not supported
-            # .............
-            # ("shift-in", ...)
-            # ("shift-out")
+            ("answer", self.answer)
         ]
 
         for event, handler in handlers:
@@ -227,7 +224,7 @@ class Screen(list):
         """Selects top and bottom margins, defining the scrolling region.
 
         Margins determine which screen lines move during scrolling (see
-        :meth:`index` and :meth:`reversed_index`). Characters added
+        :meth:`index` and :meth:`reverse_index`). Characters added
         outside the scrolling region do not cause the screen to scroll.
         """
         if top is None or bottom is None:
