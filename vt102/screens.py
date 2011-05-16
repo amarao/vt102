@@ -701,10 +701,7 @@ class Screen(list):
                 replace = {"bg": g.BG[attr]}
             elif attr in g.TEXT:
                 attr = g.TEXT[attr]
-                if attr.startswith("-"):
-                    replace = {attr[1:]: False}
-                else:
-                    replace = {attr: True}
+                replace = {attr[1:]: attr.startswith(u"+")}
             elif not attr:
                 replace = self.default_char._asdict()
             else:

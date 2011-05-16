@@ -11,18 +11,19 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-#: A mapping of ANSI text style codes to style names, example:
+#: A mapping of ANSI text style codes to style names, "+" means the:
+#: attribute is set, "-" -- reset; example:
 #:
 #: >>> text[1]
-#: 'bold'
+#: '+bold'
 #: >>> text[9]
-#: 'strikethrough'
+#: '+strikethrough'
 TEXT = {
-    1: "bold" ,
-    3: "italics",
-    4: "underscore",
-    7: "reverse",
-    9: "strikethrough",
+    1: "+bold" ,
+    3: "+italics",
+    4: "+underscore",
+    7: "+reverse",
+    9: "+strikethrough",
     22: "-bold",
     23: "-italics",
     24: "-underscore",
