@@ -109,9 +109,6 @@ ECH = u"X"
 #: *Horizontal position relative*: Same as :data:`CUF`.
 HPR = u"a"
 
-#: *Device attributes*: Answer ``ESC [ ? 6 c``: "I'm a VT102".
-DA = u"c"
-
 #: *Vertical position adjust*: Move cursor to the indicated line,
 #: current column.
 VPA = u"d"

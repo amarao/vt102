@@ -93,7 +93,6 @@ class Stream(object):
         esc.DL: "delete-lines",
         esc.DCH: "delete-characters",
         esc.ECH: "erase-characters",
-        esc.DA: "answer",
         esc.HPR: "cursor-forward",
         esc.VPA: "cursor-to-line",
         esc.VPR: "cursor-down",

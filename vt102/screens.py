@@ -53,11 +53,6 @@ class Screen(list):
        Top and bottom screen margins, defining the scrolling region;
        the actual values are top and bottom line.
 
-    .. attribute:: buffer
-
-       A list of string which should be sent to the host, for example
-       :data:`vt102.escape.DA` replies.
-
     .. note::
 
        According to ``ECMA-48`` standard, **lines and columnns are
@@ -149,7 +144,6 @@ class Screen(list):
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
             ("alignment-display", self.alignment_display),
-            ("answer", self.answer)
         ]
 
         for event, handler in handlers:
@@ -161,13 +155,11 @@ class Screen(list):
         * Scroll margins are reset to screen boundaries.
         * Cursor is moved to home location -- ``(0, 0)`` and its
           attributes are set to defaults (see :attr:`default_char`).
-        * Screen buffer is emptied.
         * SGR state is reset to defaults (see :attr:`default_char`).
         """
         size = self.size
 
         self[:] = []
-        self.buffer = []
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
         self.margins = Margins(0, self.lines - 1)
         self.cursor_attributes = self.default_char
@@ -684,32 +676,6 @@ class Screen(list):
         for line in self:
             for column, char in enumerate(line):
                 line[column] = char._replace(data=u"E")
-
-    def answer(self, *args):
-        """Reports device attributes.
-
-        There are two DA exchanges (dialogues) between the host computer
-        and the terminal:
-
-        * In the primary DA exchange, the host asks for the terminal's
-          service class code and the basic attributes.
-        * In the secondary DA exchange, the host asks for the terminal's
-          identification code, firmware version level, and an account
-          of the hardware options installed.
-
-        .. note::
-
-           ``vt102`` only implements primary DA exchange, since secondary
-           DA exchange doesn't make much sense in the case of a digital
-           terminal.
-        """
-        if len(args) == 1:
-            attrs = [
-                u"62",  # I'm a service class 2 terminal
-                u"1",   # with 132 columns
-                u"6",   # and selective erase.
-            ]
-            self.buffer.append(u"%s?%sc" % (ctrl.CSI, u";".join(attrs)))
 
     def select_graphic_rendition(self, *attrs):
         """Set display attributes."""
