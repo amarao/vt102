@@ -45,7 +45,7 @@ can do something like the following:
                     u"tails.\r\u001b[5;1H\u001b[6;1H\u001b[7;1HShall I pi"
                     u"ck a character's race, role, gender and alignment f"
                     u"or you? [ynq] ")
-    >>> map(lambda l: l.tounicode(), screen.display)
+    >>> screen.display
         ['                                                                                ',
          'NetHack, Copyright 1985-2003                                                    ',
          '         By Stichting Mathematisch Centrum and M. Stephenson.                   ',

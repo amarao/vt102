@@ -4,7 +4,7 @@
     ~~~~~~~~~~~~~~
 
     This module defines graphic-related constants, mostly taken from
-    ``man console_codes`` and
+    :manpage:`console_codes(4)` and
     http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html.
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
@@ -17,12 +17,12 @@ SPECIAL = {
     27: "-reverse"
 }
 
-"""A mapping of ANSI text style codes to style names, example:
-
->>> text[1]
-'bold'
->>> text[9]
-'strikethrough'"""
+#: A mapping of ANSI text style codes to style names, example:
+#:
+#: >>> text[1]
+#: 'bold'
+#: >>> text[9]
+#: 'strikethrough'
 TEXT = {
     1: "bold" ,
     3: "italics",
@@ -35,12 +35,12 @@ TEXT = {
 }
 
 
-"""A mapping of ANSI foreground color codes to color names, example:
-
->>> FG[30]
-'black'
->>> FG[38]
-'default'"""
+#: A mapping of ANSI foreground color codes to color names, example:
+#:
+#: >>> FG[30]
+#: 'black'
+#: >>> FG[38]
+#: 'default'
 FG = {
     30: "black",
     31: "red",
@@ -53,12 +53,12 @@ FG = {
     39: "default"  # white.
 }
 
-"""A mapping of ANSI background color codes to color names, example:
-
->>> BG[40]
-'black'
->>> BG[48]
-'default'"""
+#: A mapping of ANSI background color codes to color names, example:
+#:
+#: >>> BG[40]
+#: 'black'
+#: >>> BG[48]
+#: 'default'
 BG = {
     40: "black",
     41: "red",

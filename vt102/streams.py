@@ -102,7 +102,6 @@ class Stream(object):
         esc.SM: "set-mode",
         esc.RM: "reset-mode",
         esc.SGR: "select-graphic-rendition",
-        esc.DSR: "status-report",
         esc.DECSTBM: "set-margins",
         esc.HPA: "cursor-to-column"
     }
