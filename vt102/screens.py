@@ -3,9 +3,12 @@
     vt102.screens
     ~~~~~~~~~~~~~
 
-    This module provides a classes for terminal screens, currently
-    there's only one screen implementation, but who knows what the
-    future will bring :).
+    This module provides classes for terminal screens, currently
+    there's only one base screen implementation, but who knows what
+    the future will bring :).
+
+    .. note:: checkout `examples/customscreen.py` for an example of
+              a screen, which keeps track of the changed lines.
 
     :copyright: (c) 2011 Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
@@ -96,9 +99,9 @@ class Screen(list):
     default_line = repeat(default_char)
 
     def __init__(self, columns, lines):
-        # From ``man terminfo`` -- "... hardware tabs are initially set every
-        # `n` spaces when the terminal is powered up. Since we aim to support
-        # VT102 / VT220 and linux -- we use n = 8.
+        # From ``man terminfo`` -- "... hardware tabs are initially
+        # set every `n` spaces when the terminal is powered up. Since
+        # we aim to support VT102 / VT220 and linux -- we use n = 8.
         self.tabstops = set(xrange(7, columns, 8))
         self.savepoints = []
         self.lines, self.columns = lines, columns
@@ -120,9 +123,12 @@ class Screen(list):
         return [u"".join(map(operator.attrgetter("data"), line))
                 for line in self]
 
-    def attach(self, events):
-        """Attaches a screen to an object, which processes co1mmands
+    def attach(self, stream):
+        """Attaches a screen to an object, which processes commands
         and dispatches events.
+
+        :param vt102.streams.Stream events: event producer to attach
+                                            the screen to.
         """
         handlers = [
             ("reset", self.reset),
@@ -162,7 +168,7 @@ class Screen(list):
         ]
 
         for event, handler in handlers:
-            events.connect(event, handler)
+            stream.connect(event, handler)
 
     def reset(self):
         """Resets the terminal to its initial state.
@@ -185,16 +191,18 @@ class Screen(list):
         self.cursor_position()
 
     def resize(self, lines=None, columns=None):
-        """Resize the screen.
+        """Resize the screen to the given dimensions.
 
         If the requested screen size has more lines than the existing
         screen, lines will be added at the bottom. If the requested
         size has less lines than the existing screen lines will be
-        clipped at the top of the screen.
+        clipped at the top of the screen. Similarly, if the existing
+        screen has less columns than the requested screen, columns will
+        be added at the right, and if it has more -- columns will be
+        clipped at the right.
 
-        Similarly if the existing screen has less columns than the
-        requested size, columns will be added at the right, and it
-        has more, columns will be clipped at the right.
+        :param int lines: number of lines in the new screen.
+        :param int columns: number of columns in the new screen.
         """
         lines = lines or self.lines
         columns = columns or self.columns
@@ -228,11 +236,14 @@ class Screen(list):
         self.lines, self.columns = lines, columns
 
     def set_margins(self, top=None, bottom=None):
-        """Selects top and bottom margins, defining the scrolling region.
+        """Selects top and bottom margins for the scrolling region.
 
-        Margins determine which screen lines move during scrolling (see
-        :meth:`index` and :meth:`reverse_index`). Characters added
+        Margins determine which screen lines move during scrolling
+        (see :meth:`index` and :meth:`reverse_index`). Characters added
         outside the scrolling region do not cause the screen to scroll.
+
+        :param int top: the smallest line number that is scrolled.
+        :param int bottom: the biggest line number that is scrolled.
         """
         if top is None or bottom is None:
             return
@@ -256,8 +267,8 @@ class Screen(list):
     def set_mode(self, *modes):
         """Sets (enables) a given list of modes.
 
-        :param modes: modes to set, where each mode is a constant from
-                     :mod:`vt102.modes`.
+        :param list modes: modes to set, where each mode is a constant
+                           from :mod:`vt102.modes`.
         """
         self.mode.update(modes)
 
@@ -276,8 +287,8 @@ class Screen(list):
     def reset_mode(self, *modes):
         """Resets (disables) a given list of modes.
 
-        :param modes: modes to reset -- hopefully, each mode is a constant
-                      from :mod:`vt102.modes`.
+        :param list modes: modes to reset -- hopefully, each mode is a
+                           constant from :mod:`vt102.modes`.
         """
         self.mode.difference_update(modes)
 
@@ -293,6 +304,8 @@ class Screen(list):
     def draw(self, char):
         """Display a character at the current cursor position and advance
         the cursor if :data:`vt102.modes.DECAWM` is set.
+
+        :param unicode char: a character to display.
         """
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line. Otherwise replace
@@ -427,7 +440,7 @@ class Screen(list):
         move up. Lines added to bottom of screen have spaces with same
         character attributes as last line moved up.
 
-        :param count: number of lines to delete.
+        :param int count: number of lines to delete.
         """
         count = count or 1
         top, bottom = self.margins
@@ -447,7 +460,7 @@ class Screen(list):
         of the inserted blank characters. Data on the line is shifted
         forward.
 
-        :param count: number of characters to insert.
+        :param int count: number of characters to insert.
         """
         count = count or 1
 
@@ -461,7 +474,7 @@ class Screen(list):
         characters to the right of cursor move left. Character attributes
         move with the characters.
 
-        :param count: number of characters to delete.
+        :param int count: number of characters to delete.
         """
         count = count or 1
 
@@ -474,7 +487,7 @@ class Screen(list):
         character at cursor position.  Character attributes are set
         to normal. The cursor remains in the same position.
 
-        :param count: number of characters to erase.
+        :param int count: number of characters to erase.
         """
         count = count or 1
 
@@ -563,14 +576,10 @@ class Screen(list):
     def ensure_bounds(self, use_margins=None):
         """Ensure that current cursor position is within screen bounds.
 
-        .. note::
-
-           ``use_margins`` is assumed to be allways ``True`` when
-           :data:`vt102.modes.DECOM` is set.
-
-        :param use_margins: when ``True``, cursor is bounded by top and
-                            and bottom margins, instead of
-                            ``[0; lines - 1]``.
+        :param bool use_margins: when ``True`` or when
+                                 :data:`vt102.modes.DECOM` is set, cursor
+                                 is bounded by top and and bottom margins,
+                                 instead of ``[0; lines - 1]``.
         """
         if use_margins or mo.DECOM in self.mode:
             top, bottom = self.margins
@@ -584,7 +593,7 @@ class Screen(list):
         """Moves cursor up the indicated # of lines in same column.
         Cursor stops at top margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.y -= count or 1
         self.ensure_bounds(use_margins=True)
@@ -593,7 +602,7 @@ class Screen(list):
         """Moves cursor up the indicated # of lines to column 1. Cursor
         stops at bottom margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.cursor_up(count)
         self.carriage_return()
@@ -602,7 +611,7 @@ class Screen(list):
         """Moves cursor down the indicated # of lines in same column.
         Cursor stops at bottom margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.y += count or 1
         self.ensure_bounds(use_margins=True)
@@ -611,7 +620,7 @@ class Screen(list):
         """Moves cursor down the indicated # of lines to column 1.
         Cursor stops at bottom margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.cursor_down(count)
         self.carriage_return()
@@ -620,7 +629,7 @@ class Screen(list):
         """Moves cursor left the indicated # of columns. Cursor stops
         at left margin.
 
-        :param count: number of columns to skip.
+        :param int count: number of columns to skip.
         """
         self.x -= count or 1
         self.ensure_bounds()
@@ -629,7 +638,7 @@ class Screen(list):
         """Moves cursor right the indicated # of columns. Cursor stops
         at right margin.
 
-        :param count: number of columns to skip.
+        :param int count: number of columns to skip.
         """
         self.x += count or 1
         self.ensure_bounds()
@@ -640,6 +649,9 @@ class Screen(list):
         Cursor is allowed to move out of the scrolling region only when
         :data:`vt102.modes.DECOM` is reset, otherwise -- the position
         doesn't change.
+
+        :param int line: line number to move the cursor to.
+        :param int column: column number to move the cursor to.
         """
         column = (column or 1) - 1
         line = (line or 1) - 1
@@ -659,7 +671,7 @@ class Screen(list):
     def cursor_to_column(self, column=None):
         """Moves cursor to a specific column in the current line.
 
-        :param column: column number to move the cursor to.
+        :param int column: column number to move the cursor to.
         """
         self.x = (column or 1) - 1
         self.ensure_bounds()
@@ -667,7 +679,7 @@ class Screen(list):
     def cursor_to_line(self, line=None):
         """Moves cursor to a specific line in the current column.
 
-        :param line: line number to move the cursor to.
+        :param int line: line number to move the cursor to.
         """
         self.y = (line or 1) - 1
 
@@ -693,7 +705,10 @@ class Screen(list):
                 line[column] = char._replace(data=u"E")
 
     def select_graphic_rendition(self, *attrs):
-        """Set display attributes."""
+        """Set display attributes.
+
+        :param list attrs: A list of display attributes to set.
+        """
         def inner(attr):
             if attr in g.FG:
                 replace = {"fg": g.FG[attr]}
