@@ -14,46 +14,38 @@
 from __future__ import absolute_import, print_function
 
 import copy
-from array import array
 from collections import namedtuple
+from itertools import imap, islice, repeat
 
 from . import modes as mo, control as ctrl, graphics as g
+
+
+def take(n, iterable):
+    """Returns first n items of the iterable as a list."""
+    return list(islice(iterable, n))
 
 
 #: A container for screen's scroll margins.
 Margins = namedtuple("Margins", "top bottom")
 
-#: A container for character attributes, which consists of the following:
+#: A container for a single character, which consists of the following:
 #:
-#:   1. Foreground color as a string, see :data:`vt102.graphics.colors`
-#:   2. Background color as a string, see :data:`vt102.graphics.colors`
-#:   3. A set of all the text attributes: **bold**, underline, etc
-Attributes = namedtuple("Attributes", "fg bg text")
+#:   1. Unicode character itself
+#:   2. Foreground color as a string, see :data:`vt102.graphics.colors`
+#:   3. Background color as a string, see :data:`vt102.graphics.colors`
+#:   4. A set of all the text attributes: **bold**, underline, etc
+Char = namedtuple("Char", "data fg bg text")
 
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
 
 
-class Screen(object):
+class Screen(list):
     """
     A screen is an in memory buffer of strings that represents the
     screen display of the terminal. It can be instantiated on it's own
     and given explicit commands, or it can be attached to a stream and
     will respond to events.
-
-    .. attribute:: display
-
-       A list of :class:`array.array` objects, holding screen buffer.
-
-    .. attribute:: attributes
-
-       A matrix of character attributes, is allways the same size as
-       :attr:`display`.
-
-    .. attribute:: default_attributes
-
-       Default character attributes, which are used for screen
-       initialization and *obviously* for resetting character style.
 
     .. attribute:: margins
 
@@ -78,7 +70,13 @@ class Screen(object):
          For a description of the presentational component, implemented
          by ``Screen``.
     """
-    default_attributes = Attributes("default", "default", set())
+    #: A plain empty character with default foreground and background
+    #: colors.
+    default_char = Char(data=u" ", fg="default", bg="default", text=set())
+
+    #: An inifinite sequence of default characters, used for populating
+    #: new lines and columns.
+    default_line = imap(copy.copy, repeat(default_char))
 
     def __init__(self, columns, lines):
         # From ``man terminfo`` -- "... hardware tabs are initially set every
@@ -88,9 +86,6 @@ class Screen(object):
         self.savepoints = []
         self.lines, self.columns = lines, columns
         self.reset()
-
-    def __repr__(self):
-        return repr([l.tounicode() for l in self.display])
 
     @property
     def cursor(self):
@@ -161,17 +156,17 @@ class Screen(object):
 
         * Scroll margins are reset to screen boundaries.
         * Cursor is moved to home location -- ``(0, 0)`` and its
-          attributes are set to defaults (:attr:`default_attributes`)
+          attributes are set to defaults (see :attr:`default_char`).
         * Screen buffer is emptied.
+        * SGR state is reset to defaults (see :attr:`default_char`).
         """
         size = self.size
 
-        self.display = []
-        self.attributes = []
+        self[:] = []
         self.buffer = []
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
         self.margins = Margins(0, self.lines - 1)
-        self.cursor_attributes = self.default_attributes
+        self.cursor_attributes = self.default_char
         self.lines = self.columns = 0
         self.x = self.y = 0
 
@@ -193,48 +188,31 @@ class Screen(object):
         lines = lines or self.lines
         columns = columns or self.columns
 
-        # First resize the lines ...
-        if self.lines < lines:
-            # If the current display size is shorter than the requested
-            # screen size, then add lines to the bottom. Note that the
-            # old column size is used here so these new lines will get
-            # expanded / contracted as necessary by the column resize
-            # when it happens next.
-            initial = u" " * self.columns
+        # First resize the lines:
+        diff = self.lines - lines
 
-            for _ in xrange(lines - self.lines):
-                self.display.append(array("u", initial))
-                self.attributes.append(
-                    [self.default_attributes] * self.columns
-                )
-        elif self.lines > lines:
-            # If the current display size is taller than the requested
-            # display, then take lines off the top.
-            self.display = self.display[self.lines - lines: ]
-            self.attributes = self.attributes[self.lines - lines:]
+        # a) if the current display size is less than the requested
+        #    size, add lines to the bottom.
+        if diff < 0:
+            self.extend(take(self.columns, self.default_line)
+                        for _ in xrange(diff, 0))
+        # b) if the current display size is greater than requested
+        #    size, take lines off the top.
+        elif diff > 0:
+            self[:diff] = ()
 
-        # ... next, of course, resize the columns.
-        if self.columns < columns:
-            # If the current display size is thinner than the requested
-            # size, expand each line to be the new size.
-            initial = u" " * (columns - self.columns)
+        # Then resize the columns:
+        diff = self.columns - columns
 
-            self.display = [
-                line + array("u", initial) for line in self.display
-            ]
-            self.attributes = [
-                line + [self.default_attributes] * (columns - self.columns)
-                for line in self.attributes
-            ]
-        elif self.columns > columns:
-            # If the current display size is fatter than the requested size,
-            # then trim each line from the right to be the new size.
-            self.display = [
-                line[:columns - self.columns] for line in self.display
-            ]
-            self.attributes = [
-                line[:columns - self.columns] for line in self.attributes
-            ]
+        # a) if the current display size is less than the requested
+        #    size, expand each line to the new size.
+        if diff < 0:
+            for y in xrange(lines):
+                self[y].extend(take(abs(diff), self.default_line))
+        # b) if the current display size is greater than requested
+        #    size, trim each line from the right to the new size.
+        elif diff > 0:
+            self[:] = (line[:columns] for line in self)
 
         self.lines, self.columns = lines, columns
 
@@ -321,8 +299,7 @@ class Screen(object):
             self.insert_characters(1)
 
         try:
-            self.display[self.y][self.x] = char
-            self.attributes[self.y][self.x] = self.cursor_attributes
+            self[self.y][self.x] = self.cursor_attributes._replace(data=char)
         except IndexError:
             # cat /dev/urandom to reproduce
             if __debug__: print(self.x, self.y, char)
@@ -342,12 +319,8 @@ class Screen(object):
         top, bottom = self.margins
 
         if self.y == bottom:
-            self.display.pop(top)
-            self.display.insert(bottom, array("u", u" " * self.columns))
-
-            self.attributes.pop(top)
-            self.attributes.insert(bottom,
-                [self.default_attributes] * self.columns)
+            self.pop(top)
+            self.insert(bottom, take(self.columns, self.default_line))
         else:
             self.cursor_down()
 
@@ -358,12 +331,8 @@ class Screen(object):
         top, bottom = self.margins
 
         if self.y == top:
-            self.display.pop(bottom)
-            self.display.insert(top, array("u", u" " * self.columns))
-
-            self.attributes.pop(bottom)
-            self.attributes.insert(top,
-                [self.default_attributes] * self.columns)
+            self.pop(bottom)
+            self.insert(top, take(self.columns, self.default_line))
         else:
             self.cursor_up()
 
@@ -436,14 +405,10 @@ class Screen(object):
         if top <= self.y <= bottom:
             #                           v +1, because xrange() is exclusive.
             for line in xrange(self.y, min(bottom + 1, self.y + count)):
-                self.display.pop(bottom)
-                self.display.insert(line, array("u", u" " * self.columns))
+                self.pop(bottom)
+                self.insert(line, take(self.columns, self.default_line))
 
-                self.attributes.pop(bottom)
-                self.attributes.insert(line,
-                    [self.default_attributes] * self.columns)
-
-            self.x = 0
+            self.carriage_return()
 
     def delete_lines(self, count=None):
         """Deletes the indicated # of lines, starting at line with
@@ -460,14 +425,10 @@ class Screen(object):
         if top <= self.y <= bottom:
             #                v -- +1 to include the bottom margin.
             for _ in xrange(min(bottom - self.y + 1, count)):
-                self.display.pop(self.y)
-                self.display.insert(bottom, array("u", u" " * self.columns))
+                self.pop(self.y)
+                self.insert(bottom, take(self.columns, self.default_line))
 
-                self.attributes.pop(self.y)
-                self.attributes.insert(bottom,
-                    [self.default_attributes] * self.columns)
-
-            self.x = 0
+            self.carriage_return()
 
     def insert_characters(self, count=None):
         """Inserts the indicated # of blank characters at the cursor
@@ -480,11 +441,8 @@ class Screen(object):
         count = count or 1
 
         for _ in xrange(min(self.columns - self.y, count)):
-            self.display[self.y].insert(self.x, u" ")
-            self.display[self.y].pop()
-
-            self.attributes[self.y].insert(self.x, self.default_attributes)
-            self.attributes[self.y].pop()
+            self[self.y].insert(self.x, self.default_char)
+            self[self.y].pop()
 
     def delete_characters(self, count=None):
         """Deletes the indicated # of characters, starting with the
@@ -497,11 +455,8 @@ class Screen(object):
         count = count or 1
 
         for _ in xrange(min(self.columns - self.x, count)):
-            self.display[self.y].pop(self.x)
-            self.display[self.y].append(u" ")
-
-            self.attributes[self.y].pop(self.x)
-            self.attributes[self.y].append(self.default_attributes)
+            self[self.y].pop(self.x)
+            self[self.y].append(self.default_char)
 
     def erase_characters(self, count=None):
         """Erases the indicated # of characters, starting with the
@@ -514,8 +469,7 @@ class Screen(object):
 
         for column in xrange(self.x, min(self.x + count,
                                          self.columns)):
-            self.display[self.y][column] = u" "
-            self.attributes[self.y][column] = self.default_attributes
+            self[self.y][column] = self.default_char
 
     def erase_in_line(self, type_of=0):
         """Erases a line in a specific way, depending on the ``type_of``
@@ -530,27 +484,19 @@ class Screen(object):
         .. todo:: add support for private ``"?"`` flag toggling selective
                   erase.
         """
-        line = self.display[self.y]
-        attrs = self.attributes[self.y]
+        line = self[self.y]
 
         if type_of == 0:
             # a) erase from the cursor to the end of line, including
             # the cursor,
-            count = self.columns - self.x
-            self.display[self.y] = line[:self.x] + array("u", u" " * count)
-            self.attributes[self.y] = attrs[:self.x] + \
-                                      [self.default_attributes] * count
+            line[self.x:] = take(self.columns - self.x, self.default_line)
         elif type_of == 1:
             # b) erase from the beginning of the line to the cursor,
             # including it,
-            count = self.x + 1
-            self.display[self.y] = array("u", u" " * count) + line[count:]
-            self.attributes[self.y] = [self.default_attributes] * count + \
-                                      attrs[count:]
+            line[:self.x + 1] = take(self.x + 1, self.default_line)
         elif type_of == 2:
             # c) erase the entire line.
-            self.display[self.y] = array("u", u" " * self.columns)
-            self.attributes[self.y] = [self.default_attributes] * self.columns
+            line[:] = take(self.columns, self.default_line)
 
     def erase_in_display(self, type_of=0):
         """Erases display in a specific way, depending on the ``type_of``
@@ -578,8 +524,7 @@ class Screen(object):
         )[type_of]
 
         for line in interval:
-            self.display[line] = array("u", u" " * self.columns)
-            self.attributes[line] = [self.default_attributes] * self.columns
+            self[line] = take(self.columns, self.default_line)
 
         # In case of 0 or 1 we have to erase the line with the cursor.
         if type_of in [0, 1]:
@@ -732,9 +677,9 @@ class Screen(object):
 
     def alignment_display(self):
         """Fills screen with uppercase E's for screen focus and alignment."""
-        for line in xrange(self.lines):
-            for column in xrange(self.columns):
-                self.display[line][column] = u"E"
+        for line in self:
+            for column, char in enumerate(line):
+                line[column] = char._replace(data=u"E")
 
     def answer(self, *args):
         """Reports device attributes.
@@ -766,7 +711,7 @@ class Screen(object):
         """Set display attributes."""
         for attr in attrs or [0]:
             if not attr:
-                cursor_attributes = self.default_attributes
+                cursor_attributes = copy.copy(self.default_char)
             elif attr in g.SPECIAL:
                 cursor_attributes = self.cursor_attributes._replace(
                     fg=self.cursor_attributes.bg,
