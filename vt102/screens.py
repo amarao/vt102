@@ -13,12 +13,11 @@
 
 from __future__ import absolute_import, print_function
 
-import copy
 import operator
 from collections import namedtuple
-from itertools import imap, islice, repeat
+from itertools import islice, repeat
 
-from . import modes as mo, control as ctrl, graphics as g
+from . import modes as mo, graphics as g
 
 
 def take(n, iterable):
@@ -29,16 +28,32 @@ def take(n, iterable):
 #: A container for screen's scroll margins.
 Margins = namedtuple("Margins", "top bottom")
 
-#: A container for a single character, which consists of the following:
-#:
-#:   1. Unicode character itself
-#:   2. Foreground color as a string, see :data:`vt102.graphics.colors`
-#:   3. Background color as a string, see :data:`vt102.graphics.colors`
-#:   4. A set of all the text attributes: **bold**, underline, etc
-Char = namedtuple("Char", "data fg bg text")
-
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
+
+#: A container for a single character, field names are *hopfully*
+#: self-explanatory.
+_Char = namedtuple("_Char", [
+    "data",
+    "fg",
+    "bg",
+    "bold",
+    "italics",
+    "underscore",
+    "reverse",
+    "strikethrough",
+])
+
+
+class Char(_Char):
+    """A wrapper around :class:`_Char`, providing some useful defaults
+    for most of the attributes.
+    """
+    def __new__(cls, data, fg="default", bg="default", bold=False,
+                italics=False, underscore=False, reverse=False,
+                strikethrough=False):
+        return _Char.__new__(cls, data, fg, bg, bold, italics, underscore,
+                             reverse, strikethrough)
 
 
 class Screen(list):
@@ -74,11 +89,11 @@ class Screen(list):
     """
     #: A plain empty character with default foreground and background
     #: colors.
-    default_char = Char(data=u" ", fg="default", bg="default", text=set())
+    default_char = Char(data=u" ", fg="default", bg="default")
 
     #: An inifinite sequence of default characters, used for populating
     #: new lines and columns.
-    default_line = imap(copy.copy, repeat(default_char))
+    default_line = repeat(default_char)
 
     def __init__(self, columns, lines):
         # From ``man terminfo`` -- "... hardware tabs are initially set every
@@ -106,7 +121,7 @@ class Screen(list):
                 for line in self]
 
     def attach(self, events):
-        """Attaches a screen to an object, which processes commands
+        """Attaches a screen to an object, which processes co1mmands
         and dispatches events.
         """
         handlers = [
@@ -679,29 +694,23 @@ class Screen(list):
 
     def select_graphic_rendition(self, *attrs):
         """Set display attributes."""
-        for attr in attrs or [0]:
-            if not attr:
-                cursor_attributes = copy.copy(self.default_char)
-            elif attr in g.SPECIAL:
-                cursor_attributes = self.cursor_attributes._replace(
-                    fg=self.cursor_attributes.bg,
-                    bg=self.cursor_attributes.fg
-                )
-            elif attr in g.FG:
-                cursor_attributes = self.cursor_attributes._replace(fg=g.FG[attr])
+        def inner(attr):
+            if attr in g.FG:
+                replace = {"fg": g.FG[attr]}
             elif attr in g.BG:
-                cursor_attributes = self.cursor_attributes._replace(bg=g.BG[attr])
+                replace = {"bg": g.BG[attr]}
             elif attr in g.TEXT:
                 attr = g.TEXT[attr]
-                text = copy.copy(self.cursor_attributes.text)
-
                 if attr.startswith("-"):
-                    text.discard(attr[1:])
+                    replace = {attr[1:]: False}
                 else:
-                    text.add(attr)
-
-                cursor_attributes = self.cursor_attributes._replace(text=text)
+                    replace = {attr: True}
+            elif not attr:
+                replace = self.default_char._asdict()
             else:
-                continue  # Silently skipping unknown attributes.
+                replace = {}  # Silently skipping unknown attributes.
 
-            self.cursor_attributes = cursor_attributes
+            return self.cursor_attributes._replace(**replace)
+
+        for attr in attrs or [0]:
+            self.cursor_attributes = inner(attr)

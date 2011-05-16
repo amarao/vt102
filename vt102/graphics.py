@@ -11,12 +11,6 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-SPECIAL = {
-    0: "reset",
-    7: "reverse",
-    27: "-reverse"
-}
-
 #: A mapping of ANSI text style codes to style names, example:
 #:
 #: >>> text[1]
@@ -27,10 +21,12 @@ TEXT = {
     1: "bold" ,
     3: "italics",
     4: "underscore",
+    7: "reverse",
     9: "strikethrough",
     22: "-bold",
     23: "-italics",
     24: "-underscore",
+    27: "-reverse",
     29: "-strikethrough"
 }
 
