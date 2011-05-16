@@ -13,7 +13,7 @@ except ImportError:
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-DESCRIPTION = "Simple vt102 emulator -- useful for screen scraping."
+DESCRIPTION = "Simple VTXX compatible terminal emulator."
 
 try:
     LONG_DESCRIPTION = open(os.path.join(here, "README.rst")).read()
@@ -28,6 +28,7 @@ CLASSIFIERS = (
     "Operating System :: OS Independent",
     "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 2.6",
     "Topic :: Terminals :: Terminal Emulators/X Terminals",
 )
 
@@ -51,7 +52,7 @@ class PyTest(Command):
 
 
 setup(name="vt102",
-      version="0.3.6",
+      version="0.3.7",
       packages=find_packages(exclude=["tests"]),
       cmdclass={"test": PyTest},
       platforms=["any"],
@@ -61,6 +62,6 @@ setup(name="vt102",
       description=DESCRIPTION,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
-      keywords=["vt102", "terminal emulator", "screen scraper"],
+      keywords=["vt102", "terminal emulator"],
       url="https://github.com/samfoo/vt102",
 )
