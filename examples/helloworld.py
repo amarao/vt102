@@ -20,5 +20,5 @@ if __name__ == "__main__":
     screen.attach(stream)
     stream.feed(u"Hello world!")
 
-    for idx, line in enumerate(screen, 1):
-        print(u"%2i" % idx, u"".join(c.data for c in line), u"¶")
+    for idx, line in enumerate(screen.display, 1):
+        print(u"%2i" % idx, line, u"¶")

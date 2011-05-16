@@ -14,6 +14,7 @@
 from __future__ import absolute_import, print_function
 
 import copy
+import operator
 from collections import namedtuple
 from itertools import imap, islice, repeat
 
@@ -96,6 +97,12 @@ class Screen(list):
     def size(self):
         """Returns screen size -- ``(lines, columns)``."""
         return self.lines, self.columns
+
+    @property
+    def display(self):
+        """Returns a list of screen lines as unicode strings."""
+        return [u"".join(map(operator.attrgetter("data"), line))
+                for line in self]
 
     def attach(self, events):
         """Attaches a screen to an object, which processes commands
