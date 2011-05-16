@@ -31,7 +31,7 @@ Margins = namedtuple("Margins", "top bottom")
 Attributes = namedtuple("Attributes", "fg bg text")
 
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
-Savepoint = namedtuple("Savepoint", "cursor origin wrap")
+Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
 
 
 class Screen(object):
@@ -344,6 +344,10 @@ class Screen(object):
         if self.y == bottom:
             self.display.pop(top)
             self.display.insert(bottom, array("u", u" " * self.columns))
+
+            self.attributes.pop(top)
+            self.attributes.insert(bottom,
+                [self.default_attributes] * self.columns)
         else:
             self.cursor_down()
 
@@ -356,6 +360,10 @@ class Screen(object):
         if self.y == top:
             self.display.pop(bottom)
             self.display.insert(top, array("u", u" " * self.columns))
+
+            self.attributes.pop(bottom)
+            self.attributes.insert(top,
+                [self.default_attributes] * self.columns)
         else:
             self.cursor_up()
 
@@ -389,6 +397,7 @@ class Screen(object):
     def save_cursor(self):
         """Push the current cursor position onto the stack."""
         self.savepoints.append(Savepoint(self.cursor,
+                                         self.cursor_attributes,
                                          mo.DECOM in self.mode,
                                          mo.DECAWM in self.mode))
 
@@ -403,6 +412,8 @@ class Screen(object):
             savepoint = self.savepoints.pop()
             self.x, self.y = savepoint.cursor
 
+            self.cursor_attributes = savepoint.attributes
+
             if savepoint.origin: self.set_mode(mo.DECOM)
             if savepoint.wrap: self.set_mode(mo.DECAWM)
         else:
@@ -416,8 +427,6 @@ class Screen(object):
         displayed **at** and below the cursor move down. Lines moved
         past the bottom margin are lost.
 
-        .. todo:: reset attributes of the newly inserted lines?
-
         :param count: number of lines to delete.
         """
         count = count or 1
@@ -430,6 +439,10 @@ class Screen(object):
                 self.display.pop(bottom)
                 self.display.insert(line, array("u", u" " * self.columns))
 
+                self.attributes.pop(bottom)
+                self.attributes.insert(line,
+                    [self.default_attributes] * self.columns)
+
             self.x = 0
 
     def delete_lines(self, count=None):
@@ -437,8 +450,6 @@ class Screen(object):
         cursor. As lines are deleted, lines displayed below cursor
         move up. Lines added to bottom of screen have spaces with same
         character attributes as last line moved up.
-
-        .. todo:: reset attributes of the deleted lines?
 
         :param count: number of lines to delete.
         """
@@ -452,24 +463,28 @@ class Screen(object):
                 self.display.pop(self.y)
                 self.display.insert(bottom, array("u", u" " * self.columns))
 
+                self.attributes.pop(self.y)
+                self.attributes.insert(bottom,
+                    [self.default_attributes] * self.columns)
+
             self.x = 0
 
     def insert_characters(self, count=None):
         """Inserts the indicated # of blank characters at the cursor
         position. The cursor does not move and remains at the beginning
-        of the inserted blank characters.
+        of the inserted blank characters. Data on the line is shifted
+        forward.
 
-        :param count: number of characters to delete.
+        :param count: number of characters to insert.
         """
-        # From VT220 Programming Reference Manual: "A parameter of 0
-        # or 1 inserts one blank character."
         count = count or 1
 
         for _ in xrange(min(self.columns - self.y, count)):
             self.display[self.y].insert(self.x, u" ")
             self.display[self.y].pop()
 
-            self.attributes[self.y][self.x] = self.default_attributes
+            self.attributes[self.y].insert(self.x, self.default_attributes)
+            self.attributes[self.y].pop()
 
     def delete_characters(self, count=None):
         """Deletes the indicated # of characters, starting with the
@@ -511,6 +526,9 @@ class Screen(object):
         * ``1`` -- Erases from beginning of line to cursor, including cursor
           position.
         * ``2`` -- Erases complete line.
+
+        .. todo:: add support for private ``"?"`` flag toggling selective
+                  erase.
         """
         line = self.display[self.y]
         attrs = self.attributes[self.y]
@@ -544,6 +562,9 @@ class Screen(object):
           cursor position.
         * ``2`` -- Erases complete display. All lines are erased and
           changed to single-width. Cursor does not move.
+
+        .. todo:: add support for private ``"?"`` flag toggling selective
+                  erase.
         """
         interval = (
             # a) erase from cursor to the end of the display, including
