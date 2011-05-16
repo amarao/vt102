@@ -29,8 +29,8 @@ TEXT = {
     4: "underscore",
     9: "strikethrough",
     22: "-bold",
+    23: "-italics",
     24: "-underscore",
-    25: "-blink",
     29: "-strikethrough"
 }
 
