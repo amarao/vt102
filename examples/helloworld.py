@@ -16,9 +16,9 @@ import vt102
 
 if __name__ == "__main__":
     stream = vt102.Stream()
-    screen = vt102.Screen(24, 80)
+    screen = vt102.Screen(80, 24)
     screen.attach(stream)
     stream.feed(u"Hello world!")
 
-    for idx, line in enumerate(screen.display, 1):
-        print("%2i" % idx, line.tounicode())
+    for idx, line in enumerate(screen, 1):
+        print(u"%2i" % idx, u"".join(c.data for c in line), u"¶")
