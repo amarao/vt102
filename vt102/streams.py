@@ -10,6 +10,7 @@
     >>> class Dummy(object):
     ...     def __init__(self):
     ...         self.foo = 0
+    ...
     ...     def up(self, bar):
     ...         self.foo += bar
     ...
@@ -28,7 +29,6 @@
 from __future__ import absolute_import
 
 import codecs
-from warnings import warn
 from collections import defaultdict
 
 from . import control as ctrl, escape as esc
@@ -136,7 +136,7 @@ class Stream(object):
     def feed(self, chars):
         """Consume a unicode string and advance the state as necessary.
 
-        :param chars: a unicode string to feed from.
+        :param unicode chars: a unicode string to feed from.
         """
         if not isinstance(chars, unicode):
             raise TypeError(
@@ -152,8 +152,9 @@ class Stream(object):
         default values, but providing these defaults is responsibility
         of the callback.
 
-        :param event: event to listen for.
-        :param function: callable to invoke when a given event occurs.
+        :param unicode event: event to listen for.
+        :param callable callback: callable to invoke when a given event
+                                  occurs.
         """
         self.listeners[event].append(callback)
 
@@ -167,10 +168,10 @@ class Stream(object):
 
            If any callback throws an exception, the subsequent callbacks
            are be aborted.
-        """
-        if event not in self.listeners:
-            warn("no listner found for %s(%s)" % (event, args))
 
+        :param unicode event: event to dispatch.
+        :param list args: arguments to pass to event handlers.
+        """
         for callback in self.listeners.get(event, []):
             if args:
                 callback(*args)
