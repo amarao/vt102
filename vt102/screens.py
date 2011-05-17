@@ -708,22 +708,19 @@ class Screen(list):
     def select_graphic_rendition(self, *attrs):
         """Set display attributes.
 
-        :param list attrs: A list of display attributes to set.
+        :param list attrs: a list of display attributes to set.
         """
-        def inner(attr):
-            if attr in g.FG:
-                replace = {"fg": g.FG[attr]}
-            elif attr in g.BG:
-                replace = {"bg": g.BG[attr]}
-            elif attr in g.TEXT:
-                attr = g.TEXT[attr]
-                replace = {attr[1:]: attr.startswith(u"+")}
-            elif not attr:
-                replace = self.default_char._asdict()
-            else:
-                replace = {}  # Silently skipping unknown attributes.
-
-            return self.cursor_attributes._replace(**replace)
+        replace = {}
 
         for attr in attrs or [0]:
-            self.cursor_attributes = inner(attr)
+            if attr in g.FG:
+                replace["fg"] = g.FG[attr]
+            elif attr in g.BG:
+                replace["bg"] = g.BG[attr]
+            elif attr in g.TEXT:
+                attr = g.TEXT[attr]
+                replace[attr[1:]] = attr.startswith(u"+")
+            elif not attr:
+                replace = self.default_char._asdict()
+
+        self.cursor_attributes = self.cursor_attributes._replace(**replace)
