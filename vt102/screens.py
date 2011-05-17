@@ -362,7 +362,8 @@ class Screen(list):
 
     def linefeed(self):
         """Performs an index and, if :data:`vt102.modes.LNM` is set, a
-        carriage return."""
+        carriage return.
+        """
         self.index()
 
         if mo.LNM in self.mode:
@@ -495,18 +496,18 @@ class Screen(list):
                                          self.columns)):
             self[self.y][column] = self.default_char
 
-    def erase_in_line(self, type_of=0):
-        """Erases a line in a specific way, depending on the ``type_of``
-        value:
+    def erase_in_line(self, type_of=0, private=False):
+        """Erases a line in a specific way.
 
-        * ``0`` -- Erases from cursor to end of line, including cursor
-          position.
-        * ``1`` -- Erases from beginning of line to cursor, including cursor
-          position.
-        * ``2`` -- Erases complete line.
+        :param int type_of: defines the way the line should be erased in:
 
-        .. todo:: add support for private ``"?"`` flag toggling selective
-                  erase.
+            * ``0`` -- Erases from cursor to end of line, including cursor
+              position.
+            * ``1`` -- Erases from beginning of line to cursor, including cursor
+              position.
+            * ``2`` -- Erases complete line.
+        :param bool private: when ``True`` character attributes aren left
+                             unchanged **not implemented**.
         """
         line = self[self.y]
 
@@ -522,19 +523,19 @@ class Screen(list):
             # c) erase the entire line.
             line[:] = take(self.columns, self.default_line)
 
-    def erase_in_display(self, type_of=0):
-        """Erases display in a specific way, depending on the ``type_of``
-        value:
+    def erase_in_display(self, type_of=0, private=False):
+        """Erases display in a specific way.
 
-        * ``0`` -- Erases from cursor to end of screen, including cursor
-          position.
-        * ``1`` -- Erases from beginning of screen to cursor, including
-          cursor position.
-        * ``2`` -- Erases complete display. All lines are erased and
-          changed to single-width. Cursor does not move.
+        :param int type_of: defines the way the line should be erased in:
 
-        .. todo:: add support for private ``"?"`` flag toggling selective
-                  erase.
+            * ``0`` -- Erases from cursor to end of screen, including
+              cursor position.
+            * ``1`` -- Erases from beginning of screen to cursor,
+              including cursor position.
+            * ``2`` -- Erases complete display. All lines are erased
+              and changed to single-width. Cursor does not move.
+        :param bool private: when ``True`` character attributes aren left
+                             unchanged **not implemented**.
         """
         interval = (
             # a) erase from cursor to the end of the display, including
