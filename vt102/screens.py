@@ -264,7 +264,7 @@ class Screen(list):
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.cursor_position()
 
-    def set_mode(self, *modes):
+    def set_mode(self, *modes, **kwargs):
         """Sets (enables) a given list of modes.
 
         :param list modes: modes to set, where each mode is a constant
@@ -284,7 +284,7 @@ class Screen(list):
         if mo.DECOM in modes:
             self.cursor_position()
 
-    def reset_mode(self, *modes):
+    def reset_mode(self, *modes, **kwargs):
         """Resets (disables) a given list of modes.
 
         :param list modes: modes to reset -- hopefully, each mode is a
