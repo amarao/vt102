@@ -112,6 +112,7 @@ class Stream(object):
     def reset(self):
         """Reset state to ``"stream"`` and empty parameter attributes."""
         self.state = "stream"
+        self.flags = {}
         self.params = []
         self.current = u""
 
@@ -158,7 +159,7 @@ class Stream(object):
         """
         self.listeners[event].append(callback)
 
-    def dispatch(self, event, *args):
+    def dispatch(self, event, *args, **flags):
         """Dispatch an event.
 
         :param event: event to dispatch.
@@ -171,12 +172,10 @@ class Stream(object):
 
         :param unicode event: event to dispatch.
         :param list args: arguments to pass to event handlers.
+        :param dict flags: keyword flags to pass to event handlers.
         """
         for callback in self.listeners.get(event, []):
-            if args:
-                callback(*args)
-            else:
-                callback()
+            callback(*args, **flags)
 
     # State transformers.
     # ...................
@@ -227,10 +226,7 @@ class Stream(object):
                For details on the characters valid for use as arguments.
         """
         if char == u"?":
-            # At this point we don't distinguish DEC private modes from
-            # ANSI modes, since the latter are pretty much useless for
-            # a library to handle.
-            pass
+            self.flags["private"] = True
         elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.CR]:
             # Not sure why, but those seem to be allowed between CSI
             # sequence arguments.
@@ -243,7 +239,6 @@ class Stream(object):
             self.dispatch("draw", char)
             self.state = "stream"
         elif char.isdigit():
-            # .. todo: joining strings with `+` is way too slow!
             self.current += char
         else:
             self.params.append(min(int(self.current or 0), 9999))
@@ -253,11 +248,10 @@ class Stream(object):
             else:
                 event = self.csi.get(char)
                 if event:
-                    self.dispatch(event, *self.params)
-                else:
-                    self.dispatch("debug",
-                                  ctrl.CSI +
-                                  u";".join(map(unicode, self.params)) + char)
+                    self.dispatch(event, *self.params, **self.flags)
+                elif __debug__:
+                    sequence = ctrl.CSI + u";".join(map(unicode, self.params)) + char
+                    self.dispatch("debug", sequence)
 
                 self.reset()
 
