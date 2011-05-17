@@ -106,6 +106,12 @@ class Stream(object):
     }
 
     def __init__(self):
+        self.handlers = {
+            "stream": self._stream,
+            "escape": self._escape,
+            "arguments": self._arguments
+        }
+
         self.listeners = defaultdict(lambda: [])
         self.reset()
 
@@ -126,13 +132,10 @@ class Stream(object):
             raise TypeError(
                 "%s requires unicode input" % self.__class__.__name__)
 
-        handler = {
-            "stream": self._stream,
-            "escape": self._escape,
-            "arguments": self._arguments,
-        }.get(self.state)
-
-        handler and handler(char)
+        try:
+            self.handlers.get(self.state)(char)
+        except TypeError:
+            pass
 
     def feed(self, chars):
         """Consume a unicode string and advance the state as necessary.
@@ -143,7 +146,7 @@ class Stream(object):
             raise TypeError(
                 "%s requires unicode input" % self.__class__.__name__)
 
-        map(self.consume, chars)
+        for char in chars: self.consume(char)
 
     def connect(self, event, callback):
         """Add an event listener for a particular event.
