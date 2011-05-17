@@ -15,8 +15,9 @@ class counter(object):
 
 
 class argcheck(counter):
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         self.args = args
+        self.kwargs = kwargs
         super(argcheck, self).__call__()
 
 
@@ -116,6 +117,7 @@ def test_mode_csi_sequences():
     assert not bugger.count
     assert handler.count == 1
     assert handler.args == (9, 2)
+    assert handler.kwargs == {"private": True}
 
     # a) reset-mode
     handler = argcheck()
