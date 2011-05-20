@@ -37,12 +37,16 @@ DECSC = u"7"
 #: selection. If none were saved, move cursor to home position.
 DECRC = u"8"
 
+
+# "Sharp" escape sequences.
+# -------------------------
+
 #: *Alignment display*: Fill screen with uppercase E's for testing
 #: screen focus and alignment.
-DECALN = u"8"  # TODO: change to "#8"!
+DECALN = u"8"
 
 
-# ECMA-48 CSI seqences.
+# ECMA-48 CSI sequences.
 # ---------------------
 
 #: *Insert character*: Insert the indicated # of blank characters.

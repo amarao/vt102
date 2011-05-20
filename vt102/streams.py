@@ -73,6 +73,10 @@ class Stream(object):
         esc.HTS: "set-tab-stop",
         esc.DECSC: "save-cursor",
         esc.DECRC: "restore-cursor",
+    }
+
+    #: "sharp" escape sequences.
+    sharp = {
         esc.DECALN: "alignment-display",
     }
 
@@ -102,14 +106,15 @@ class Stream(object):
         esc.RM: "reset-mode",
         esc.SGR: "select-graphic-rendition",
         esc.DECSTBM: "set-margins",
-        esc.HPA: "cursor-to-column"
+        esc.HPA: "cursor-to-column",
     }
 
     def __init__(self):
         self.handlers = {
             "stream": self._stream,
             "escape": self._escape,
-            "arguments": self._arguments
+            "arguments": self._arguments,
+            "sharp": self._sharp
         }
 
         self.listeners = defaultdict(lambda: [])
@@ -203,7 +208,7 @@ class Stream(object):
         which starts with a sharp.
         """
         if char == u"#":
-            pass
+            self.state = "sharp"
         elif char == u"[":
             self.state = "arguments"
         elif char in self.escape:
@@ -211,6 +216,13 @@ class Stream(object):
             self.dispatch(self.escape[char])
         else:
             self.state = "stream"
+
+    def _sharp(self, char):
+        """Parse arguments of a `"#"` seqence."""
+        if char in self.sharp:
+            self.dispatch(self.sharp[char])
+
+        self.state = "stream"
 
     def _arguments(self, char):
         """Parse arguments of an escape sequence.
