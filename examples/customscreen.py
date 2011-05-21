@@ -5,6 +5,9 @@
 
     What if you need a custom screen, which for example maintains a list
     of "dirty" (i. e. changed) lines. You got it :)
+
+    :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
+    :license: LGPL, see LICENSE for more details.
 """
 
 
