@@ -29,6 +29,7 @@
 from __future__ import absolute_import
 
 import codecs
+import sys
 from collections import defaultdict
 
 from . import control as ctrl, escape as esc
@@ -290,3 +291,32 @@ class ByteStream(Stream):
                 "%s requires input in bytes" % self.__class__.__name__)
 
         super(ByteStream, self).feed(self.decoder.decode(chars))
+
+
+class DebugStream(ByteStream):
+    """Stream, which dumps dispatched events to a given file-like object
+    (:attr:`sys.stdout` by default). Example:
+
+    >>> stream = DebugStream()
+    >>> stream.feed("\x1b[1;24r\x1b[4l\x1b[24;1H\x1b[0;10m")
+    SET-MARGINS 1, 24
+    RESET-MODE 4
+    CURSOR-POSITION 24, 1
+    SELECT-GRAPHIC-RENDITION 0, 10
+
+    :param out: a file like object to write debug information to.
+    :param ignore: a list of events you want to debug (empty by default,
+                   which means -- debug all events).
+    """
+
+    def __init__(self, out=sys.stdout, only=[], *args, **kwargs):
+        self.out = out
+        self.only = set(only)
+        super(DebugStream, self).__init__(*args, **kwargs)
+
+    def dispatch(self, event, *args, **kwargs):
+        if event in self.only:
+            self.out.write(event.upper() +
+                           " %s\n" % ", ".join(map(unicode, args)))
+
+        super(DebugStream, self).dispatch(event, *args, **kwargs)
