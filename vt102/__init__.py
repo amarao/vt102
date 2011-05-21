@@ -15,9 +15,9 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-__all__ = ("Screen", "Stream", "ByteStream",
+__all__ = ("Screen", "Stream", "ByteStream", "DebugStream"
            "ctrl", "esc", "mo", "g")
 
 from . import control as ctrl, escape as esc, modes as mo, graphics as g
 from .screens import Screen
-from .streams import Stream, ByteStream
+from .streams import Stream, ByteStream, DebugStream
