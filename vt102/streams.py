@@ -315,8 +315,8 @@ class DebugStream(ByteStream):
         super(DebugStream, self).__init__(*args, **kwargs)
 
     def dispatch(self, event, *args, **kwargs):
-        if event in self.only:
+        if not self.only or event in self.only:
             self.out.write(event.upper() +
-                           " %s\n" % ", ".join(map(unicode, args)))
+                           u" %s\n" % u", ".join(map(unicode, args)))
 
         super(DebugStream, self).dispatch(event, *args, **kwargs)
