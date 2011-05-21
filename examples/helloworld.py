@@ -4,6 +4,9 @@
     ~~~~~~~~~~
 
     A minimal working example for :mod:`vt102`.
+
+    :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
+    :license: LGPL, see LICENSE for more details.
 """
 
 from __future__ import print_function
