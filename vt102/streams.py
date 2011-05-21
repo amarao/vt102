@@ -17,7 +17,6 @@
     >>> dummy = Dummy()
     >>> stream = vt102.Stream()
     >>> stream.connect("cursor-up", dummy.up)
-    >>>
     >>> stream.feed(u"\u001B[5A") # Move the cursor up 5 rows.
     >>> dummy.foo
     5
@@ -52,7 +51,7 @@ class Stream(object):
             :attr:`escape`, :attr:`csi`
     """
 
-    #: Basic characters, which don't require any arguments.
+    #: Control sequences, which don't require any arguments.
     basic = {
         ctrl.BEL: "bell",
         ctrl.BS: "backspace",
@@ -76,12 +75,12 @@ class Stream(object):
         esc.DECRC: "restore-cursor",
     }
 
-    #: "sharp" escape sequences.
+    #: "sharp" escape sequences -- ``ESC # <N>``.
     sharp = {
         esc.DECALN: "alignment-display",
     }
 
-    #: CSI escape sequences.
+    #: CSI escape sequences -- ``CSI P1;P2;...;Pn <fn>``.
     csi = {
         esc.ICH: "insert-characters",
         esc.CUU: "cursor-up",
@@ -132,7 +131,7 @@ class Stream(object):
         """Consume a single unicode character and advance the state as
         necessary.
 
-        :param char: a unicode character to consume.
+        :param unicode char: a unicode character to consume.
         """
         if not isinstance(char, unicode):
             raise TypeError(
@@ -170,9 +169,6 @@ class Stream(object):
 
     def dispatch(self, event, *args, **flags):
         """Dispatch an event.
-
-        :param event: event to dispatch.
-        :param args: a tuple of arguments to send to each callback.
 
         .. note::
 
@@ -277,8 +273,18 @@ class ByteStream(Stream):
     It uses :class:`codecs.IncrementalDecoder` to decode bytes fed into
     a predefined encoding, so broken bytes is not an issue.
 
-    :param encoding: input encoding.
-    :param errors: how to handle decoding errors.
+    >>> stream = ByteStream()
+    >>> stream.feed(b"foo".decode("utf-8"))
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "vt102/streams.py", line 288, in feed
+        "%s requires input in bytes" % self.__class__.__name__)
+    TypeError: ByteStream requires input in bytes
+    >>> stream.feed(b"foo")
+
+    :param unicode encoding: input encoding.
+    :param unicode errors: how to handle decoding errors, see
+                           :meth:`str.decode` for possible values.
     """
 
     def __init__(self, encoding="utf-8", errors="replace"):
@@ -294,8 +300,8 @@ class ByteStream(Stream):
 
 
 class DebugStream(ByteStream):
-    """Stream, which dumps dispatched events to a given file-like object
-    (:attr:`sys.stdout` by default). Example:
+    """Stream, which dumps a subset of the dispatched events to a given
+    file-like object (:data:`sys.stdout` by default).
 
     >>> stream = DebugStream()
     >>> stream.feed("\x1b[1;24r\x1b[4l\x1b[24;1H\x1b[0;10m")
@@ -304,19 +310,19 @@ class DebugStream(ByteStream):
     CURSOR-POSITION 24, 1
     SELECT-GRAPHIC-RENDITION 0, 10
 
-    :param out: a file like object to write debug information to.
-    :param ignore: a list of events you want to debug (empty by default,
-                   which means -- debug all events).
+    :param file to: a file-like object to write debug information to.
+    :param list only: a list of events you want to debug (empty by
+                      default, which means -- debug all events).
     """
 
-    def __init__(self, out=sys.stdout, only=[], *args, **kwargs):
-        self.out = out
+    def __init__(self, to=sys.stdout, only=(), *args, **kwargs):
+        self.to = to
         self.only = set(only)
         super(DebugStream, self).__init__(*args, **kwargs)
 
     def dispatch(self, event, *args, **kwargs):
         if not self.only or event in self.only:
-            self.out.write(event.upper() +
-                           u" %s\n" % u", ".join(map(unicode, args)))
+            self.to.write(event.upper() +
+                          u" %s\n" % u", ".join(map(unicode, args)))
 
         super(DebugStream, self).dispatch(event, *args, **kwargs)
