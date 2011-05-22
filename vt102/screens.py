@@ -109,8 +109,15 @@ class Screen(list):
 
     @property
     def cursor(self):
-        """Returns cursor's column and line numbers."""
-        return self.x, self.y
+        """Returns current cursor position -- ``(line, column)``.
+
+        .. note::
+
+           The reason for reversed ``(y, x)`` or ``(line, column)`` pair
+           is that :meth:`cursor_position` uses same argument ordering.
+           Same note applies to :data:`size` property.
+        """
+        return self.y, self.x
 
     @property
     def size(self):
@@ -119,7 +126,7 @@ class Screen(list):
 
     @property
     def display(self):
-        """Returns a list of screen lines as unicode strings."""
+        """Returns a :func:`list` of screen lines as unicode strings."""
         return [u"".join(map(operator.attrgetter("data"), line))
                 for line in self]
 
@@ -176,7 +183,8 @@ class Screen(list):
         * Scroll margins are reset to screen boundaries.
         * Cursor is moved to home location -- ``(0, 0)`` and its
           attributes are set to defaults (see :attr:`default_char`).
-        * SGR state is reset to defaults (see :attr:`default_char`).
+        * Screen is cleared -- each character is reset to
+          :attr:`default_char`.
         """
         size = self.size
 
@@ -404,7 +412,7 @@ class Screen(list):
             # .. todo:: ensure that the poped cursor is within screen
             #           boundaries?
             savepoint = self.savepoints.pop()
-            self.x, self.y = savepoint.cursor
+            self.y, self.x = savepoint.cursor
 
             self.cursor_attributes = savepoint.attributes
 
