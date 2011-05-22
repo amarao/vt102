@@ -61,7 +61,7 @@ class Char(_Char):
 
 class Screen(list):
     """
-    A screen is an in memory buffer of strings that represents the
+    A screen is an in-memory matrix of characters that represents the
     screen display of the terminal. It can be instantiated on it's own
     and given explicit commands, or it can be attached to a stream and
     will respond to events.
