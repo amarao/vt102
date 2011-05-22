@@ -68,8 +68,8 @@ def test_reset_resets_colors():
     screen = Screen(2, 2)
     assert screen == [[screen.default_char, screen.default_char]] * 2
 
-    screen.select_graphic_rendition(30) # black foreground
-    screen.select_graphic_rendition(40) # black background
+    screen.select_graphic_rendition(30)
+    screen.select_graphic_rendition(40)
     assert screen.cursor_attributes.fg == "black"
     assert screen.cursor_attributes.bg == "black"
 
@@ -80,8 +80,8 @@ def test_reset_resets_colors():
 def test_multi_attribs():
     screen = Screen(2, 2)
     assert screen == [[screen.default_char, screen.default_char]] * 2
-    screen.select_graphic_rendition(1) # Bold
-    screen.select_graphic_rendition(3) # Italics
+    screen.select_graphic_rendition(1)
+    screen.select_graphic_rendition(3)
 
     assert screen.cursor_attributes.bold
     assert screen.cursor_attributes.italics
@@ -90,7 +90,7 @@ def test_multi_attribs():
 def test_attributes_reset():
     screen = Screen(2, 2)
     assert screen == [[screen.default_char, screen.default_char]] * 2
-    screen.select_graphic_rendition(1) # Bold
+    screen.select_graphic_rendition(1)
     screen.draw(u"f")
     screen.draw(u"o")
     screen.draw(u"o")
