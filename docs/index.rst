@@ -6,15 +6,22 @@
 Welcome to vt102's documentation!
 =================================
 
-``vt102`` is an in memory vt102 terminal emulator. It supports all the
-most common terminal escape sequences, including text attributes and
-color.
+What is ``vt102``? It's an in memory VTXXX-compatible terminal emulator.
+*XXX* stands for a series video terminals, developed by
+`DEC <http://en.wikipedia.org/wiki/Digital_Equipment_Corporation>`_ between
+1970 and 1995. The first, and probably the most famous one, was VT100
+terminal, which is now a de-facto standard for all virtual terminal
+emulators. ``vt102`` follows the suit.
 
-Why would you want to use a terminal emulator?
+So, why would one need a terminal emulator library?
 
-* Screen scraping some terminal or curses app.
-* Chicks dig dudes with terminals.
-* ... seriously, that's about it.
+* To screen scrape terminal apps, for example ``htop`` or ``aptitude``.
+* To write cross platform terminal emulators; either with a graphical
+  (`xterm <http://invisible-island.net/xterm/>`_,
+  `rxvt <http://www.rxvt.org/>`_) or a web interface, like
+  `AjaxTerm <http://antony.lesuisse.org/software/ajaxterm/>`_.
+* To have fun, hacking on the ancient, poorly documented technologies.
+
 
 .. todolist::
 
