@@ -186,16 +186,15 @@ class Screen(list):
         * Screen is cleared -- each character is reset to
           :attr:`default_char`.
         """
-        size = self.size
+        self[:] = (take(self.columns, self.default_line)
+                   for _ in xrange(self.lines))
 
-        self[:] = []
+        # FIXME: VT220 says nothing about reseting current modes to
+        # the initial state, check?
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
         self.margins = Margins(0, self.lines - 1)
         self.cursor_attributes = self.default_char
-        self.lines = self.columns = 0
-        self.x = self.y = 0
 
-        self.resize(*size)
         self.cursor_position()
 
     def resize(self, lines=None, columns=None):
