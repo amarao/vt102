@@ -34,7 +34,7 @@ Margins = namedtuple("Margins", "top bottom")
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
 
-#: A container for a single character, field names are *hopfully*
+#: A container for a single character, field names are *hopefully*
 #: self-explanatory.
 _Char = namedtuple("_Char", [
     "data",
@@ -99,10 +99,6 @@ class Screen(list):
     default_line = repeat(default_char)
 
     def __init__(self, columns, lines):
-        # From ``man terminfo`` -- "... hardware tabs are initially
-        # set every `n` spaces when the terminal is powered up. Since
-        # we aim to support VT102 / VT220 and linux -- we use n = 8.
-        self.tabstops = set(xrange(7, columns, 8))
         self.savepoints = []
         self.lines, self.columns = lines, columns
         self.reset()
@@ -185,15 +181,24 @@ class Screen(list):
           attributes are set to defaults (see :attr:`default_char`).
         * Screen is cleared -- each character is reset to
           :attr:`default_char`.
+        * Tabstops are reset to "every eight columns".
+
+        .. note::
+
+           Neither VT220 nor VT102 manuals mentioned that terminal modes
+           and tabstops should be reset as well, thanks to
+           :manpage:`xterm` -- we now know that.
         """
         self[:] = (take(self.columns, self.default_line)
                    for _ in xrange(self.lines))
-
-        # FIXME: VT220 says nothing about reseting current modes to
-        # the initial state, check?
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
         self.margins = Margins(0, self.lines - 1)
         self.cursor_attributes = self.default_char
+
+        # From ``man terminfo`` -- "... hardware tabs are initially
+        # set every `n` spaces when the terminal is powered up. Since
+        # we aim to support VT102 / VT220 and linux -- we use n = 8.
+        self.tabstops = set(xrange(7, self.columns, 8))
 
         self.cursor_position()
 
