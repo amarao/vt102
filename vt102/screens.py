@@ -467,7 +467,8 @@ class Screen(list):
             #                v -- +1 to include the bottom margin.
             for _ in xrange(min(bottom - self.y + 1, count)):
                 self.pop(self.y)
-                self.insert(bottom, take(self.columns, self.default_line))
+                self.insert(bottom, list(
+                    repeat(self.cursor_attributes, self.columns)))
 
             self.carriage_return()
 
@@ -482,7 +483,7 @@ class Screen(list):
         count = count or 1
 
         for _ in xrange(min(self.columns - self.y, count)):
-            self[self.y].insert(self.x, self.default_char)
+            self[self.y].insert(self.x, self.cursor_attributes)
             self[self.y].pop()
 
     def delete_characters(self, count=None):
@@ -497,20 +498,26 @@ class Screen(list):
 
         for _ in xrange(min(self.columns - self.x, count)):
             self[self.y].pop(self.x)
-            self[self.y].append(self.default_char)
+            self[self.y].append(self.cursor_attributes)
 
     def erase_characters(self, count=None):
         """Erases the indicated # of characters, starting with the
-        character at cursor position.  Character attributes are set
-        to normal. The cursor remains in the same position.
+        character at cursor position. Character attributes are set
+        cursor attributes. The cursor remains in the same position.
 
         :param int count: number of characters to erase.
+
+        .. warning::
+
+           Even though *ALL* of the VTXXX manuals tsate that character
+           attributes **should be reset to defaults**, ``libvte``,
+           ``xterm`` and ``ROTE`` completely ignore this. Same applies
+           too all ``erase_*()`` and ``delete_*()`` methods.
         """
         count = count or 1
 
-        for column in xrange(self.x, min(self.x + count,
-                                         self.columns)):
-            self[self.y][column] = self.default_char
+        for column in xrange(self.x, min(self.x + count, self.columns)):
+            self[self.y][column] = self.cursor_attributes
 
     def erase_in_line(self, type_of=0, private=False):
         """Erases a line in a specific way.
@@ -537,7 +544,7 @@ class Screen(list):
         )[type_of]
 
         for column in interval:
-            self[self.y][column] = self.default_char
+            self[self.y][column] = self.cursor_attributes
 
     def erase_in_display(self, type_of=0, private=False):
         """Erases display in a specific way.
@@ -565,7 +572,8 @@ class Screen(list):
         )[type_of]
 
         for line in interval:
-            self[line] = self[line] = take(self.columns, self.default_line)
+            self[line][:] = \
+                (self.cursor_attributes for _ in xrange(self.columns))
 
         # In case of 0 or 1 we have to erase the line with the cursor.
         if type_of in [0, 1]:
