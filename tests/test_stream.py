@@ -60,12 +60,12 @@ def test_unknown_sequences():
     stream.connect("debug", handler)
 
     try:
-        stream.feed(u"\00" + ctrl.ESC + u"[6;7!")
+        stream.feed(ctrl.CSI + u"6;Z")
     except Exception as e:
         pytest.fail("No exception should've raised, got: %s" % e)
     else:
         assert handler.count == 1
-        assert handler.args == (ctrl.CSI + u"6;7!", )
+        assert handler.args == (ctrl.CSI + u"6;0Z", )
 
 
 def test_non_csi_sequences():
