@@ -43,8 +43,8 @@ _Char = namedtuple("_Char", [
     "bold",
     "italics",
     "underscore",
-    "reverse",
     "strikethrough",
+    "reverse",
 ])
 
 
@@ -117,8 +117,12 @@ class Screen(list):
 
     @property
     def size(self):
-        """Returns screen size -- ``(lines, columns)``."""
-        return self.lines, self.columns
+        """Returns screen size -- ``(lines, columns)`` when
+        :data:`vt102.modes.DECTCEM` mode is set, otherwise returns
+        ``None``.
+        """
+        if mo.DECTCEM in self.mode:
+          return self.lines, self.columns
 
     @property
     def display(self):
@@ -191,7 +195,7 @@ class Screen(list):
         """
         self[:] = (take(self.columns, self.default_line)
                    for _ in xrange(self.lines))
-        self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
+        self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM, mo.DECTCEM])
         self.margins = Margins(0, self.lines - 1)
         self.cursor_attributes = self.default_char
 
