@@ -48,7 +48,7 @@ class Stream(object):
 
         `man console_codes <http://linux.die.net/man/4/console_codes>`_
             For details on console codes listed bellow in :attr:`basic`,
-            :attr:`escape`, :attr:`csi` amd :attr:`sharp`.
+            :attr:`escape`, :attr:`csi` and :attr:`sharp`.
     """
 
     #: Control sequences, which don't require any arguments.
@@ -322,7 +322,7 @@ class DebugStream(ByteStream):
 
     def dispatch(self, event, *args, **kwargs):
         if not self.only or event in self.only:
-            self.to.write(event.upper() +
+            self.to.write(event.upper().decode("utf-8") +
                           u" %s\n" % u", ".join(map(unicode, args)))
 
         super(DebugStream, self).dispatch(event, *args, **kwargs)
