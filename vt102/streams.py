@@ -35,20 +35,20 @@ from . import control as ctrl, escape as esc
 
 
 class Stream(object):
-    """A stream is a state machine that parses a stream of terminal
-    characters and dispatches events based on what it sees.
+    """A stream is a state machine that parses a stream of characters
+    and dispatches events based on what it sees.
 
     .. note::
 
-       Stream only accepts unicode strings as input, but if for some
-       reason you need to feed it with byte strings, consider using
+       Stream only accepts unicode strings as input, but if, for some
+       reason, you need to feed it with byte strings, consider using
        :class:`vt102.streams.ByteStream` instead.
 
     .. seealso::
 
         `man console_codes <http://linux.die.net/man/4/console_codes>`_
             For details on console codes listed bellow in :attr:`basic`,
-            :attr:`escape`, :attr:`csi`
+            :attr:`escape`, :attr:`csi` amd :attr:`sharp`.
     """
 
     #: Control sequences, which don't require any arguments.
