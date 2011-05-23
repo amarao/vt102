@@ -4,7 +4,7 @@
     ~~~~~
 
     `vt102` implements a mix of VT102, VT220 and VT520 specification,
-    an aims to support most of the `TERM=linux` functionality.
+    and aims to support most of the `TERM=linux` functionality.
 
     Two classes: :class:`vt102.Stream`, which parses the command stream
     and dispatches events for commands, and :class:`vt102.Screen` which,
