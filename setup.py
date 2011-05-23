@@ -52,7 +52,7 @@ class PyTest(Command):
 
 
 setup(name="vt102",
-      version="0.3.7",
+      version="0.3.8",
       packages=find_packages(exclude=["tests"]),
       cmdclass={"test": PyTest},
       platforms=["any"],
@@ -63,5 +63,5 @@ setup(name="vt102",
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       keywords=["vt102", "terminal emulator"],
-      url="https://github.com/samfoo/vt102",
+      url="https://github.com/amarao/vt102",
 )

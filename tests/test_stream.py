@@ -15,8 +15,9 @@ class counter(object):
 
 
 class argcheck(counter):
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         self.args = args
+        self.kwargs = kwargs
         super(argcheck, self).__call__()
 
 
@@ -59,12 +60,12 @@ def test_unknown_sequences():
     stream.connect("debug", handler)
 
     try:
-        stream.feed(u"\00" + ctrl.ESC + u"[6;7!")
+        stream.feed(ctrl.CSI + u"6;Z")
     except Exception as e:
         pytest.fail("No exception should've raised, got: %s" % e)
     else:
         assert handler.count == 1
-        assert handler.args == (ctrl.CSI + u"6;7!", )
+        assert handler.args == (ctrl.CSI + u"6;0Z", )
 
 
 def test_non_csi_sequences():
@@ -116,6 +117,7 @@ def test_mode_csi_sequences():
     assert not bugger.count
     assert handler.count == 1
     assert handler.args == (9, 2)
+    assert handler.kwargs == {"private": True}
 
     # a) reset-mode
     handler = argcheck()

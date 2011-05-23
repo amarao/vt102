@@ -3,9 +3,12 @@
     vt102.screens
     ~~~~~~~~~~~~~
 
-    This module provides a classes for terminal screens, currently
-    there's only one screen implementation, but who knows what the
-    future will bring :).
+    This module provides classes for terminal screens, currently
+    there's only one base screen implementation, but who knows what
+    the future will bring :).
+
+    .. note:: checkout `examples/customscreen.py` for an example of
+              a screen, which keeps track of the changed lines.
 
     :copyright: (c) 2011 Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
@@ -13,63 +16,72 @@
 
 from __future__ import absolute_import, print_function
 
-import copy
-from array import array
+import operator
 from collections import namedtuple
+from itertools import islice, repeat
 
-from . import modes as mo, control as ctrl, graphics as g
+from . import modes as mo, graphics as g
+
+
+def take(n, iterable):
+    """Returns first n items of the iterable as a list."""
+    return list(islice(iterable, n))
 
 
 #: A container for screen's scroll margins.
 Margins = namedtuple("Margins", "top bottom")
 
-#: A container for character attributes, which consists of the following:
-#:
-#:   1. Foreground color as a string, see :data:`vt102.graphics.colors`
-#:   2. Background color as a string, see :data:`vt102.graphics.colors`
-#:   3. A set of all the text attributes: **bold**, underline, etc
-Attributes = namedtuple("Attributes", "fg bg text")
-
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
 
+#: A container for a single character, field names are *hopefully*
+#: self-explanatory.
+_Char = namedtuple("_Char", [
+    "data",
+    "fg",
+    "bg",
+    "bold",
+    "italics",
+    "underscore",
+    "strikethrough",
+    "reverse",
+])
 
-class Screen(object):
+
+class Char(_Char):
+    """A wrapper around :class:`_Char`, providing some useful defaults
+    for most of the attributes.
     """
-    A screen is an in memory buffer of strings that represents the
+    def __new__(cls, data, fg="default", bg="default", bold=False,
+                italics=False, underscore=False, reverse=False,
+                strikethrough=False):
+        return _Char.__new__(cls, data, fg, bg, bold, italics, underscore,
+                             reverse, strikethrough)
+
+
+class Screen(list):
+    """
+    A screen is an in-memory matrix of characters that represents the
     screen display of the terminal. It can be instantiated on it's own
     and given explicit commands, or it can be attached to a stream and
     will respond to events.
-
-    .. attribute:: display
-
-       A list of :class:`array.array` objects, holding screen buffer.
-
-    .. attribute:: attributes
-
-       A matrix of character attributes, is allways the same size as
-       :attr:`display`.
-
-    .. attribute:: default_attributes
-
-       Default character attributes, which are used for screen
-       initialization and *obviously* for resetting character style.
 
     .. attribute:: margins
 
        Top and bottom screen margins, defining the scrolling region;
        the actual values are top and bottom line.
 
-    .. attribute:: buffer
-
-       A list of string which should be sent to the host, for example
-       :data:`vt102.escape.DA` replies.
-
     .. note::
 
        According to ``ECMA-48`` standard, **lines and columnns are
        1-indexed**, so, for instance ``ESC [ 10;10 f`` really means
        -- move cursor to position (9, 9) in the display matrix.
+
+    .. warning::
+
+       Custom character sets and related CSI sequnces (ex.
+       :data:`vt102.control.SI` and :data:`vt102.control.SO`) are
+       currently **not supported**.
 
     .. seealso::
 
@@ -78,33 +90,52 @@ class Screen(object):
          For a description of the presentational component, implemented
          by ``Screen``.
     """
-    default_attributes = Attributes("default", "default", set())
+    #: A plain empty character with default foreground and background
+    #: colors.
+    default_char = Char(data=u" ", fg="default", bg="default")
+
+    #: An inifinite sequence of default characters, used for populating
+    #: new lines and columns.
+    default_line = repeat(default_char)
 
     def __init__(self, columns, lines):
-        # From ``man terminfo`` -- "... hardware tabs are initially set every
-        # `n` spaces when the terminal is powered up. Since we aim to support
-        # VT102 / VT220 and linux -- we use n = 8.
-        self.tabstops = set(xrange(7, columns, 8))
         self.savepoints = []
         self.lines, self.columns = lines, columns
         self.reset()
 
-    def __repr__(self):
-        return repr([l.tounicode() for l in self.display])
-
     @property
     def cursor(self):
-        """Returns cursor's column and line numbers."""
-        return self.x, self.y
+        """Returns current cursor position -- ``(line, column)``.
+
+        .. note::
+
+           The reason for reversed ``(y, x)`` or ``(line, column)`` pair
+           is that :meth:`cursor_position` uses same argument ordering.
+           Same note applies to :data:`size` property.
+        """
+        return self.y, self.x
 
     @property
     def size(self):
-        """Returns screen size -- ``(lines, columns)``."""
-        return self.lines, self.columns
+        """Returns screen size -- ``(lines, columns)`` when
+        :data:`vt102.modes.DECTCEM` mode is set, otherwise returns
+        ``None``.
+        """
+        if mo.DECTCEM in self.mode:
+          return self.lines, self.columns
 
-    def attach(self, events):
+    @property
+    def display(self):
+        """Returns a :func:`list` of screen lines as unicode strings."""
+        return [u"".join(map(operator.attrgetter("data"), line))
+                for line in self]
+
+    def attach(self, stream):
         """Attaches a screen to an object, which processes commands
         and dispatches events.
+
+        :param vt102.streams.Stream events: event producer to attach
+                                            the screen to.
         """
         handlers = [
             ("reset", self.reset),
@@ -141,109 +172,94 @@ class Screen(object):
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
             ("alignment-display", self.alignment_display),
-            ("answer", self.answer),
-
-            # Not implemented
-            # ...............
-            # ("status-report", ...)
-
-            # Not supported
-            # .............
-            # ("shift-in", ...)
-            # ("shift-out")
         ]
 
         for event, handler in handlers:
-            events.connect(event, handler)
+            stream.connect(event, handler)
 
     def reset(self):
         """Resets the terminal to its initial state.
 
         * Scroll margins are reset to screen boundaries.
         * Cursor is moved to home location -- ``(0, 0)`` and its
-          attributes are set to defaults (:attr:`default_attributes`)
-        * Screen buffer is emptied.
+          attributes are set to defaults (see :attr:`default_char`).
+        * Screen is cleared -- each character is reset to
+          :attr:`default_char`.
+        * Tabstops are reset to "every eight columns".
+
+        .. note::
+
+           Neither VT220 nor VT102 manuals mentioned that terminal modes
+           and tabstops should be reset as well, thanks to
+           :manpage:`xterm` -- we now know that.
         """
-        size = self.size
-
-        self.display = []
-        self.attributes = []
-        self.buffer = []
-        self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM])
+        self[:] = (take(self.columns, self.default_line)
+                   for _ in xrange(self.lines))
+        self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM, mo.DECTCEM])
         self.margins = Margins(0, self.lines - 1)
-        self.cursor_attributes = self.default_attributes
-        self.lines = self.columns = 0
-        self.x = self.y = 0
+        self.cursor_attributes = self.default_char
 
-        self.resize(*size)
+        # From ``man terminfo`` -- "... hardware tabs are initially
+        # set every `n` spaces when the terminal is powered up. Since
+        # we aim to support VT102 / VT220 and linux -- we use n = 8.
+        self.tabstops = set(xrange(7, self.columns, 8))
+
         self.cursor_position()
 
     def resize(self, lines=None, columns=None):
-        """Resize the screen.
+        """Resize the screen to the given dimensions.
 
         If the requested screen size has more lines than the existing
         screen, lines will be added at the bottom. If the requested
         size has less lines than the existing screen lines will be
-        clipped at the top of the screen.
+        clipped at the top of the screen. Similarly, if the existing
+        screen has less columns than the requested screen, columns will
+        be added at the right, and if it has more -- columns will be
+        clipped at the right.
 
-        Similarly if the existing screen has less columns than the
-        requested size, columns will be added at the right, and it
-        has more, columns will be clipped at the right.
+        :param int lines: number of lines in the new screen.
+        :param int columns: number of columns in the new screen.
         """
         lines = lines or self.lines
         columns = columns or self.columns
 
-        # First resize the lines ...
-        if self.lines < lines:
-            # If the current display size is shorter than the requested
-            # screen size, then add lines to the bottom. Note that the
-            # old column size is used here so these new lines will get
-            # expanded / contracted as necessary by the column resize
-            # when it happens next.
-            initial = u" " * self.columns
+        # First resize the lines:
+        diff = self.lines - lines
 
-            for _ in xrange(lines - self.lines):
-                self.display.append(array("u", initial))
-                self.attributes.append(
-                    [self.default_attributes] * self.columns
-                )
-        elif self.lines > lines:
-            # If the current display size is taller than the requested
-            # display, then take lines off the top.
-            self.display = self.display[self.lines - lines: ]
-            self.attributes = self.attributes[self.lines - lines:]
+        # a) if the current display size is less than the requested
+        #    size, add lines to the bottom.
+        if diff < 0:
+            self.extend(take(self.columns, self.default_line)
+                        for _ in xrange(diff, 0))
+        # b) if the current display size is greater than requested
+        #    size, take lines off the top.
+        elif diff > 0:
+            self[:diff] = ()
 
-        # ... next, of course, resize the columns.
-        if self.columns < columns:
-            # If the current display size is thinner than the requested
-            # size, expand each line to be the new size.
-            initial = u" " * (columns - self.columns)
+        # Then resize the columns:
+        diff = self.columns - columns
 
-            self.display = [
-                line + array("u", initial) for line in self.display
-            ]
-            self.attributes = [
-                line + [self.default_attributes] * (columns - self.columns)
-                for line in self.attributes
-            ]
-        elif self.columns > columns:
-            # If the current display size is fatter than the requested size,
-            # then trim each line from the right to be the new size.
-            self.display = [
-                line[:columns - self.columns] for line in self.display
-            ]
-            self.attributes = [
-                line[:columns - self.columns] for line in self.attributes
-            ]
+        # a) if the current display size is less than the requested
+        #    size, expand each line to the new size.
+        if diff < 0:
+            for y in xrange(lines):
+                self[y].extend(take(abs(diff), self.default_line))
+        # b) if the current display size is greater than requested
+        #    size, trim each line from the right to the new size.
+        elif diff > 0:
+            self[:] = (line[:columns] for line in self)
 
         self.lines, self.columns = lines, columns
 
     def set_margins(self, top=None, bottom=None):
-        """Selects top and bottom margins, defining the scrolling region.
+        """Selects top and bottom margins for the scrolling region.
 
-        Margins determine which screen lines move during scrolling (see
-        :meth:`index` and :meth:`reversed_index`). Characters added
+        Margins determine which screen lines move during scrolling
+        (see :meth:`index` and :meth:`reverse_index`). Characters added
         outside the scrolling region do not cause the screen to scroll.
+
+        :param int top: the smallest line number that is scrolled.
+        :param int bottom: the biggest line number that is scrolled.
         """
         if top is None or bottom is None:
             return
@@ -264,11 +280,11 @@ class Screen(object):
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.cursor_position()
 
-    def set_mode(self, *modes):
+    def set_mode(self, *modes, **kwargs):
         """Sets (enables) a given list of modes.
 
-        :param modes: modes to set, where each mode is a constant from
-                     :mod:`vt102.modes`.
+        :param list modes: modes to set, where each mode is a constant
+                           from :mod:`vt102.modes`.
         """
         self.mode.update(modes)
 
@@ -284,11 +300,11 @@ class Screen(object):
         if mo.DECOM in modes:
             self.cursor_position()
 
-    def reset_mode(self, *modes):
+    def reset_mode(self, *modes, **kwargs):
         """Resets (disables) a given list of modes.
 
-        :param modes: modes to reset -- hopefully, each mode is a constant
-                      from :mod:`vt102.modes`.
+        :param list modes: modes to reset -- hopefully, each mode is a
+                           constant from :mod:`vt102.modes`.
         """
         self.mode.difference_update(modes)
 
@@ -304,6 +320,8 @@ class Screen(object):
     def draw(self, char):
         """Display a character at the current cursor position and advance
         the cursor if :data:`vt102.modes.DECAWM` is set.
+
+        :param unicode char: a character to display.
         """
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line. Otherwise replace
@@ -321,8 +339,7 @@ class Screen(object):
             self.insert_characters(1)
 
         try:
-            self.display[self.y][self.x] = char
-            self.attributes[self.y][self.x] = self.cursor_attributes
+            self[self.y][self.x] = self.cursor_attributes._replace(data=char)
         except IndexError:
             # cat /dev/urandom to reproduce
             if __debug__: print(self.x, self.y, char)
@@ -342,12 +359,8 @@ class Screen(object):
         top, bottom = self.margins
 
         if self.y == bottom:
-            self.display.pop(top)
-            self.display.insert(bottom, array("u", u" " * self.columns))
-
-            self.attributes.pop(top)
-            self.attributes.insert(bottom,
-                [self.default_attributes] * self.columns)
+            self.pop(top)
+            self.insert(bottom, take(self.columns, self.default_line))
         else:
             self.cursor_down()
 
@@ -358,18 +371,15 @@ class Screen(object):
         top, bottom = self.margins
 
         if self.y == top:
-            self.display.pop(bottom)
-            self.display.insert(top, array("u", u" " * self.columns))
-
-            self.attributes.pop(bottom)
-            self.attributes.insert(top,
-                [self.default_attributes] * self.columns)
+            self.pop(bottom)
+            self.insert(top, take(self.columns, self.default_line))
         else:
             self.cursor_up()
 
     def linefeed(self):
         """Performs an index and, if :data:`vt102.modes.LNM` is set, a
-        carriage return."""
+        carriage return.
+        """
         self.index()
 
         if mo.LNM in self.mode:
@@ -410,7 +420,7 @@ class Screen(object):
             # .. todo:: ensure that the poped cursor is within screen
             #           boundaries?
             savepoint = self.savepoints.pop()
-            self.x, self.y = savepoint.cursor
+            self.y, self.x = savepoint.cursor
 
             self.cursor_attributes = savepoint.attributes
 
@@ -436,14 +446,10 @@ class Screen(object):
         if top <= self.y <= bottom:
             #                           v +1, because xrange() is exclusive.
             for line in xrange(self.y, min(bottom + 1, self.y + count)):
-                self.display.pop(bottom)
-                self.display.insert(line, array("u", u" " * self.columns))
+                self.pop(bottom)
+                self.insert(line, take(self.columns, self.default_line))
 
-                self.attributes.pop(bottom)
-                self.attributes.insert(line,
-                    [self.default_attributes] * self.columns)
-
-            self.x = 0
+            self.carriage_return()
 
     def delete_lines(self, count=None):
         """Deletes the indicated # of lines, starting at line with
@@ -451,7 +457,7 @@ class Screen(object):
         move up. Lines added to bottom of screen have spaces with same
         character attributes as last line moved up.
 
-        :param count: number of lines to delete.
+        :param int count: number of lines to delete.
         """
         count = count or 1
         top, bottom = self.margins
@@ -460,14 +466,11 @@ class Screen(object):
         if top <= self.y <= bottom:
             #                v -- +1 to include the bottom margin.
             for _ in xrange(min(bottom - self.y + 1, count)):
-                self.display.pop(self.y)
-                self.display.insert(bottom, array("u", u" " * self.columns))
+                self.pop(self.y)
+                self.insert(bottom, list(
+                    repeat(self.cursor_attributes, self.columns)))
 
-                self.attributes.pop(self.y)
-                self.attributes.insert(bottom,
-                    [self.default_attributes] * self.columns)
-
-            self.x = 0
+            self.carriage_return()
 
     def insert_characters(self, count=None):
         """Inserts the indicated # of blank characters at the cursor
@@ -475,16 +478,13 @@ class Screen(object):
         of the inserted blank characters. Data on the line is shifted
         forward.
 
-        :param count: number of characters to insert.
+        :param int count: number of characters to insert.
         """
         count = count or 1
 
         for _ in xrange(min(self.columns - self.y, count)):
-            self.display[self.y].insert(self.x, u" ")
-            self.display[self.y].pop()
-
-            self.attributes[self.y].insert(self.x, self.default_attributes)
-            self.attributes[self.y].pop()
+            self[self.y].insert(self.x, self.cursor_attributes)
+            self[self.y].pop()
 
     def delete_characters(self, count=None):
         """Deletes the indicated # of characters, starting with the
@@ -492,79 +492,73 @@ class Screen(object):
         characters to the right of cursor move left. Character attributes
         move with the characters.
 
-        :param count: number of characters to delete.
+        :param int count: number of characters to delete.
         """
         count = count or 1
 
         for _ in xrange(min(self.columns - self.x, count)):
-            self.display[self.y].pop(self.x)
-            self.display[self.y].append(u" ")
-
-            self.attributes[self.y].pop(self.x)
-            self.attributes[self.y].append(self.default_attributes)
+            self[self.y].pop(self.x)
+            self[self.y].append(self.cursor_attributes)
 
     def erase_characters(self, count=None):
         """Erases the indicated # of characters, starting with the
-        character at cursor position.  Character attributes are set
-        to normal. The cursor remains in the same position.
+        character at cursor position. Character attributes are set
+        cursor attributes. The cursor remains in the same position.
 
-        :param count: number of characters to erase.
+        :param int count: number of characters to erase.
+
+        .. warning::
+
+           Even though *ALL* of the VTXXX manuals tsate that character
+           attributes **should be reset to defaults**, ``libvte``,
+           ``xterm`` and ``ROTE`` completely ignore this. Same applies
+           too all ``erase_*()`` and ``delete_*()`` methods.
         """
         count = count or 1
 
-        for column in xrange(self.x, min(self.x + count,
-                                         self.columns)):
-            self.display[self.y][column] = u" "
-            self.attributes[self.y][column] = self.default_attributes
+        for column in xrange(self.x, min(self.x + count, self.columns)):
+            self[self.y][column] = self.cursor_attributes
 
-    def erase_in_line(self, type_of=0):
-        """Erases a line in a specific way, depending on the ``type_of``
-        value:
+    def erase_in_line(self, type_of=0, private=False):
+        """Erases a line in a specific way.
 
-        * ``0`` -- Erases from cursor to end of line, including cursor
-          position.
-        * ``1`` -- Erases from beginning of line to cursor, including cursor
-          position.
-        * ``2`` -- Erases complete line.
+        :param int type_of: defines the way the line should be erased in:
 
-        .. todo:: add support for private ``"?"`` flag toggling selective
-                  erase.
+            * ``0`` -- Erases from cursor to end of line, including cursor
+              position.
+            * ``1`` -- Erases from beginning of line to cursor, including cursor
+              position.
+            * ``2`` -- Erases complete line.
+        :param bool private: when ``True`` character attributes aren left
+                             unchanged **not implemented**.
         """
-        line = self.display[self.y]
-        attrs = self.attributes[self.y]
-
-        if type_of == 0:
+        interval = (
             # a) erase from the cursor to the end of line, including
             # the cursor,
-            count = self.columns - self.x
-            self.display[self.y] = line[:self.x] + array("u", u" " * count)
-            self.attributes[self.y] = attrs[:self.x] + \
-                                      [self.default_attributes] * count
-        elif type_of == 1:
+            xrange(self.x, self.columns),
             # b) erase from the beginning of the line to the cursor,
             # including it,
-            count = self.x + 1
-            self.display[self.y] = array("u", u" " * count) + line[count:]
-            self.attributes[self.y] = [self.default_attributes] * count + \
-                                      attrs[count:]
-        elif type_of == 2:
+            xrange(0, self.x + 1),
             # c) erase the entire line.
-            self.display[self.y] = array("u", u" " * self.columns)
-            self.attributes[self.y] = [self.default_attributes] * self.columns
+            xrange(0, self.columns)
+        )[type_of]
 
-    def erase_in_display(self, type_of=0):
-        """Erases display in a specific way, depending on the ``type_of``
-        value:
+        for column in interval:
+            self[self.y][column] = self.cursor_attributes
 
-        * ``0`` -- Erases from cursor to end of screen, including cursor
-          position.
-        * ``1`` -- Erases from beginning of screen to cursor, including
-          cursor position.
-        * ``2`` -- Erases complete display. All lines are erased and
-          changed to single-width. Cursor does not move.
+    def erase_in_display(self, type_of=0, private=False):
+        """Erases display in a specific way.
 
-        .. todo:: add support for private ``"?"`` flag toggling selective
-                  erase.
+        :param int type_of: defines the way the line should be erased in:
+
+            * ``0`` -- Erases from cursor to end of screen, including
+              cursor position.
+            * ``1`` -- Erases from beginning of screen to cursor,
+              including cursor position.
+            * ``2`` -- Erases complete display. All lines are erased
+              and changed to single-width. Cursor does not move.
+        :param bool private: when ``True`` character attributes aren left
+                             unchanged **not implemented**.
         """
         interval = (
             # a) erase from cursor to the end of the display, including
@@ -578,8 +572,8 @@ class Screen(object):
         )[type_of]
 
         for line in interval:
-            self.display[line] = array("u", u" " * self.columns)
-            self.attributes[line] = [self.default_attributes] * self.columns
+            self[line][:] = \
+                (self.cursor_attributes for _ in xrange(self.columns))
 
         # In case of 0 or 1 we have to erase the line with the cursor.
         if type_of in [0, 1]:
@@ -607,14 +601,10 @@ class Screen(object):
     def ensure_bounds(self, use_margins=None):
         """Ensure that current cursor position is within screen bounds.
 
-        .. note::
-
-           ``use_margins`` is assumed to be allways ``True`` when
-           :data:`vt102.modes.DECOM` is set.
-
-        :param use_margins: when ``True``, cursor is bounded by top and
-                            and bottom margins, instead of
-                            ``[0; lines - 1]``.
+        :param bool use_margins: when ``True`` or when
+                                 :data:`vt102.modes.DECOM` is set, cursor
+                                 is bounded by top and and bottom margins,
+                                 instead of ``[0; lines - 1]``.
         """
         if use_margins or mo.DECOM in self.mode:
             top, bottom = self.margins
@@ -628,7 +618,7 @@ class Screen(object):
         """Moves cursor up the indicated # of lines in same column.
         Cursor stops at top margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.y -= count or 1
         self.ensure_bounds(use_margins=True)
@@ -637,7 +627,7 @@ class Screen(object):
         """Moves cursor up the indicated # of lines to column 1. Cursor
         stops at bottom margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.cursor_up(count)
         self.carriage_return()
@@ -646,7 +636,7 @@ class Screen(object):
         """Moves cursor down the indicated # of lines in same column.
         Cursor stops at bottom margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.y += count or 1
         self.ensure_bounds(use_margins=True)
@@ -655,7 +645,7 @@ class Screen(object):
         """Moves cursor down the indicated # of lines to column 1.
         Cursor stops at bottom margin.
 
-        :param count: number of lines to skip.
+        :param int count: number of lines to skip.
         """
         self.cursor_down(count)
         self.carriage_return()
@@ -664,7 +654,7 @@ class Screen(object):
         """Moves cursor left the indicated # of columns. Cursor stops
         at left margin.
 
-        :param count: number of columns to skip.
+        :param int count: number of columns to skip.
         """
         self.x -= count or 1
         self.ensure_bounds()
@@ -673,7 +663,7 @@ class Screen(object):
         """Moves cursor right the indicated # of columns. Cursor stops
         at right margin.
 
-        :param count: number of columns to skip.
+        :param int count: number of columns to skip.
         """
         self.x += count or 1
         self.ensure_bounds()
@@ -684,6 +674,9 @@ class Screen(object):
         Cursor is allowed to move out of the scrolling region only when
         :data:`vt102.modes.DECOM` is reset, otherwise -- the position
         doesn't change.
+
+        :param int line: line number to move the cursor to.
+        :param int column: column number to move the cursor to.
         """
         column = (column or 1) - 1
         line = (line or 1) - 1
@@ -703,7 +696,7 @@ class Screen(object):
     def cursor_to_column(self, column=None):
         """Moves cursor to a specific column in the current line.
 
-        :param column: column number to move the cursor to.
+        :param int column: column number to move the cursor to.
         """
         self.x = (column or 1) - 1
         self.ensure_bounds()
@@ -711,7 +704,7 @@ class Screen(object):
     def cursor_to_line(self, line=None):
         """Moves cursor to a specific line in the current column.
 
-        :param line: line number to move the cursor to.
+        :param int line: line number to move the cursor to.
         """
         self.y = (line or 1) - 1
 
@@ -732,61 +725,26 @@ class Screen(object):
 
     def alignment_display(self):
         """Fills screen with uppercase E's for screen focus and alignment."""
-        for line in xrange(self.lines):
-            for column in xrange(self.columns):
-                self.display[line][column] = u"E"
-
-    def answer(self, *args):
-        """Reports device attributes.
-
-        There are two DA exchanges (dialogues) between the host computer
-        and the terminal:
-
-        * In the primary DA exchange, the host asks for the terminal's
-          service class code and the basic attributes.
-        * In the secondary DA exchange, the host asks for the terminal's
-          identification code, firmware version level, and an account
-          of the hardware options installed.
-
-        .. note::
-
-           ``vt102`` only implements primary DA exchange, since secondary
-           DA exchange doesn't make much sense in the case of a digital
-           terminal.
-        """
-        if len(args) == 1:
-            attrs = [
-                u"62",  # I'm a service class 2 terminal
-                u"1",   # with 132 columns
-                u"6",   # and selective erase.
-            ]
-            self.buffer.append(u"%s?%sc" % (ctrl.CSI, u";".join(attrs)))
+        for line in self:
+            for column, char in enumerate(line):
+                line[column] = char._replace(data=u"E")
 
     def select_graphic_rendition(self, *attrs):
-        """Set display attributes."""
+        """Set display attributes.
+
+        :param list attrs: a list of display attributes to set.
+        """
+        replace = {}
+
         for attr in attrs or [0]:
-            if not attr:
-                cursor_attributes = self.default_attributes
-            elif attr in g.SPECIAL:
-                cursor_attributes = self.cursor_attributes._replace(
-                    fg=self.cursor_attributes.bg,
-                    bg=self.cursor_attributes.fg
-                )
-            elif attr in g.FG:
-                cursor_attributes = self.cursor_attributes._replace(fg=g.FG[attr])
+            if attr in g.FG:
+                replace["fg"] = g.FG[attr]
             elif attr in g.BG:
-                cursor_attributes = self.cursor_attributes._replace(bg=g.BG[attr])
+                replace["bg"] = g.BG[attr]
             elif attr in g.TEXT:
                 attr = g.TEXT[attr]
-                text = copy.copy(self.cursor_attributes.text)
+                replace[attr[1:]] = attr.startswith(u"+")
+            elif not attr:
+                replace = self.default_char._asdict()
 
-                if attr.startswith("-"):
-                    text.discard(attr[1:])
-                else:
-                    text.add(attr)
-
-                cursor_attributes = self.cursor_attributes._replace(text=text)
-            else:
-                continue  # Silently skipping unknown attributes.
-
-            self.cursor_attributes = cursor_attributes
+        self.cursor_attributes = self.cursor_attributes._replace(**replace)

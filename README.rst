@@ -7,12 +7,21 @@ vt102
 About
 -----
 
-``vt102`` is an in-memory VTXXX-compatible terminal emulator. Like almost
-`all <http://sourceforge.net/projects/termemulator>`_
-`of <http://hg.logilab.org/pyqonsole/file/bf7fb8ce56a1/pyqonsole/emuVt102.py>`_
-`the <http://code.google.com/p/webtty/source/browse/trunk/lib/app_comet.py>`_
-pure-Python VT100 emulation labraries, it claims to «support all the most
-common terminal escape sequences, including text attributes, color and more!».
+What is ``vt102``? It's an in memory VTXXX-compatible terminal emulator.
+*XXX* stands for a series video terminals, developed by
+`DEC <http://en.wikipedia.org/wiki/Digital_Equipment_Corporation>`_ between
+1970 and 1995. The first, and probably the most famous one, was VT100
+terminal, which is now a de-facto standard for all virtual terminal
+emulators. ``vt102`` follows the suit.
+
+So, why would one need a terminal emulator library?
+
+* To screen scrape terminal apps, for example ``htop`` or ``aptitude``.
+* To write cross platform terminal emulators; either with a graphical
+  (`xterm <http://invisible-island.net/xterm/>`_,
+  `rxvt <http://www.rxvt.org/>`_) or a web interface, like
+  `AjaxTerm <http://antony.lesuisse.org/software/ajaxterm/>`_.
+* To have fun, hacking on the ancient, poorly documented technologies.
 
 
 Installation
@@ -37,7 +46,7 @@ Example
                     u"tails.\r\u001b[5;1H\u001b[6;1H\u001b[7;1HShall I pi"
                     u"ck a character's race, role, gender and alignment f"
                     u"or you? [ynq] ")
-    >>> map(lambda l: l.tounicode(), screen.display)
+    >>> screen.display
         ['                                                                                ',
          'NetHack, Copyright 1985-2003                                                    ',
          '         By Stichting Mathematisch Centrum and M. Stephenson.                   ',
@@ -63,3 +72,14 @@ Example
          '                                                                                ',
          '                                                                                ']
     >>>
+
+
+Options?
+--------
+
+``vt102`` is not alone in the weird world of terminal emulator libraries,
+here's a few other options worth checking out:
+`Termemulator <http://sourceforge.net/projects/termemulator/>`_,
+`pyqonsole <http://hg.logilab.org/pyqonsole/>`_,
+`webtty <http://code.google.com/p/webtty/>`_
+`AjaxTerm <http://antony.lesuisse.org/software/ajaxterm/>`_

@@ -4,43 +4,40 @@
     ~~~~~~~~~~~~~~
 
     This module defines graphic-related constants, mostly taken from
-    ``man console_codes`` and
+    :manpage:`console_codes(4)` and
     http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html.
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
 """
 
-SPECIAL = {
-    0: "reset",
-    7: "reverse",
-    27: "-reverse"
-}
-
-"""A mapping of ANSI text style codes to style names, example:
-
->>> text[1]
-'bold'
->>> text[9]
-'strikethrough'"""
+#: A mapping of ANSI text style codes to style names, "+" means the:
+#: attribute is set, "-" -- reset; example:
+#:
+#: >>> text[1]
+#: '+bold'
+#: >>> text[9]
+#: '+strikethrough'
 TEXT = {
-    1: "bold" ,
-    3: "italics",
-    4: "underscore",
-    9: "strikethrough",
+    1: "+bold" ,
+    3: "+italics",
+    4: "+underscore",
+    7: "+reverse",
+    9: "+strikethrough",
     22: "-bold",
+    23: "-italics",
     24: "-underscore",
-    25: "-blink",
+    27: "-reverse",
     29: "-strikethrough"
 }
 
 
-"""A mapping of ANSI foreground color codes to color names, example:
-
->>> FG[30]
-'black'
->>> FG[38]
-'default'"""
+#: A mapping of ANSI foreground color codes to color names, example:
+#:
+#: >>> FG[30]
+#: 'black'
+#: >>> FG[38]
+#: 'default'
 FG = {
     30: "black",
     31: "red",
@@ -53,12 +50,12 @@ FG = {
     39: "default"  # white.
 }
 
-"""A mapping of ANSI background color codes to color names, example:
-
->>> BG[40]
-'black'
->>> BG[48]
-'default'"""
+#: A mapping of ANSI background color codes to color names, example:
+#:
+#: >>> BG[40]
+#: 'black'
+#: >>> BG[48]
+#: 'default'
 BG = {
     40: "black",
     41: "red",

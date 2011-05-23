@@ -10,13 +10,13 @@
     >>> class Dummy(object):
     ...     def __init__(self):
     ...         self.foo = 0
+    ...
     ...     def up(self, bar):
     ...         self.foo += bar
     ...
     >>> dummy = Dummy()
     >>> stream = vt102.Stream()
     >>> stream.connect("cursor-up", dummy.up)
-    >>>
     >>> stream.feed(u"\u001B[5A") # Move the cursor up 5 rows.
     >>> dummy.foo
     5
@@ -28,30 +28,30 @@
 from __future__ import absolute_import
 
 import codecs
-from warnings import warn
+import sys
 from collections import defaultdict
 
 from . import control as ctrl, escape as esc
 
 
 class Stream(object):
-    """A stream is a state machine that parses a stream of terminal
-    characters and dispatches events based on what it sees.
+    """A stream is a state machine that parses a stream of characters
+    and dispatches events based on what it sees.
 
     .. note::
 
-       Stream only accepts unicode strings as input, but if for some
-       reason you need to feed it with byte strings, consider using
+       Stream only accepts unicode strings as input, but if, for some
+       reason, you need to feed it with byte strings, consider using
        :class:`vt102.streams.ByteStream` instead.
 
     .. seealso::
 
         `man console_codes <http://linux.die.net/man/4/console_codes>`_
             For details on console codes listed bellow in :attr:`basic`,
-            :attr:`escape`, :attr:`csi`
+            :attr:`escape`, :attr:`csi` and :attr:`sharp`.
     """
 
-    #: Basic characters, which don't require any arguments.
+    #: Control sequences, which don't require any arguments.
     basic = {
         ctrl.BEL: "bell",
         ctrl.BS: "backspace",
@@ -73,10 +73,14 @@ class Stream(object):
         esc.HTS: "set-tab-stop",
         esc.DECSC: "save-cursor",
         esc.DECRC: "restore-cursor",
+    }
+
+    #: "sharp" escape sequences -- ``ESC # <N>``.
+    sharp = {
         esc.DECALN: "alignment-display",
     }
 
-    #: CSI escape sequences.
+    #: CSI escape sequences -- ``CSI P1;P2;...;Pn <fn>``.
     csi = {
         esc.ICH: "insert-characters",
         esc.CUU: "cursor-up",
@@ -93,7 +97,6 @@ class Stream(object):
         esc.DL: "delete-lines",
         esc.DCH: "delete-characters",
         esc.ECH: "erase-characters",
-        esc.DA: "answer",
         esc.HPR: "cursor-forward",
         esc.VPA: "cursor-to-line",
         esc.VPR: "cursor-down",
@@ -102,18 +105,25 @@ class Stream(object):
         esc.SM: "set-mode",
         esc.RM: "reset-mode",
         esc.SGR: "select-graphic-rendition",
-        esc.DSR: "status-report",
         esc.DECSTBM: "set-margins",
-        esc.HPA: "cursor-to-column"
+        esc.HPA: "cursor-to-column",
     }
 
     def __init__(self):
+        self.handlers = {
+            "stream": self._stream,
+            "escape": self._escape,
+            "arguments": self._arguments,
+            "sharp": self._sharp
+        }
+
         self.listeners = defaultdict(lambda: [])
         self.reset()
 
     def reset(self):
         """Reset state to ``"stream"`` and empty parameter attributes."""
         self.state = "stream"
+        self.flags = {}
         self.params = []
         self.current = u""
 
@@ -121,30 +131,27 @@ class Stream(object):
         """Consume a single unicode character and advance the state as
         necessary.
 
-        :param char: a unicode character to consume.
+        :param unicode char: a unicode character to consume.
         """
         if not isinstance(char, unicode):
             raise TypeError(
                 "%s requires unicode input" % self.__class__.__name__)
 
-        handler = {
-            "stream": self._stream,
-            "escape": self._escape,
-            "arguments": self._arguments,
-        }.get(self.state)
-
-        handler and handler(char)
+        try:
+            self.handlers.get(self.state)(char)
+        except TypeError:
+            pass
 
     def feed(self, chars):
         """Consume a unicode string and advance the state as necessary.
 
-        :param chars: a unicode string to feed from.
+        :param unicode chars: a unicode string to feed from.
         """
         if not isinstance(chars, unicode):
             raise TypeError(
                 "%s requires unicode input" % self.__class__.__name__)
 
-        map(self.consume, chars)
+        for char in chars: self.consume(char)
 
     def connect(self, event, callback):
         """Add an event listener for a particular event.
@@ -154,30 +161,26 @@ class Stream(object):
         default values, but providing these defaults is responsibility
         of the callback.
 
-        :param event: event to listen for.
-        :param function: callable to invoke when a given event occurs.
+        :param unicode event: event to listen for.
+        :param callable callback: callable to invoke when a given event
+                                  occurs.
         """
         self.listeners[event].append(callback)
 
-    def dispatch(self, event, *args):
+    def dispatch(self, event, *args, **flags):
         """Dispatch an event.
-
-        :param event: event to dispatch.
-        :param args: a tuple of arguments to send to each callback.
 
         .. note::
 
            If any callback throws an exception, the subsequent callbacks
            are be aborted.
-        """
-        if event not in self.listeners:
-            warn("no listner found for %s(%s)" % (event, args))
 
+        :param unicode event: event to dispatch.
+        :param list args: arguments to pass to event handlers.
+        :param dict flags: keyword flags to pass to event handlers.
+        """
         for callback in self.listeners.get(event, []):
-            if args:
-                callback(*args)
-            else:
-                callback()
+            callback(*args, **flags)
 
     # State transformers.
     # ...................
@@ -202,7 +205,7 @@ class Stream(object):
         which starts with a sharp.
         """
         if char == u"#":
-            pass
+            self.state = "sharp"
         elif char == u"[":
             self.state = "arguments"
         elif char in self.escape:
@@ -210,6 +213,13 @@ class Stream(object):
             self.dispatch(self.escape[char])
         else:
             self.state = "stream"
+
+    def _sharp(self, char):
+        """Parse arguments of a `"#"` seqence."""
+        if char in self.sharp:
+            self.dispatch(self.sharp[char])
+
+        self.state = "stream"
 
     def _arguments(self, char):
         """Parse arguments of an escape sequence.
@@ -228,10 +238,7 @@ class Stream(object):
                For details on the characters valid for use as arguments.
         """
         if char == u"?":
-            # At this point we don't distinguish DEC private modes from
-            # ANSI modes, since the latter are pretty much useless for
-            # a library to handle.
-            pass
+            self.flags["private"] = True
         elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.CR]:
             # Not sure why, but those seem to be allowed between CSI
             # sequence arguments.
@@ -244,7 +251,6 @@ class Stream(object):
             self.dispatch("draw", char)
             self.state = "stream"
         elif char.isdigit():
-            # .. todo: joining strings with `+` is way too slow!
             self.current += char
         else:
             self.params.append(min(int(self.current or 0), 9999))
@@ -254,11 +260,10 @@ class Stream(object):
             else:
                 event = self.csi.get(char)
                 if event:
-                    self.dispatch(event, *self.params)
-                else:
+                    self.dispatch(event, *self.params, **self.flags)
+                elif __debug__:
                     self.dispatch("debug",
-                                  ctrl.CSI +
-                                  u";".join(map(unicode, self.params)) + char)
+                        ctrl.CSI + u";".join(map(unicode, self.params)) + char)
 
                 self.reset()
 
@@ -268,8 +273,18 @@ class ByteStream(Stream):
     It uses :class:`codecs.IncrementalDecoder` to decode bytes fed into
     a predefined encoding, so broken bytes is not an issue.
 
-    :param encoding: input encoding.
-    :param errors: how to handle decoding errors.
+    >>> stream = ByteStream()
+    >>> stream.feed(b"foo".decode("utf-8"))
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "vt102/streams.py", line 288, in feed
+        "%s requires input in bytes" % self.__class__.__name__)
+    TypeError: ByteStream requires input in bytes
+    >>> stream.feed(b"foo")
+
+    :param unicode encoding: input encoding.
+    :param unicode errors: how to handle decoding errors, see
+                           :meth:`str.decode` for possible values.
     """
 
     def __init__(self, encoding="utf-8", errors="replace"):
@@ -282,3 +297,41 @@ class ByteStream(Stream):
                 "%s requires input in bytes" % self.__class__.__name__)
 
         super(ByteStream, self).feed(self.decoder.decode(chars))
+
+
+class DebugStream(ByteStream):
+    """Stream, which dumps a subset of the dispatched events to a given
+    file-like object (:data:`sys.stdout` by default).
+
+    >>> stream = DebugStream()
+    >>> stream.feed("\x1b[1;24r\x1b[4l\x1b[24;1H\x1b[0;10m")
+    SET-MARGINS 1, 24
+    RESET-MODE 4
+    CURSOR-POSITION 24, 1
+    SELECT-GRAPHIC-RENDITION 0, 10
+
+    :param file to: a file-like object to write debug information to.
+    :param list only: a list of events you want to debug (empty by
+                      default, which means -- debug all events).
+    """
+
+    def __init__(self, to=sys.stdout, only=(), *args, **kwargs):
+        self.to = to
+        self.only = set(only)
+        super(DebugStream, self).__init__(*args, **kwargs)
+
+    def dispatch(self, event, *args, **kwargs):
+        if not self.only or event in self.only:
+            self.to.write("%s " % event.upper())
+
+            for arg in args:
+                if isinstance(arg, unicode):
+                    arg = arg.encode("utf-8")
+                elif not isinstance(arg, bytes):
+                    arg = bytes(arg)
+
+                self.to.write("%s " % arg)
+            else:
+                self.to.write("\n")
+
+        super(DebugStream, self).dispatch(event, *args, **kwargs)

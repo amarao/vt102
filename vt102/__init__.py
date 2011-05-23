@@ -15,9 +15,24 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-__all__ = ("Screen", "Stream", "ByteStream",
+__all__ = ("Screen", "Stream", "ByteStream", "DebugStream",
            "ctrl", "esc", "mo", "g")
 
 from . import control as ctrl, escape as esc, modes as mo, graphics as g
 from .screens import Screen
-from .streams import Stream, ByteStream
+from .streams import Stream, ByteStream, DebugStream
+
+
+if __debug__:
+    def dis(chars):
+        """A :func:`dis.dis` for terminals.
+
+        >>> dis(u"\u0007")
+        BELL
+        >>> dis(u"\x9b20m")
+        SELECT-GRAPHIC-RENDITION 20
+        """
+        if isinstance(chars, unicode):
+            chars = chars.encode("utf-8")
+
+        return DebugStream().feed(chars)

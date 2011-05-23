@@ -12,42 +12,49 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-"""Null: Does nothing."""
-NUL = u"\x00"
+#: *Null*: Does nothing.
+NUL = u"\u0000"
 
-"""Bell: Beeps."""
-BEL = u"\x07"
+#: *Bell*: Beeps.
+BEL = u"\u0007"
 
-"""Backspace: Backspaces one column, but not past the begining of the line."""
-BS = u"\x08"
+#: *Backspace*: Backspace one column, but not past the begining of the
+#: line.
+BS = u"\u0008"
 
-"""Horizontal tab: Moves cursor to the next tab stop, or to the end of
-the line if there is no earlier tab stop."""
-HT = u"\x09"
+#: *Horizontal tab*: Move cursor to the next tab stop, or to the end
+#: of the line if there is no earlier tab stop.
+HT = u"\u0009"
 
-"""Linefeed, vertical tab, form feed: all give a line feed, and if LF/NL
-(new line mode) is set also a carriage return."""
-LF, VT, FF = u"\n", u"\x0b", u"\x0c"
+#: *Linefeed*: Give a line feed, and, if :data:`vt102.modes.LNM` (new
+#: line mode) is set also a carriage return.
+LF = u"\n"
+#: *Vertical tab*: Same as :data:`LF`.
+VT = u"\u000b"
+#: *Form feed*: Same as :data:`LF`.
+FF = u"\u000c"
 
-"""Carriage return: Moves cursor to left margin on current line."""
+#: *Carriage return*: Move cursor to left margin on current line.
 CR = u"\r"
 
-"""Shift out: Activates G1 character set."""
-SO = u"\x0e"
+#: *Shift out*: Activate G1 character set.
+SO = u"\u000e"
 
-"""Shift in: Activates G0 character set."""
-SI = u"\x0f"
+#: *Shift in*: Activate G0 character set.
+SI = u"\u000f"
 
-"""Cancel, substitute: interrupt escape sequences. If received during
-an escape or control sequence, cancels the sequence and displays
-substitution character."""
-CAN, SUB = u"\x18", u"\x1a"
+#: *Cancel*: Interrupt escape sequence. If received during an escape or
+#: control sequence, cancels the sequence and displays substitution
+#: character.
+CAN = u"\u0018"
+#: *Substitute*: Same as :data:`CAN`.
+SUB = u"\u001a"
 
-"""Escape: Starts an escape sequence."""
-ESC = u"\x1b"
+#: *Escape*: Starts an escape sequence.
+ESC = u"\u001b"
 
-"""Delete: is ingored."""
-DEL = u"\x7f"
+#: *Delete*: Is ingored.
+DEL = u"\u007f"
 
-"""Control sequence introducer: is equavalent for ``ESC [``."""
-CSI = u"\x9b"
+#: *Control sequence introducer*: An equavalent for ``ESC [``.
+CSI = u"\u009b"
