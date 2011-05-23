@@ -13,48 +13,48 @@
 """
 
 #: *Null*: Does nothing.
-NUL = u"\x00"
+NUL = u"\u0000"
 
 #: *Bell*: Beeps.
-BEL = u"\x07"
+BEL = u"\u0007"
 
 #: *Backspace*: Backspace one column, but not past the begining of the
 #: line.
-BS = u"\x08"
+BS = u"\u0008"
 
 #: *Horizontal tab*: Move cursor to the next tab stop, or to the end
 #: of the line if there is no earlier tab stop.
-HT = u"\x09"
+HT = u"\u0009"
 
 #: *Linefeed*: Give a line feed, and, if :data:`vt102.modes.LNM` (new
 #: line mode) is set also a carriage return.
 LF = u"\n"
 #: *Vertical tab*: Same as :data:`LF`.
-VT = u"\x0b"
+VT = u"\u000b"
 #: *Form feed*: Same as :data:`LF`.
-FF = u"\x0c"
+FF = u"\u000c"
 
 #: *Carriage return*: Move cursor to left margin on current line.
 CR = u"\r"
 
 #: *Shift out*: Activate G1 character set.
-SO = u"\x0e"
+SO = u"\u000e"
 
 #: *Shift in*: Activate G0 character set.
-SI = u"\x0f"
+SI = u"\u000f"
 
 #: *Cancel*: Interrupt escape sequence. If received during an escape or
 #: control sequence, cancels the sequence and displays substitution
 #: character.
-CAN = u"\x18"
+CAN = u"\u0018"
 #: *Substitute*: Same as :data:`CAN`.
-SUB = u"\x1a"
+SUB = u"\u001a"
 
 #: *Escape*: Starts an escape sequence.
-ESC = u"\x1b"
+ESC = u"\u001b"
 
 #: *Delete*: Is ingored.
-DEL = u"\x7f"
+DEL = u"\u007f"
 
 #: *Control sequence introducer*: An equavalent for ``ESC [``.
-CSI = u"\x9b"
+CSI = u"\u009b"
