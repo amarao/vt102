@@ -25,7 +25,7 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import codecs
 import sys
@@ -125,7 +125,7 @@ class Stream(object):
         self.state = "stream"
         self.flags = {}
         self.params = []
-        self.current = u""
+        self.current = ""
 
     def consume(self, char):
         """Consume a single unicode character and advance the state as
@@ -204,9 +204,9 @@ class Stream(object):
         a single notable exception -- :data:`escape.DECOM` sequence,
         which starts with a sharp.
         """
-        if char == u"#":
+        if char == "#":
             self.state = "sharp"
-        elif char == u"[":
+        elif char == "[":
             self.state = "arguments"
         elif char in self.escape:
             self.state = "stream"
@@ -237,7 +237,7 @@ class Stream(object):
            `VT220 Programmer Reference <http://http://vt100.net/docs/vt220-rm/>`_
                For details on the characters valid for use as arguments.
         """
-        if char == u"?":
+        if char == "?":
             self.flags["private"] = True
         elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.CR]:
             # Not sure why, but those seem to be allowed between CSI
@@ -255,15 +255,15 @@ class Stream(object):
         else:
             self.params.append(min(int(self.current or 0), 9999))
 
-            if char == u";":
-                self.current = u""
+            if char == ";":
+                self.current = ""
             else:
                 event = self.csi.get(char)
                 if event:
                     self.dispatch(event, *self.params, **self.flags)
                 elif __debug__:
                     self.dispatch("debug",
-                        ctrl.CSI + u";".join(map(unicode, self.params)) + char)
+                        ctrl.CSI + ";".join(map(unicode, self.params)) + char)
 
                 self.reset()
 

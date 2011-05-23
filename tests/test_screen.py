@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import pytest
 
 from vt102 import Screen, Stream, mo
@@ -43,9 +45,9 @@ def test_attributes():
     assert screen == [[screen.default_char, screen.default_char]] * 2
     assert screen.cursor_attributes.bold
 
-    screen.draw(u"f")
+    screen.draw("f")
     assert screen == [
-        [Char(u"f", "default", "default", bold=True), screen.default_char],
+        [Char("f", "default", "default", bold=True), screen.default_char],
         [screen.default_char, screen.default_char]
     ]
 
@@ -91,20 +93,20 @@ def test_attributes_reset():
     screen = Screen(2, 2)
     assert screen == [[screen.default_char, screen.default_char]] * 2
     screen.select_graphic_rendition(1)
-    screen.draw(u"f")
-    screen.draw(u"o")
-    screen.draw(u"o")
+    screen.draw("f")
+    screen.draw("o")
+    screen.draw("o")
     assert screen == [
-        [Char(u"f", bold=True), Char(u"o", bold=True)],
-        [Char(u"o", bold=True), screen.default_char  ],
+        [Char("f", bold=True), Char("o", bold=True)],
+        [Char("o", bold=True), screen.default_char  ],
     ]
 
     screen.cursor_position()
     screen.select_graphic_rendition(0) # Reset
-    screen.draw(u"f")
+    screen.draw("f")
     assert screen == [
-        [Char(u"f"),            Char(u"o", bold=True)],
-        [Char(u"o", bold=True), screen.default_char  ],
+        [Char("f"),            Char("o", bold=True)],
+        [Char("o", bold=True), screen.default_char  ],
     ]
 
 
@@ -133,28 +135,28 @@ def test_resize():
     # quirks:
     # a) if the current display is thinner than the requested size,
     #    new columns should be added to the right.
-    screen = update(Screen(2, 2), [u"bo", u"sh"], [None, None])
+    screen = update(Screen(2, 2), ["bo", "sh"], [None, None])
     screen.resize(2, 3)
-    assert screen.display == [u"bo ", u"sh "]
+    assert screen.display == ["bo ", "sh "]
 
     # b) if the current display is wider than the requested size,
     #    columns should be removed from the right...
-    screen = update(Screen(2, 2), [u"bo", u"sh"], [None, None])
+    screen = update(Screen(2, 2), ["bo", "sh"], [None, None])
     screen.resize(2, 1)
-    assert screen.display == [u"b", u"s"]
+    assert screen.display == ["b", "s"]
 
     # c) if the current display is shorter than the requested
     #    size, new rows should be added on the bottom.
-    screen = update(Screen(2, 2), [u"bo", u"sh"], [None, None])
+    screen = update(Screen(2, 2), ["bo", "sh"], [None, None])
     screen.resize(3, 2)
 
-    assert screen.display == [u"bo", u"sh", u"  "]
+    assert screen.display == ["bo", "sh", "  "]
 
     # d) if the current display is taller than the requested
     #    size, rows should be removed from the top.
-    screen = update(Screen(2, 2), [u"bo", u"sh"], [None, None])
+    screen = update(Screen(2, 2), ["bo", "sh"], [None, None])
     screen.resize(1, 2)
-    assert screen.display == [u"sh"]
+    assert screen.display == ["sh"]
 
 
 def test_draw():
@@ -162,37 +164,37 @@ def test_draw():
     screen = Screen(3, 3)
     assert mo.DECAWM in screen.mode
 
-    map(screen.draw, u"abc")
-    assert screen.display == [u"abc", u"   ", u"   "]
+    map(screen.draw, "abc")
+    assert screen.display == ["abc", "   ", "   "]
     assert screen.cursor == (0, 3)
 
     # ... one` more character -- now we got a linefeed!
-    screen.draw(u"a")
+    screen.draw("a")
     assert screen.cursor == (1, 1)
 
     # ``DECAWM`` is off.
     screen = Screen(3, 3)
     screen.reset_mode(mo.DECAWM)
 
-    map(screen.draw, u"abc")
-    assert screen.display == [u"abc", u"   ", u"   "]
+    map(screen.draw, "abc")
+    assert screen.display == ["abc", "   ", "   "]
     assert screen.cursor == (0, 3)
 
     # No linefeed is issued on the end of the line ...
-    screen.draw(u"a")
-    assert screen.display == [u"aba", u"   ", u"   "]
+    screen.draw("a")
+    assert screen.display == ["aba", "   ", "   "]
     assert screen.cursor == (0, 3)
 
     # ``IRM`` mode is on, expecting new characters to move the old ones
     # instead of replacing them.
     screen.set_mode(mo.IRM)
     screen.cursor_position()
-    screen.draw(u"x")
-    assert screen.display == [u"xab", u"   ", u"   "]
+    screen.draw("x")
+    assert screen.display == ["xab", "   ", "   "]
 
     screen.cursor_position()
-    screen.draw(u"y")
-    assert screen.display == [u"yxa", u"   ", u"   "]
+    screen.draw("y")
+    assert screen.display == ["yxa", "   ", "   "]
 
 
 def test_carriage_return():
@@ -211,8 +213,8 @@ def test_index():
     screen.index()
     assert screen.cursor == (1, 0)
     assert screen == [
-        [Char(u"w"), Char(u"o")],
-        [Char(u"o", fg="red"), Char(u"t", fg="red")]
+        [Char("w"), Char("o")],
+        [Char("o", fg="red"), Char("t", fg="red")]
     ]
 
     # b) indexing on the last row should push everything up and
@@ -220,7 +222,7 @@ def test_index():
     screen.index()
     assert screen.y == 1
     assert screen == [
-        [Char(u"o", fg="red"), Char(u"t", fg="red")],
+        [Char("o", fg="red"), Char("t", fg="red")],
         [screen.default_char, screen.default_char]
     ]
 
@@ -233,49 +235,49 @@ def test_index():
     # ... go!
     screen.index()
     assert screen.cursor == (3, 0)
-    assert screen.display == [u"bo", u"th", u"er", u"  ", u"oh"]
+    assert screen.display == ["bo", "th", "er", "  ", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o", "default")],
-        [Char(u"t", "red"), Char(u"h", "red")],
-        [Char(u"e"), Char(u"r")],
+        [Char("b"), Char("o", "default")],
+        [Char("t", "red"), Char("h", "red")],
+        [Char("e"), Char("r")],
         [screen.default_char, screen.default_char],
-        [Char(u"o"), Char(u"h")],
+        [Char("o"), Char("h")],
     ]
 
     # ... and again ...
     screen.index()
     assert screen.cursor == (3, 0)
-    assert screen.display == [u"bo", u"er", u"  ", u"  ", u"oh"]
+    assert screen.display == ["bo", "er", "  ", "  ", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o")],
-        [Char(u"e"), Char(u"r")],
+        [Char("b"), Char("o")],
+        [Char("e"), Char("r")],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
-        [Char(u"o"), Char(u"h")],
+        [Char("o"), Char("h")],
     ]
 
     # ... and again ...
     screen.index()
     assert screen.cursor == (3, 0)
-    assert screen.display == [u"bo", u"  ", u"  ", u"  ", u"oh"]
+    assert screen.display == ["bo", "  ", "  ", "  ", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o")],
+        [Char("b"), Char("o")],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
-        [Char(u"o"), Char(u"h")],
+        [Char("o"), Char("h")],
     ]
 
     # look, nothing changes!
     screen.index()
     assert screen.cursor == (3, 0)
-    assert screen.display == [u"bo", u"  ", u"  ", u"  ", u"oh"]
+    assert screen.display == ["bo", "  ", "  ", "  ", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o")],
+        [Char("b"), Char("o")],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
-        [Char(u"o"), Char(u"h")],
+        [Char("o"), Char("h")],
     ]
 
 
@@ -288,7 +290,7 @@ def test_reverse_index():
     assert screen.cursor == (0, 0)
     assert screen == [
         [screen.default_char, screen.default_char],
-        [Char(u"w", fg="red"), Char(u"o", fg="red")]
+        [Char("w", fg="red"), Char("o", fg="red")]
     ]
 
     # b) once again ...
@@ -308,54 +310,54 @@ def test_reverse_index():
     # ... go!
     screen.reverse_index()
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"bo", u"  ", u"sh", u"th", u"oh"]
+    assert screen.display == ["bo", "  ", "sh", "th", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o")],
+        [Char("b"), Char("o")],
         [screen.default_char, screen.default_char],
-        [Char(u"s"), Char(u"h")],
-        [Char(u"t", fg="red"), Char(u"h", fg="red")],
-        [Char(u"o"), Char(u"h")],
+        [Char("s"), Char("h")],
+        [Char("t", fg="red"), Char("h", fg="red")],
+        [Char("o"), Char("h")],
     ]
 
     # ... and again ...
     screen.reverse_index()
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"bo", u"  ", u"  ", u"sh", u"oh"]
+    assert screen.display == ["bo", "  ", "  ", "sh", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o")],
+        [Char("b"), Char("o")],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
-        [Char(u"s"), Char(u"h")],
-        [Char(u"o"), Char(u"h")],
+        [Char("s"), Char("h")],
+        [Char("o"), Char("h")],
     ]
 
      # ... and again ...
     screen.reverse_index()
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"bo", u"  ", u"  ", u"  ", u"oh"]
+    assert screen.display == ["bo", "  ", "  ", "  ", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o")],
+        [Char("b"), Char("o")],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
-        [Char(u"o"), Char(u"h")],
+        [Char("o"), Char("h")],
     ]
 
     # look, nothing changes!
     screen.reverse_index()
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"bo", u"  ", u"  ", u"  ", u"oh"]
+    assert screen.display == ["bo", "  ", "  ", "  ", "oh"]
     assert screen == [
-        [Char(u"b"), Char(u"o")],
+        [Char("b"), Char("o")],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
         [screen.default_char, screen.default_char],
-        [Char(u"o"), Char(u"h")],
+        [Char("o"), Char("h")],
     ]
 
 
 def test_linefeed():
-    screen = update(Screen(2, 2), [u"bo", u"sh"], [None, None])
+    screen = update(Screen(2, 2), ["bo", "sh"], [None, None])
 
     # a) LNM on by default (that's what `vttest` forces us to do).
     assert mo.LNM in screen.mode
@@ -471,7 +473,7 @@ def test_save_cursor():
     screen.restore_cursor()
 
     assert screen.cursor_attributes != screen.default_char
-    assert screen.cursor_attributes == Char(u" ", underscore=True)
+    assert screen.cursor_attributes == Char(" ", underscore=True)
 
 
 def test_restore_cursor_with_none_saved():
@@ -490,22 +492,22 @@ def test_insert_lines():
     screen.insert_lines()
 
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"   ", u"sam", u"is "]
+    assert screen.display == ["   ", "sam", "is "]
     assert screen == [
         [screen.default_char] * 3,
-        [Char(u"s"), Char(u"a"), Char(u"m")],
-        [Char(u"i", fg="red"), Char(u"s", fg="red"), Char(u" ", fg="red")],
+        [Char("s"), Char("a"), Char("m")],
+        [Char("i", fg="red"), Char("s", fg="red"), Char(" ", fg="red")],
     ]
 
     screen = update(Screen(3, 3), ["sam", "is ", "foo"], colored=[1])
     screen.insert_lines(2)
 
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"   ", u"   ", u"sam"]
+    assert screen.display == ["   ", "   ", "sam"]
     assert screen == [
         [screen.default_char] * 3,
         [screen.default_char] * 3,
-        [Char(u"s"), Char(u"a"), Char(u"m")]
+        [Char("s"), Char("a"), Char("m")]
     ]
 
     # b) with margins
@@ -516,13 +518,13 @@ def test_insert_lines():
     screen.insert_lines(1)
 
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"sam", u"   ", u"is ", u"foo", u"baz"]
+    assert screen.display == ["sam", "   ", "is ", "foo", "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
+        [Char("s"), Char("a"), Char("m")],
         [screen.default_char] * 3,
-        [Char(u"i"), Char(u"s"), Char(u" ")],
-        [Char(u"f", fg="red"), Char(u"o", fg="red"), Char(u"o", fg="red")],
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("i"), Char("s"), Char(" ")],
+        [Char("f", fg="red"), Char("o", fg="red"), Char("o", fg="red")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
     screen = update(Screen(3, 5), ["sam", "is ", "foo", "bar", "baz"],
@@ -532,24 +534,24 @@ def test_insert_lines():
     screen.insert_lines(1)
 
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"sam", u"   ", u"is ", u"bar",  u"baz"]
+    assert screen.display == ["sam", "   ", "is ", "bar",  "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
+        [Char("s"), Char("a"), Char("m")],
         [screen.default_char] * 3,
-        [Char(u"i"), Char(u"s"), Char(u" ")],
-        [Char(u"b", fg="red"), Char(u"a", fg="red"), Char(u"r", fg="red")],
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("i"), Char("s"), Char(" ")],
+        [Char("b", fg="red"), Char("a", fg="red"), Char("r", fg="red")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
     screen.insert_lines(2)
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"sam", u"   ", u"   ", u"bar",  u"baz"]
+    assert screen.display == ["sam", "   ", "   ", "bar",  "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
+        [Char("s"), Char("a"), Char("m")],
         [screen.default_char] * 3,
         [screen.default_char] * 3,
-        [Char(u"b", fg="red"), Char(u"a", fg="red"), Char(u"r", fg="red")],
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("b", fg="red"), Char("a", fg="red"), Char("r", fg="red")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
     # c) with margins -- trying to insert more than we have available
@@ -560,13 +562,13 @@ def test_insert_lines():
     screen.insert_lines(20)
 
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"sam", u"   ", u"   ", u"   ", u"baz"]
+    assert screen.display == ["sam", "   ", "   ", "   ", "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
+        [Char("s"), Char("a"), Char("m")],
         [screen.default_char] * 3,
         [screen.default_char] * 3,
         [screen.default_char] * 3,
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
     # d) with margins -- trying to insert outside scroll boundaries;
@@ -577,13 +579,13 @@ def test_insert_lines():
     screen.insert_lines(5)
 
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"sam", u"is ", u"foo", u"bar", u"baz"]
+    assert screen.display == ["sam", "is ", "foo", "bar", "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
-        [Char(u"i"), Char(u"s"), Char(u" ")],
-        [Char(u"f", fg="red"), Char(u"o", fg="red"), Char(u"o", fg="red")],
-        [Char(u"b", fg="red"), Char(u"a", fg="red"), Char(u"r", fg="red")],
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("s"), Char("a"), Char("m")],
+        [Char("i"), Char("s"), Char(" ")],
+        [Char("f", fg="red"), Char("o", fg="red"), Char("o", fg="red")],
+        [Char("b", fg="red"), Char("a", fg="red"), Char("r", fg="red")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
 
@@ -593,19 +595,19 @@ def test_delete_lines():
     screen.delete_lines()
 
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"is ", u"foo", u"   "]
+    assert screen.display == ["is ", "foo", "   "]
     assert screen == [
-        [Char(u"i", fg="red"), Char(u"s", fg="red"), Char(u" ", fg="red")],
-        [Char(u"f"), Char(u"o"), Char(u"o")],
+        [Char("i", fg="red"), Char("s", fg="red"), Char(" ", fg="red")],
+        [Char("f"), Char("o"), Char("o")],
         [screen.default_char] * 3,
     ]
 
     screen.delete_lines(0)
 
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"foo", u"   ", u"   "]
+    assert screen.display == ["foo", "   ", "   "]
     assert screen == [
-        [Char(u"f"), Char(u"o"), Char(u"o")],
+        [Char("f"), Char("o"), Char("o")],
         [screen.default_char] * 3,
         [screen.default_char] * 3,
     ]
@@ -618,13 +620,13 @@ def test_delete_lines():
     screen.delete_lines(1)
 
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"sam", u"foo", u"bar", u"   ", u"baz"]
+    assert screen.display == ["sam", "foo", "bar", "   ", "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
-        [Char(u"f", fg="red"), Char(u"o", fg="red"), Char(u"o", fg="red")],
-        [Char(u"b", fg="red"), Char(u"a", fg="red"), Char(u"r", fg="red")],
+        [Char("s"), Char("a"), Char("m")],
+        [Char("f", fg="red"), Char("o", fg="red"), Char("o", fg="red")],
+        [Char("b", fg="red"), Char("a", fg="red"), Char("r", fg="red")],
         [screen.default_char] * 3,
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
     screen = update(Screen(3, 5), ["sam", "is ", "foo", "bar", "baz"],
@@ -634,13 +636,13 @@ def test_delete_lines():
     screen.delete_lines(2)
 
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"sam", u"bar", u"   ", u"   ", u"baz"]
+    assert screen.display == ["sam", "bar", "   ", "   ", "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
-        [Char(u"b", fg="red"), Char(u"a", fg="red"), Char(u"r", fg="red")],
+        [Char("s"), Char("a"), Char("m")],
+        [Char("b", fg="red"), Char("a", fg="red"), Char("r", fg="red")],
         [screen.default_char] * 3,
         [screen.default_char] * 3,
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
     # c) with margins -- trying to delete  more than we have available
@@ -656,13 +658,13 @@ def test_delete_lines():
     screen.delete_lines(5)
 
     assert screen.cursor == (1, 0)
-    assert screen.display == [u"sam", u"   ", u"   ", u"   ", u"baz"]
+    assert screen.display == ["sam", "   ", "   ", "   ", "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
+        [Char("s"), Char("a"), Char("m")],
         [screen.default_char] * 3,
         [screen.default_char] * 3,
         [screen.default_char] * 3,
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
     # d) with margins -- trying to delete outside scroll boundaries;
@@ -674,13 +676,13 @@ def test_delete_lines():
     screen.delete_lines(5)
 
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"sam", u"is ", u"foo", u"bar", u"baz"]
+    assert screen.display == ["sam", "is ", "foo", "bar", "baz"]
     assert screen == [
-        [Char(u"s"), Char(u"a"), Char(u"m")],
-        [Char(u"i"), Char(u"s"), Char(u" ")],
-        [Char(u"f", fg="red"), Char(u"o", fg="red"), Char(u"o", fg="red")],
-        [Char(u"b", fg="red"), Char(u"a", fg="red"), Char(u"r", fg="red")],
-        [Char(u"b"), Char(u"a"), Char(u"z")],
+        [Char("s"), Char("a"), Char("m")],
+        [Char("i"), Char("s"), Char(" ")],
+        [Char("f", fg="red"), Char("o", fg="red"), Char("o", fg="red")],
+        [Char("b", fg="red"), Char("a", fg="red"), Char("r", fg="red")],
+        [Char("b"), Char("a"), Char("z")],
     ]
 
 
@@ -694,17 +696,17 @@ def test_insert_characters():
     assert screen[0] == [
         screen.default_char,
         screen.default_char,
-        Char(u"s", fg="red")
+        Char("s", fg="red")
     ]
 
     # b) now inserting from the middle of the line
     screen.y, screen.x = 2, 1
     screen.insert_characters(1)
-    assert screen[2] == [Char(u"f"), screen.default_char, Char(u"o")]
+    assert screen[2] == [Char("f"), screen.default_char, Char("o")]
 
     # c) inserting more than we have
     screen.insert_characters(10)
-    assert screen[2] == [Char(u"f"), screen.default_char, screen.default_char]
+    assert screen[2] == [Char("f"), screen.default_char, screen.default_char]
 
     # d) 0 is 1
     screen = update(Screen(3, 3), ["sam", "is ", "foo"], colored=[0])
@@ -712,66 +714,66 @@ def test_insert_characters():
     screen.cursor_position()
     screen.insert_characters()
     assert screen[0] == [screen.default_char,
-                         Char(u"s", fg="red"), Char(u"a", fg="red")]
+                         Char("s", fg="red"), Char("a", fg="red")]
 
     screen = update(Screen(3, 3), ["sam", "is ", "foo"], colored=[0])
     screen.cursor_position()
     screen.insert_characters(1)
     assert screen[0] == [screen.default_char,
-                         Char(u"s", fg="red"), Char(u"a", fg="red")]
+                         Char("s", fg="red"), Char("a", fg="red")]
 
 
 def test_delete_characters():
     screen = update(Screen(3, 3), ["sam", "is ", "foo"], colored=[0])
     screen.delete_characters(2)
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"m  ", u"is ", u"foo"]
-    assert screen[0] == [Char(u"m", fg="red"),
+    assert screen.display == ["m  ", "is ", "foo"]
+    assert screen[0] == [Char("m", fg="red"),
                          screen.default_char, screen.default_char]
 
     screen.y, screen.x = 2, 2
     screen.delete_characters()
     assert screen.cursor == (2, 2)
-    assert screen.display == [u"m  ", u"is ", u"fo "]
+    assert screen.display == ["m  ", "is ", "fo "]
 
     screen.y, screen.x = 1, 1
     screen.delete_characters(0)
     assert screen.cursor == (1, 1)
-    assert screen.display == [u"m  ", u"i  ", u"fo "]
+    assert screen.display == ["m  ", "i  ", "fo "]
 
     # ! extreme cases.
-    screen = update(Screen(5, 1), [u"12345"], colored=[0])
+    screen = update(Screen(5, 1), ["12345"], colored=[0])
     screen.x = 1
     screen.delete_characters(3)
     assert screen.cursor == (0, 1)
-    assert screen.display == [u"15   "]
+    assert screen.display == ["15   "]
     assert screen[0] == [
-        Char(u"1", fg="red"),
-        Char(u"5", fg="red"),
+        Char("1", fg="red"),
+        Char("5", fg="red"),
         screen.default_char,
         screen.default_char,
         screen.default_char
     ]
 
-    screen = update(Screen(5, 1), [u"12345"], colored=[0])
+    screen = update(Screen(5, 1), ["12345"], colored=[0])
     screen.x = 2
     screen.delete_characters(10)
     assert screen.cursor == (0, 2)
-    assert screen.display == [u"12   "]
+    assert screen.display == ["12   "]
     assert screen[0] == [
-        Char(u"1", fg="red"),
-        Char(u"2", fg="red"),
+        Char("1", fg="red"),
+        Char("2", fg="red"),
         screen.default_char,
         screen.default_char,
         screen.default_char
     ]
 
-    screen = update(Screen(5, 1), [u"12345"], colored=[0])
+    screen = update(Screen(5, 1), ["12345"], colored=[0])
     screen.delete_characters(4)
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"5    "]
+    assert screen.display == ["5    "]
     assert screen[0] == [
-        Char(u"5", fg="red"),
+        Char("5", fg="red"),
         screen.default_char,
         screen.default_char,
         screen.default_char,
@@ -784,60 +786,60 @@ def test_erase_character():
 
     screen.erase_characters(2)
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"  m", u"is ", u"foo"]
+    assert screen.display == ["  m", "is ", "foo"]
     assert screen[0] == [
         screen.default_char,
         screen.default_char,
-        Char(u"m", fg="red")
+        Char("m", fg="red")
     ]
 
     screen.y, screen.x = 2, 2
     screen.erase_characters()
     assert screen.cursor == (2, 2)
-    assert screen.display == [u"  m", u"is ", u"fo "]
+    assert screen.display == ["  m", "is ", "fo "]
 
     screen.y, screen.x = 1, 1
     screen.erase_characters(0)
     assert screen.cursor == (1, 1)
-    assert screen.display == [u"  m", u"i  ", u"fo "]
+    assert screen.display == ["  m", "i  ", "fo "]
 
     # ! extreme cases.
-    screen = update(Screen(5, 1), [u"12345"], colored=[0])
+    screen = update(Screen(5, 1), ["12345"], colored=[0])
     screen.x = 1
     screen.erase_characters(3)
     assert screen.cursor == (0, 1)
-    assert screen.display == [u"1   5"]
+    assert screen.display == ["1   5"]
     assert screen[0] == [
-        Char(u"1", fg="red"),
+        Char("1", fg="red"),
         screen.default_char,
         screen.default_char,
         screen.default_char,
-        Char(u"5", "red")
+        Char("5", "red")
     ]
 
-    screen = update(Screen(5, 1), [u"12345"], colored=[0])
+    screen = update(Screen(5, 1), ["12345"], colored=[0])
     screen.x = 2
     screen.erase_characters(10)
     assert screen.cursor == (0, 2)
-    assert screen.display == [u"12   "]
+    assert screen.display == ["12   "]
     assert screen[0] == [
-        Char(u"1", fg="red"),
-        Char(u"2", fg="red"),
+        Char("1", fg="red"),
+        Char("2", fg="red"),
         screen.default_char,
         screen.default_char,
         screen.default_char
     ]
 
-    screen = update(Screen(5, 1), [u"12345"], colored=[0])
+    screen = update(Screen(5, 1), ["12345"], colored=[0])
     screen.erase_characters(4)
     assert screen.cursor == (0, 0)
-    assert screen.display == [u"    5"]
+    assert screen.display == ["    5"]
     assert screen[0] == [
         screen.default_char,
         screen.default_char,
         screen.default_char,
         screen.default_char,
-        Char(u"5", fg="red")
+        Char("5", fg="red")
     ]
 
 
@@ -853,14 +855,14 @@ def test_erase_in_line():
     # a) erase from cursor to the end of line
     screen.erase_in_line(0)
     assert screen.cursor == (0, 2)
-    assert screen.display == [u"sa   ",
-                              u"s foo",
-                              u"but a",
-                              u"re yo",
-                              u"u?   "]
+    assert screen.display == ["sa   ",
+                              "s foo",
+                              "but a",
+                              "re yo",
+                              "u?   "]
     assert screen[0] == [
-        Char(u"s", fg="red"),
-        Char(u"a", fg="red"),
+        Char("s", fg="red"),
+        Char("a", fg="red"),
         screen.default_char,
         screen.default_char,
         screen.default_char
@@ -875,17 +877,17 @@ def test_erase_in_line():
          "u?   "], colored=[0])
     screen.erase_in_line(1)
     assert screen.cursor == (0, 2)
-    assert screen.display == [u"    i",
-                              u"s foo",
-                              u"but a",
-                              u"re yo",
-                              u"u?   "]
+    assert screen.display == ["    i",
+                              "s foo",
+                              "but a",
+                              "re yo",
+                              "u?   "]
     assert screen[0] == [
         screen.default_char,
         screen.default_char,
         screen.default_char,
-        Char(u" ", fg="red"),
-        Char(u"i", fg="red")
+        Char(" ", fg="red"),
+        Char("i", fg="red")
     ]
 
     # c) erase the entire line
@@ -897,11 +899,11 @@ def test_erase_in_line():
          "u?   "], colored=[0])
     screen.erase_in_line(2)
     assert screen.cursor == (0, 2)
-    assert screen.display == [u"     ",
-                              u"s foo",
-                              u"but a",
-                              u"re yo",
-                              u"u?   "]
+    assert screen.display == ["     ",
+                              "s foo",
+                              "but a",
+                              "re yo",
+                              "u?   "]
     assert screen[0] == [screen.default_char] * 5
 
 
@@ -918,14 +920,14 @@ def test_erase_in_display():
     #    the cursor
     screen.erase_in_display(0)
     assert screen.cursor == (2, 2)
-    assert screen.display == [u"sam i",
-                              u"s foo",
-                              u"bu   ",
-                              u"     ",
-                              u"     "]
+    assert screen.display == ["sam i",
+                              "s foo",
+                              "bu   ",
+                              "     ",
+                              "     "]
     assert screen[2:] == [
-        [Char(u"b", fg="red"),
-         Char(u"u", fg="red"),
+        [Char("b", fg="red"),
+         Char("u", fg="red"),
          screen.default_char,
          screen.default_char,
          screen.default_char],
@@ -943,29 +945,29 @@ def test_erase_in_display():
          "u?   "], colored=[2, 3])
     screen.erase_in_display(1)
     assert screen.cursor == (2, 2)
-    assert screen.display == [u"     ",
-                              u"     ",
-                              u"    a",
-                              u"re yo",
-                              u"u?   "]
+    assert screen.display == ["     ",
+                              "     ",
+                              "    a",
+                              "re yo",
+                              "u?   "]
     assert screen[:3] == [
         [screen.default_char] * 5,
         [screen.default_char] * 5,
         [screen.default_char,
          screen.default_char,
          screen.default_char,
-         Char(u" ", fg="red"),
-         Char(u"a", fg="red")],
+         Char(" ", fg="red"),
+         Char("a", fg="red")],
     ]
 
     # c) erase the while display
     screen.erase_in_display(2)
     assert screen.cursor == (2, 2)
-    assert screen.display == [u"     ",
-                              u"     ",
-                              u"     ",
-                              u"     ",
-                              u"     "]
+    assert screen.display == ["     ",
+                              "     ",
+                              "     ",
+                              "     ",
+                              "     "]
     assert screen == [[screen.default_char] * 5] * 5
 
 
@@ -1086,33 +1088,33 @@ def test_unicode():
     screen.attach(stream)
 
     try:
-        stream.feed(u"тест")
+        stream.feed("тест")
     except UnicodeDecodeError:
         pytest.fail("Check your code -- we do accept unicode.")
 
-    assert screen.display == [u"тест", u"    "]
+    assert screen.display == ["тест", "    "]
 
 
 def test_alignment_display():
     screen = Screen(5, 5)
-    screen.draw(u"a")
+    screen.draw("a")
     screen.linefeed()
     screen.linefeed()
-    screen.draw(u"b")
+    screen.draw("b")
 
-    assert screen.display == [u"a    ",
-                              u"     ",
-                              u"b    ",
-                              u"     ",
-                              u"     "]
+    assert screen.display == ["a    ",
+                              "     ",
+                              "b    ",
+                              "     ",
+                              "     "]
 
     screen.alignment_display()
 
-    assert screen.display == [u"EEEEE",
-                              u"EEEEE",
-                              u"EEEEE",
-                              u"EEEEE",
-                              u"EEEEE"]
+    assert screen.display == ["EEEEE",
+                              "EEEEE",
+                              "EEEEE",
+                              "EEEEE",
+                              "EEEEE"]
 
 
 def test_set_margins():

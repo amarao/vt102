@@ -14,7 +14,7 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 import operator
 from collections import namedtuple
@@ -92,7 +92,7 @@ class Screen(list):
     """
     #: A plain empty character with default foreground and background
     #: colors.
-    default_char = Char(data=u" ", fg="default", bg="default")
+    default_char = Char(data=" ", fg="default", bg="default")
 
     #: An inifinite sequence of default characters, used for populating
     #: new lines and columns.
@@ -127,7 +127,7 @@ class Screen(list):
     @property
     def display(self):
         """Returns a :func:`list` of screen lines as unicode strings."""
-        return [u"".join(map(operator.attrgetter("data"), line))
+        return ["".join(map(operator.attrgetter("data"), line))
                 for line in self]
 
     def attach(self, stream):
@@ -727,7 +727,7 @@ class Screen(list):
         """Fills screen with uppercase E's for screen focus and alignment."""
         for line in self:
             for column, char in enumerate(line):
-                line[column] = char._replace(data=u"E")
+                line[column] = char._replace(data="E")
 
     def select_graphic_rendition(self, *attrs):
         """Set display attributes.
@@ -743,7 +743,7 @@ class Screen(list):
                 replace["bg"] = g.BG[attr]
             elif attr in g.TEXT:
                 attr = g.TEXT[attr]
-                replace[attr[1:]] = attr.startswith(u"+")
+                replace[attr[1:]] = attr.startswith("+")
             elif not attr:
                 replace = self.default_char._asdict()
 
