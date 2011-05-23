@@ -521,19 +521,19 @@ class Screen(list):
         :param bool private: when ``True`` character attributes aren left
                              unchanged **not implemented**.
         """
-        line = self[self.y]
-
-        if type_of == 0:
+        interval = (
             # a) erase from the cursor to the end of line, including
             # the cursor,
-            line[self.x:] = take(self.columns - self.x, self.default_line)
-        elif type_of == 1:
+            xrange(self.x, self.columns),
             # b) erase from the beginning of the line to the cursor,
             # including it,
-            line[:self.x + 1] = take(self.x + 1, self.default_line)
-        elif type_of == 2:
+            xrange(0, self.x + 1),
             # c) erase the entire line.
-            line[:] = take(self.columns, self.default_line)
+            xrange(0, self.columns)
+        )[type_of]
+
+        for column in interval:
+            self[self.y][column] = self.default_char
 
     def erase_in_display(self, type_of=0, private=False):
         """Erases display in a specific way.
@@ -561,7 +561,7 @@ class Screen(list):
         )[type_of]
 
         for line in interval:
-            self[line] = take(self.columns, self.default_line)
+            self[line] = self[line] = take(self.columns, self.default_line)
 
         # In case of 0 or 1 we have to erase the line with the cursor.
         if type_of in [0, 1]:
