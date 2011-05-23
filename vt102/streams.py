@@ -262,8 +262,8 @@ class Stream(object):
                 if event:
                     self.dispatch(event, *self.params, **self.flags)
                 elif __debug__:
-                    sequence = ctrl.CSI + u";".join(map(unicode, self.params)) + char
-                    self.dispatch("debug", sequence)
+                    self.dispatch("debug",
+                        ctrl.CSI + u";".join(map(unicode, self.params)) + char)
 
                 self.reset()
 
@@ -322,7 +322,16 @@ class DebugStream(ByteStream):
 
     def dispatch(self, event, *args, **kwargs):
         if not self.only or event in self.only:
-            self.to.write(event.upper().decode("utf-8") +
-                          u" %s\n" % u", ".join(map(unicode, args)))
+            self.to.write("%s " % event.upper())
+
+            for arg in args:
+                if isinstance(arg, unicode):
+                    arg = arg.encode("utf-8")
+                elif not isinstance(arg, bytes):
+                    arg = bytes(arg)
+
+                self.to.write("%s " % arg)
+            else:
+                self.to.write("\n")
 
         super(DebugStream, self).dispatch(event, *args, **kwargs)
