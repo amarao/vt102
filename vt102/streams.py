@@ -330,7 +330,7 @@ class DebugStream(ByteStream):
                 elif not isinstance(arg, bytes):
                     arg = bytes(arg)
 
-                self.to.write("%s " % arg)
+                self.to.write(arg)
             else:
                 self.to.write("\n")
 
