@@ -292,10 +292,12 @@ class SmartStream(Stream):
     """
 
     def __init__(self, encodings=None, fallback="utf-8", errors="replace"):
+        # Note: a single buffer is shared between multiple decoders.
         self.buffer = b"", 0
+        # Decoders for a list of expected encodings ...
         self.decoders = [codecs.getincrementaldecoder(encoding)()
                          for encoding in encodings or ()]
-
+        # ... plus a fallback one.
         self.decoders.append(codecs.getincrementaldecoder(fallback)(errors))
         super(SmartStream, self).__init__()
 

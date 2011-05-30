@@ -15,10 +15,16 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-__all__ = ("Screen", "Stream", "ByteStream", "DebugStream",
-           "ctrl", "esc", "mo", "g")
+__all__ = ("Screen", "Stream", "SmartStream", "ByteStream", "DebugStream",
+           "ctrl", "esc", "mo", "g", "c")
 
-from . import control as ctrl, escape as esc, modes as mo, graphics as g
+from . import (
+    control as ctrl,
+    escape as esc,
+    modes as mo,
+    graphics as g,
+    charsets as c
+)
 from .screens import Screen
 from .streams import Stream, ByteStream, DebugStream
 
