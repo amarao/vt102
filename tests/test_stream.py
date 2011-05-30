@@ -133,7 +133,7 @@ def test_mode_csi_sequences():
 
 def test_byte_stream():
     def validator(char):
-        assert "\uFFFD" not in char
+        assert "\ufffd" not in char
 
     stream = vt102.ByteStream("utf-8")
     stream.connect("draw", validator)
