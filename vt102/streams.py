@@ -114,7 +114,8 @@ class Stream(object):
             "stream": self._stream,
             "escape": self._escape,
             "arguments": self._arguments,
-            "sharp": self._sharp
+            "sharp": self._sharp,
+            "charset": self._charset
         }
 
         self.listeners = defaultdict(lambda: [])
@@ -208,6 +209,9 @@ class Stream(object):
             self.state = "sharp"
         elif char == "[":
             self.state = "arguments"
+        elif char in "()":
+            self.state = "charset"
+            self.flags["mode"] = char
         elif char in self.escape:
             self.state = "stream"
             self.dispatch(self.escape[char])
@@ -220,6 +224,11 @@ class Stream(object):
             self.dispatch(self.sharp[char])
 
         self.state = "stream"
+
+    def _charset(self, char):
+        """Parse ``G0`` or ``G1`` charset code."""
+        self.dispatch("set-charset", char, **self.flags)
+        self.reset()
 
     def _arguments(self, char):
         """Parse arguments of an escape sequence.
@@ -330,7 +339,7 @@ class DebugStream(ByteStream):
                 elif not isinstance(arg, bytes):
                     arg = bytes(arg)
 
-                self.to.write(arg)
+                self.to.write(b"%s " % arg)
             else:
                 self.to.write("\n")
 

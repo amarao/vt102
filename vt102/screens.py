@@ -20,7 +20,7 @@ import operator
 from collections import namedtuple
 from itertools import islice, repeat
 
-from . import modes as mo, graphics as g
+from . import modes as mo, graphics as g, charsets as c
 
 
 def take(n, iterable):
@@ -76,12 +76,6 @@ class Screen(list):
        According to ``ECMA-48`` standard, **lines and columnns are
        1-indexed**, so, for instance ``ESC [ 10;10 f`` really means
        -- move cursor to position (9, 9) in the display matrix.
-
-    .. warning::
-
-       Custom character sets and related CSI sequnces (ex.
-       :data:`vt102.control.SI` and :data:`vt102.control.SO`) are
-       currently **not supported**.
 
     .. seealso::
 
@@ -172,6 +166,9 @@ class Screen(list):
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
             ("alignment-display", self.alignment_display),
+            ("set-charset", self.set_charset),
+            ("shift-in", self.shift_in),
+            ("shift-out", self.shift_out),
         ]
 
         for event, handler in handlers:
@@ -197,6 +194,9 @@ class Screen(list):
                    for _ in xrange(self.lines))
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM, mo.DECTCEM])
         self.margins = Margins(0, self.lines - 1)
+        self.g0_mapping = c.LAT1_MAP
+        self.g1_mapping = c.VT100_MAP
+        self.current_charset = self.g0_mapping
         self.cursor_attributes = self.default_char
 
         # From ``man terminfo`` -- "... hardware tabs are initially
@@ -280,6 +280,20 @@ class Screen(list):
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.cursor_position()
 
+    def set_charset(self, code, mode):
+        """Set active ``G0`` or ``G1`` charset.
+
+        :param unicode code: character set code, should be a character
+                             from ``"B0UK"`` -- otherwise ignored.
+        :param unicode mode: if ``"("`` ``G0`` charset is set, if
+                             ``")"`` -- we operate on ``G1``.
+
+        .. warning:: user-defined charsets are currently not supported.
+        """
+        if code in c.MAPS:
+            setattr(self, {"(": "g0_charset", ")": "g1_charset"}[mode],
+                    c.MAP[code])
+
     def set_mode(self, *modes, **kwargs):
         """Sets (enables) a given list of modes.
 
@@ -317,12 +331,23 @@ class Screen(list):
         if mo.DECOM in modes:
             self.cursor_position()
 
+    def shift_in(self):
+        """Activates ``G0`` character set."""
+        self.current_charset = self.g0_mapping
+
+    def shift_out(self):
+        """Activates ``G1`` character set."""
+        self.current_charset = self.g1_mapping
+
     def draw(self, char):
         """Display a character at the current cursor position and advance
         the cursor if :data:`vt102.modes.DECAWM` is set.
 
         :param unicode char: a character to display.
         """
+        # Translating a given character.
+        char = char.translate(self.current_charset)
+
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line. Otherwise replace
         # characters already displayed with newly entered.
