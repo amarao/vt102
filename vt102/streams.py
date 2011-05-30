@@ -344,3 +344,40 @@ class DebugStream(ByteStream):
                 self.to.write("\n")
 
         super(DebugStream, self).dispatch(event, *args, **kwargs)
+
+
+class SmartStream(Stream):
+    """Same as :class:`ByteStream`, but tries to guess input encoding
+    from a given list of options. If none of the given encodings
+    matched, i.e. didn't raise a `UnicodeDecodeError`, input is decoded
+    from `"utf-8"` with a given `errors` value.
+
+    :param list encodings: a list of possible input encodings, will be
+                           processed left to right.
+    :param unicode errors: how to handle decoding errors, see
+                           :meth:`str.decode` for possible values.
+    """
+
+    def __init__(self, encodings=[], errors="replace"):
+        self.state = ("", 0)
+        self.decoders = [codecs.getincrementaldecoder(encoding)()
+                         for encoding in encodings]
+        self.decoders.append(codecs.getincrementaldecoder("utf-8")(errors))
+        super(SmartStream, self).__init__()
+
+    def feed(self, chars):
+        if not isinstance(chars, bytes):
+            raise TypeError(
+                "%s requires input in bytes" % self.__class__.__name__)
+
+        for decoder in self.decoders:
+            try:
+                decoder.setstate(self.state)
+                chars = decoder.decode(chars)
+            except ValueError:
+                continue
+            else:
+                self.state = decoder.getstate()
+                break
+
+        super(SmartStream, self).feed(chars)
