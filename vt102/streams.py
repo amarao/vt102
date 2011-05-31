@@ -287,7 +287,7 @@ class ByteStream(Stream):
 
     * First, try strict ``"utf-8"``, proceed if recieved and
       :exc:`UnicodeDecodeError` ...
-    * Try strict ``"latin1"``, failed? move on ...
+    * Try strict ``"cp437"``, failed? move on ...
     * Use ``"utf-8"`` with invalid bytes replaced -- this one will
       allways succeed.
 
@@ -310,7 +310,7 @@ class ByteStream(Stream):
     def __init__(self, encodings=None):
         encodings = encodings or [
             ("utf-8", "strict"),
-            ("latin1", "strict"),
+            ("cp437", "strict"),
             ("utf-8", "replace")
         ]
 

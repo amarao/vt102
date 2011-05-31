@@ -32,7 +32,15 @@ def take(n, iterable):
 Margins = namedtuple("Margins", "top bottom")
 
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
-Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
+Savepoint = namedtuple("Savepoint", [
+    "cursor",
+    "cursor_attributes",
+    "g0_charset",
+    "g1_charset",
+    "charset",
+    "origin",
+    "wrap"
+])
 
 #: A container for a single character, field names are *hopefully*
 #: self-explanatory.
@@ -194,10 +202,13 @@ class Screen(list):
                    for _ in xrange(self.lines))
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM, mo.DECTCEM])
         self.margins = Margins(0, self.lines - 1)
-        self.g0_mapping = c.LAT1_MAP
-        self.g1_mapping = c.VT100_MAP
-        self.current_charset = self.g0_mapping
         self.cursor_attributes = self.default_char
+
+        # According to VT220 manual and ``linux/drivers/tty/vt.c``
+        # the default G0 charset is latin-1, but for reasons unknown
+        # latin-1 breaks ascii-graphics; so G0 defaults to cp437.
+        self.g0_charset = self.charset = c.IBMPC_MAP
+        self.g1_charset = c.VT100_MAP
 
         # From ``man terminfo`` -- "... hardware tabs are initially
         # set every `n` spaces when the terminal is powered up. Since
@@ -292,7 +303,7 @@ class Screen(list):
         """
         if code in c.MAPS:
             setattr(self, {"(": "g0_charset", ")": "g1_charset"}[mode],
-                    c.MAP[code])
+                    c.MAPS[code])
 
     def set_mode(self, *modes, **kwargs):
         """Sets (enables) a given list of modes.
@@ -333,11 +344,11 @@ class Screen(list):
 
     def shift_in(self):
         """Activates ``G0`` character set."""
-        self.current_charset = self.g0_mapping
+        self.charset = self.g0_charset
 
     def shift_out(self):
         """Activates ``G1`` character set."""
-        self.current_charset = self.g1_mapping
+        self.charset = self.g1_charset
 
     def draw(self, char):
         """Display a character at the current cursor position and advance
@@ -346,7 +357,7 @@ class Screen(list):
         :param unicode char: a character to display.
         """
         # Translating a given character.
-        char = char.translate(self.current_charset)
+        char = char.translate(self.charset)
 
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line. Otherwise replace
@@ -433,6 +444,9 @@ class Screen(list):
         """Push the current cursor position onto the stack."""
         self.savepoints.append(Savepoint(self.cursor,
                                          self.cursor_attributes,
+                                         self.g0_charset,
+                                         self.g1_charset,
+                                         self.charset,
                                          mo.DECOM in self.mode,
                                          mo.DECAWM in self.mode))
 
@@ -447,7 +461,11 @@ class Screen(list):
             savepoint = self.savepoints.pop()
             self.y, self.x = savepoint.cursor
 
-            self.cursor_attributes = savepoint.attributes
+            self.cursor_attributes = savepoint.cursor_attributes
+
+            self.g0_charset = savepoint.g0_charset
+            self.g1_charset = savepoint.g1_charset
+            self.charset = savepoint.charset
 
             if savepoint.origin: self.set_mode(mo.DECOM)
             if savepoint.wrap: self.set_mode(mo.DECAWM)
