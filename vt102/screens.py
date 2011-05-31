@@ -34,7 +34,7 @@ Margins = namedtuple("Margins", "top bottom")
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", [
     "cursor",
-    "attributes",
+    "cursor_attributes",
     "g0_charset",
     "g1_charset",
     "charset",
@@ -202,7 +202,7 @@ class Screen(list):
                    for _ in xrange(self.lines))
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM, mo.DECTCEM])
         self.margins = Margins(0, self.lines - 1)
-        self.attributes = self.default_char
+        self.cursor_attributes = self.default_char
 
         # According to VT220 manual and ``linux/drivers/tty/vt.c``
         # the default G0 charset is latin-1, but for reasons unknown
@@ -375,7 +375,7 @@ class Screen(list):
             self.insert_characters(1)
 
         try:
-            self[self.y][self.x] = self.attributes._replace(data=char)
+            self[self.y][self.x] = self.cursor_attributes._replace(data=char)
         except IndexError:
             # cat /dev/urandom to reproduce
             if __debug__: print(self.x, self.y, char)
@@ -443,7 +443,7 @@ class Screen(list):
     def save_cursor(self):
         """Push the current cursor position onto the stack."""
         self.savepoints.append(Savepoint(self.cursor,
-                                         self.attributes,
+                                         self.cursor_attributes,
                                          self.g0_charset,
                                          self.g1_charset,
                                          self.charset,
@@ -461,7 +461,7 @@ class Screen(list):
             savepoint = self.savepoints.pop()
             self.y, self.x = savepoint.cursor
 
-            self.attributes = savepoint.attributes
+            self.cursor_attributes = savepoint.cursor_attributes
 
             self.g0_charset = savepoint.g0_charset
             self.g1_charset = savepoint.g1_charset
@@ -511,7 +511,7 @@ class Screen(list):
             for _ in xrange(min(bottom - self.y + 1, count)):
                 self.pop(self.y)
                 self.insert(bottom, list(
-                    repeat(self.attributes, self.columns)))
+                    repeat(self.cursor_attributes, self.columns)))
 
             self.carriage_return()
 
@@ -526,7 +526,7 @@ class Screen(list):
         count = count or 1
 
         for _ in xrange(min(self.columns - self.y, count)):
-            self[self.y].insert(self.x, self.attributes)
+            self[self.y].insert(self.x, self.cursor_attributes)
             self[self.y].pop()
 
     def delete_characters(self, count=None):
@@ -541,7 +541,7 @@ class Screen(list):
 
         for _ in xrange(min(self.columns - self.x, count)):
             self[self.y].pop(self.x)
-            self[self.y].append(self.attributes)
+            self[self.y].append(self.cursor_attributes)
 
     def erase_characters(self, count=None):
         """Erases the indicated # of characters, starting with the
@@ -560,7 +560,7 @@ class Screen(list):
         count = count or 1
 
         for column in xrange(self.x, min(self.x + count, self.columns)):
-            self[self.y][column] = self.attributes
+            self[self.y][column] = self.cursor_attributes
 
     def erase_in_line(self, type_of=0, private=False):
         """Erases a line in a specific way.
@@ -587,7 +587,7 @@ class Screen(list):
         )[type_of]
 
         for column in interval:
-            self[self.y][column] = self.attributes
+            self[self.y][column] = self.cursor_attributes
 
     def erase_in_display(self, type_of=0, private=False):
         """Erases display in a specific way.
@@ -616,7 +616,7 @@ class Screen(list):
 
         for line in interval:
             self[line][:] = \
-                (self.attributes for _ in xrange(self.columns))
+                (self.cursor_attributes for _ in xrange(self.columns))
 
         # In case of 0 or 1 we have to erase the line with the cursor.
         if type_of in [0, 1]:
@@ -790,4 +790,4 @@ class Screen(list):
             elif not attr:
                 replace = self.default_char._asdict()
 
-        self.attributes = self.attributes._replace(**replace)
+        self.cursor_attributes = self.cursor_attributes._replace(**replace)
