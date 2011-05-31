@@ -248,9 +248,12 @@ class Stream(object):
         """
         if char == "?":
             self.flags["private"] = True
-        elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.CR]:
+        elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.VT,
+                      ctrl.FF, ctrl.CR]:
             # Not sure why, but those seem to be allowed between CSI
             # sequence arguments.
+            self.dispatch(self.basic[char])
+        elif char == " ":
             pass
         elif char in [ctrl.CAN, ctrl.SUB]:
             # If CAN or SUB is received during a sequence, the current
