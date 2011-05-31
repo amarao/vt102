@@ -15,7 +15,7 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-__all__ = ("Screen", "Stream", "SmartStream", "ByteStream", "DebugStream",
+__all__ = ("Screen", "Stream", "ByteStream", "DebugStream",
            "ctrl", "esc", "mo", "g", "c")
 
 from . import (

@@ -277,29 +277,48 @@ class Stream(object):
                 self.reset()
 
 
-class SmartStream(Stream):
-    """A stream, which tries to guess input encoding from a given list
-    of options. If none of the given encodings matched, i.e. didn't
-    raise a `UnicodeDecodeError`, input is decoded from `fallback`
-    encoding with a given `errors` value.
+class ByteStream(Stream):
+    """A stream, which takes bytes strings (instead of unicode) as input
+    and tries to decode them using a given list of possible encodings.
+    It uses :class:`codecs.IncrementalDecoder` internally, so broken
+    bytes is not an issue.
 
-    :param list encodings: a list of possible input encodings, will be
-                           processed left to right.
-    :param unicode fallback: which encoding to use along with `errors`,
-                             when `encodings` list is exhausted.
-    :param unicode errors: how to handle decoding errors, see
+    By default, the following decoding strategy is used:
+
+    * First, try strict ``"utf-8"``, proceed if recieved and
+      :exc:`UnicodeDecodeError` ...
+    * Try strict ``"latin1"``, failed? move on ...
+    * Use ``"utf-8"`` with invalid bytes replaced -- this one will
+      allways succeed.
+
+    >>> stream = ByteStream()
+    >>> stream.feed(b"foo".decode("utf-8"))
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "vt102/streams.py", line 323, in feed
+        "%s requires input in bytes" % self.__class__.__name__)
+    TypeError: ByteStream requires input in bytes
+    >>> stream.feed(b"foo")
+
+    :param list encodings: a list of ``(encoding, errors)`` pairs,
+                           where the first element is encoding name,
+                           ex: ``"utf-8"`` and second defines how
+                           decoding errors should be handeld; see
                            :meth:`str.decode` for possible values.
     """
 
-    def __init__(self, encodings=None, fallback="utf-8", errors="replace"):
-        # Note: a single buffer is shared between multiple decoders.
+    def __init__(self, encodings=None):
+        encodings = encodings or [
+            ("utf-8", "strict"),
+            ("latin1", "strict"),
+            ("utf-8", "replace")
+        ]
+
         self.buffer = b"", 0
-        # Decoders for a list of expected encodings ...
-        self.decoders = [codecs.getincrementaldecoder(encoding)()
-                         for encoding in encodings or ()]
-        # ... plus a fallback one.
-        self.decoders.append(codecs.getincrementaldecoder(fallback)(errors))
-        super(SmartStream, self).__init__()
+        self.decoders = [codecs.getincrementaldecoder(encoding)(errors)
+                         for encoding, errors in encodings]
+
+        super(ByteStream, self).__init__()
 
     def feed(self, chars):
         if not isinstance(chars, bytes):
@@ -313,34 +332,11 @@ class SmartStream(Stream):
                 chars = decoder.decode(chars)
             except UnicodeDecodeError:
                 continue
-            else:
-                self.buffer = decoder.getstate()
-                break
 
-        super(SmartStream, self).feed(chars)
-
-
-class ByteStream(SmartStream):
-    """Stream, which takes byte strings (instead of unicode) as input.
-    It uses :class:`codecs.IncrementalDecoder` to decode bytes fed into
-    a predefined encoding, so broken bytes is not an issue.
-
-    >>> stream = ByteStream()
-    >>> stream.feed(b"foo".decode("utf-8"))
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-      File "vt102/streams.py", line 288, in feed
-        "%s requires input in bytes" % self.__class__.__name__)
-    TypeError: ByteStream requires input in bytes
-    >>> stream.feed(b"foo")
-
-    :param unicode encoding: input encoding.
-    :param unicode errors: how to handle decoding errors, see
-                           :meth:`str.decode` for possible values.
-    """
-
-    def __init__(self, encoding="utf-8", errors="replace"):
-        super(ByteStream, self).__init__(fallback=encoding, errors=errors)
+            self.buffer = decoder.getstate()
+            return super(ByteStream, self).feed(chars)
+        else:
+            raise
 
 
 class DebugStream(ByteStream):

@@ -135,7 +135,7 @@ def test_byte_stream():
     def validator(char):
         assert "\ufffd" not in char
 
-    stream = vt102.ByteStream("utf-8")
+    stream = vt102.ByteStream(encodings=[("utf-8", "replace")])
     stream.connect("draw", validator)
 
     bytes = "Garðabær".encode("utf-8")
