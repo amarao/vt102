@@ -7,8 +7,13 @@
     there's only one base screen implementation, but who knows what
     the future will bring :).
 
-    .. note:: checkout `examples/customscreen.py` for an example of
+    .. note:: checkout ``examples/customscreen.py`` for an example of
               a screen, which keeps track of the changed lines.
+
+    .. warning:: from ``xterm/main.c`` «If you think you know what all
+                 of this code is doing, you are probably very mistaken.
+                 There be serious and nasty dragons here» -- nothing
+                 has changed.
 
     :copyright: (c) 2011 Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
