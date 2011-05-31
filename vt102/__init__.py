@@ -4,7 +4,7 @@
     ~~~~~
 
     `vt102` implements a mix of VT102, VT220 and VT520 specification,
-    an aims to support most of the `TERM=linux` functionality.
+    and aims to support most of the `TERM=linux` functionality.
 
     Two classes: :class:`vt102.Stream`, which parses the command stream
     and dispatches events for commands, and :class:`vt102.Screen` which,
@@ -16,9 +16,15 @@
 """
 
 __all__ = ("Screen", "Stream", "ByteStream", "DebugStream",
-           "ctrl", "esc", "mo", "g")
+           "ctrl", "esc", "mo", "g", "c")
 
-from . import control as ctrl, escape as esc, modes as mo, graphics as g
+from . import (
+    control as ctrl,
+    escape as esc,
+    modes as mo,
+    graphics as g,
+    charsets as c
+)
 from .screens import Screen
 from .streams import Stream, ByteStream, DebugStream
 

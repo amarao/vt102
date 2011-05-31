@@ -101,3 +101,6 @@ API
 
 .. automodule:: vt102.graphics
     :members:
+
+.. automodule:: vt102.charsets
+    :members:

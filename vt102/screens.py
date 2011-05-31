@@ -14,13 +14,13 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 import operator
 from collections import namedtuple
 from itertools import islice, repeat
 
-from . import modes as mo, graphics as g
+from . import modes as mo, graphics as g, charsets as c
 
 
 def take(n, iterable):
@@ -32,7 +32,15 @@ def take(n, iterable):
 Margins = namedtuple("Margins", "top bottom")
 
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
-Savepoint = namedtuple("Savepoint", "cursor attributes origin wrap")
+Savepoint = namedtuple("Savepoint", [
+    "cursor",
+    "attributes",
+    "g0_charset",
+    "g1_charset",
+    "charset",
+    "origin",
+    "wrap"
+])
 
 #: A container for a single character, field names are *hopefully*
 #: self-explanatory.
@@ -77,12 +85,6 @@ class Screen(list):
        1-indexed**, so, for instance ``ESC [ 10;10 f`` really means
        -- move cursor to position (9, 9) in the display matrix.
 
-    .. warning::
-
-       Custom character sets and related CSI sequnces (ex.
-       :data:`vt102.control.SI` and :data:`vt102.control.SO`) are
-       currently **not supported**.
-
     .. seealso::
 
        `Standard ECMA-48, Section 6.1.1 \
@@ -92,7 +94,7 @@ class Screen(list):
     """
     #: A plain empty character with default foreground and background
     #: colors.
-    default_char = Char(data=u" ", fg="default", bg="default")
+    default_char = Char(data=" ", fg="default", bg="default")
 
     #: An inifinite sequence of default characters, used for populating
     #: new lines and columns.
@@ -127,7 +129,7 @@ class Screen(list):
     @property
     def display(self):
         """Returns a :func:`list` of screen lines as unicode strings."""
-        return [u"".join(map(operator.attrgetter("data"), line))
+        return ["".join(map(operator.attrgetter("data"), line))
                 for line in self]
 
     def attach(self, stream):
@@ -172,6 +174,9 @@ class Screen(list):
             ("set-mode", self.set_mode),
             ("reset-mode", self.reset_mode),
             ("alignment-display", self.alignment_display),
+            ("set-charset", self.set_charset),
+            ("shift-in", self.shift_in),
+            ("shift-out", self.shift_out),
         ]
 
         for event, handler in handlers:
@@ -197,7 +202,13 @@ class Screen(list):
                    for _ in xrange(self.lines))
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM, mo.DECTCEM])
         self.margins = Margins(0, self.lines - 1)
-        self.cursor_attributes = self.default_char
+        self.attributes = self.default_char
+
+        # According to VT220 manual and ``linux/drivers/tty/vt.c``
+        # the default G0 charset is latin-1, but for reasons unknown
+        # latin-1 breaks ascii-graphics; so G0 defaults to cp437.
+        self.g0_charset = self.charset = c.IBMPC_MAP
+        self.g1_charset = c.VT100_MAP
 
         # From ``man terminfo`` -- "... hardware tabs are initially
         # set every `n` spaces when the terminal is powered up. Since
@@ -280,6 +291,20 @@ class Screen(list):
             # bottom margins of the scrolling region (DECSTBM) changes.
             self.cursor_position()
 
+    def set_charset(self, code, mode):
+        """Set active ``G0`` or ``G1`` charset.
+
+        :param unicode code: character set code, should be a character
+                             from ``"B0UK"`` -- otherwise ignored.
+        :param unicode mode: if ``"("`` ``G0`` charset is set, if
+                             ``")"`` -- we operate on ``G1``.
+
+        .. warning:: user-defined charsets are currently not supported.
+        """
+        if code in c.MAPS:
+            setattr(self, {"(": "g0_charset", ")": "g1_charset"}[mode],
+                    c.MAPS[code])
+
     def set_mode(self, *modes, **kwargs):
         """Sets (enables) a given list of modes.
 
@@ -317,12 +342,23 @@ class Screen(list):
         if mo.DECOM in modes:
             self.cursor_position()
 
+    def shift_in(self):
+        """Activates ``G0`` character set."""
+        self.charset = self.g0_charset
+
+    def shift_out(self):
+        """Activates ``G1`` character set."""
+        self.charset = self.g1_charset
+
     def draw(self, char):
         """Display a character at the current cursor position and advance
         the cursor if :data:`vt102.modes.DECAWM` is set.
 
         :param unicode char: a character to display.
         """
+        # Translating a given character.
+        char = char.translate(self.charset)
+
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line. Otherwise replace
         # characters already displayed with newly entered.
@@ -339,7 +375,7 @@ class Screen(list):
             self.insert_characters(1)
 
         try:
-            self[self.y][self.x] = self.cursor_attributes._replace(data=char)
+            self[self.y][self.x] = self.attributes._replace(data=char)
         except IndexError:
             # cat /dev/urandom to reproduce
             if __debug__: print(self.x, self.y, char)
@@ -407,7 +443,10 @@ class Screen(list):
     def save_cursor(self):
         """Push the current cursor position onto the stack."""
         self.savepoints.append(Savepoint(self.cursor,
-                                         self.cursor_attributes,
+                                         self.attributes,
+                                         self.g0_charset,
+                                         self.g1_charset,
+                                         self.charset,
                                          mo.DECOM in self.mode,
                                          mo.DECAWM in self.mode))
 
@@ -422,7 +461,11 @@ class Screen(list):
             savepoint = self.savepoints.pop()
             self.y, self.x = savepoint.cursor
 
-            self.cursor_attributes = savepoint.attributes
+            self.attributes = savepoint.attributes
+
+            self.g0_charset = savepoint.g0_charset
+            self.g1_charset = savepoint.g1_charset
+            self.charset = savepoint.charset
 
             if savepoint.origin: self.set_mode(mo.DECOM)
             if savepoint.wrap: self.set_mode(mo.DECAWM)
@@ -468,7 +511,7 @@ class Screen(list):
             for _ in xrange(min(bottom - self.y + 1, count)):
                 self.pop(self.y)
                 self.insert(bottom, list(
-                    repeat(self.cursor_attributes, self.columns)))
+                    repeat(self.attributes, self.columns)))
 
             self.carriage_return()
 
@@ -483,7 +526,7 @@ class Screen(list):
         count = count or 1
 
         for _ in xrange(min(self.columns - self.y, count)):
-            self[self.y].insert(self.x, self.cursor_attributes)
+            self[self.y].insert(self.x, self.attributes)
             self[self.y].pop()
 
     def delete_characters(self, count=None):
@@ -498,7 +541,7 @@ class Screen(list):
 
         for _ in xrange(min(self.columns - self.x, count)):
             self[self.y].pop(self.x)
-            self[self.y].append(self.cursor_attributes)
+            self[self.y].append(self.attributes)
 
     def erase_characters(self, count=None):
         """Erases the indicated # of characters, starting with the
@@ -517,7 +560,7 @@ class Screen(list):
         count = count or 1
 
         for column in xrange(self.x, min(self.x + count, self.columns)):
-            self[self.y][column] = self.cursor_attributes
+            self[self.y][column] = self.attributes
 
     def erase_in_line(self, type_of=0, private=False):
         """Erases a line in a specific way.
@@ -544,7 +587,7 @@ class Screen(list):
         )[type_of]
 
         for column in interval:
-            self[self.y][column] = self.cursor_attributes
+            self[self.y][column] = self.attributes
 
     def erase_in_display(self, type_of=0, private=False):
         """Erases display in a specific way.
@@ -573,7 +616,7 @@ class Screen(list):
 
         for line in interval:
             self[line][:] = \
-                (self.cursor_attributes for _ in xrange(self.columns))
+                (self.attributes for _ in xrange(self.columns))
 
         # In case of 0 or 1 we have to erase the line with the cursor.
         if type_of in [0, 1]:
@@ -727,7 +770,7 @@ class Screen(list):
         """Fills screen with uppercase E's for screen focus and alignment."""
         for line in self:
             for column, char in enumerate(line):
-                line[column] = char._replace(data=u"E")
+                line[column] = char._replace(data="E")
 
     def select_graphic_rendition(self, *attrs):
         """Set display attributes.
@@ -743,8 +786,8 @@ class Screen(list):
                 replace["bg"] = g.BG[attr]
             elif attr in g.TEXT:
                 attr = g.TEXT[attr]
-                replace[attr[1:]] = attr.startswith(u"+")
+                replace[attr[1:]] = attr.startswith("+")
             elif not attr:
                 replace = self.default_char._asdict()
 
-        self.cursor_attributes = self.cursor_attributes._replace(**replace)
+        self.attributes = self.attributes._replace(**replace)

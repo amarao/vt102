@@ -25,7 +25,7 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import codecs
 import sys
@@ -114,7 +114,8 @@ class Stream(object):
             "stream": self._stream,
             "escape": self._escape,
             "arguments": self._arguments,
-            "sharp": self._sharp
+            "sharp": self._sharp,
+            "charset": self._charset
         }
 
         self.listeners = defaultdict(lambda: [])
@@ -125,7 +126,7 @@ class Stream(object):
         self.state = "stream"
         self.flags = {}
         self.params = []
-        self.current = u""
+        self.current = ""
 
     def consume(self, char):
         """Consume a single unicode character and advance the state as
@@ -204,10 +205,13 @@ class Stream(object):
         a single notable exception -- :data:`escape.DECOM` sequence,
         which starts with a sharp.
         """
-        if char == u"#":
+        if char == "#":
             self.state = "sharp"
-        elif char == u"[":
+        elif char == "[":
             self.state = "arguments"
+        elif char in "()":
+            self.state = "charset"
+            self.flags["mode"] = char
         elif char in self.escape:
             self.state = "stream"
             self.dispatch(self.escape[char])
@@ -220,6 +224,11 @@ class Stream(object):
             self.dispatch(self.sharp[char])
 
         self.state = "stream"
+
+    def _charset(self, char):
+        """Parse ``G0`` or ``G1`` charset code."""
+        self.dispatch("set-charset", char, **self.flags)
+        self.reset()
 
     def _arguments(self, char):
         """Parse arguments of an escape sequence.
@@ -237,7 +246,7 @@ class Stream(object):
            `VT220 Programmer Reference <http://http://vt100.net/docs/vt220-rm/>`_
                For details on the characters valid for use as arguments.
         """
-        if char == u"?":
+        if char == "?":
             self.flags["private"] = True
         elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.CR]:
             # Not sure why, but those seem to be allowed between CSI
@@ -255,40 +264,60 @@ class Stream(object):
         else:
             self.params.append(min(int(self.current or 0), 9999))
 
-            if char == u";":
-                self.current = u""
+            if char == ";":
+                self.current = ""
             else:
                 event = self.csi.get(char)
                 if event:
                     self.dispatch(event, *self.params, **self.flags)
                 elif __debug__:
                     self.dispatch("debug",
-                        ctrl.CSI + u";".join(map(unicode, self.params)) + char)
+                        ctrl.CSI + ";".join(map(unicode, self.params)) + char)
 
                 self.reset()
 
 
 class ByteStream(Stream):
-    """Stream, which takes byte strings (instead of unicode) as input.
-    It uses :class:`codecs.IncrementalDecoder` to decode bytes fed into
-    a predefined encoding, so broken bytes is not an issue.
+    """A stream, which takes bytes strings (instead of unicode) as input
+    and tries to decode them using a given list of possible encodings.
+    It uses :class:`codecs.IncrementalDecoder` internally, so broken
+    bytes is not an issue.
+
+    By default, the following decoding strategy is used:
+
+    * First, try strict ``"utf-8"``, proceed if recieved and
+      :exc:`UnicodeDecodeError` ...
+    * Try strict ``"cp437"``, failed? move on ...
+    * Use ``"utf-8"`` with invalid bytes replaced -- this one will
+      allways succeed.
 
     >>> stream = ByteStream()
     >>> stream.feed(b"foo".decode("utf-8"))
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
-      File "vt102/streams.py", line 288, in feed
+      File "vt102/streams.py", line 323, in feed
         "%s requires input in bytes" % self.__class__.__name__)
     TypeError: ByteStream requires input in bytes
     >>> stream.feed(b"foo")
 
-    :param unicode encoding: input encoding.
-    :param unicode errors: how to handle decoding errors, see
+    :param list encodings: a list of ``(encoding, errors)`` pairs,
+                           where the first element is encoding name,
+                           ex: ``"utf-8"`` and second defines how
+                           decoding errors should be handeld; see
                            :meth:`str.decode` for possible values.
     """
 
-    def __init__(self, encoding="utf-8", errors="replace"):
-        self.decoder = codecs.getincrementaldecoder(encoding)(errors)
+    def __init__(self, encodings=None):
+        encodings = encodings or [
+            ("utf-8", "strict"),
+            ("cp437", "strict"),
+            ("utf-8", "replace")
+        ]
+
+        self.buffer = b"", 0
+        self.decoders = [codecs.getincrementaldecoder(encoding)(errors)
+                         for encoding, errors in encodings]
+
         super(ByteStream, self).__init__()
 
     def feed(self, chars):
@@ -296,7 +325,18 @@ class ByteStream(Stream):
             raise TypeError(
                 "%s requires input in bytes" % self.__class__.__name__)
 
-        super(ByteStream, self).feed(self.decoder.decode(chars))
+        for decoder in self.decoders:
+            decoder.setstate(self.buffer)
+
+            try:
+                chars = decoder.decode(chars)
+            except UnicodeDecodeError:
+                continue
+
+            self.buffer = decoder.getstate()
+            return super(ByteStream, self).feed(chars)
+        else:
+            raise
 
 
 class DebugStream(ByteStream):
@@ -330,7 +370,7 @@ class DebugStream(ByteStream):
                 elif not isinstance(arg, bytes):
                     arg = bytes(arg)
 
-                self.to.write("%s " % arg)
+                self.to.write(b"%s " % arg)
             else:
                 self.to.write("\n")
 
