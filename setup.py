@@ -52,7 +52,7 @@ class PyTest(Command):
 
 
 setup(name="vt102",
-      version="0.3.8",
+      version="0.3.9",
       packages=find_packages(exclude=["tests"]),
       cmdclass={"test": PyTest},
       platforms=["any"],
