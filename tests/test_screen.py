@@ -33,7 +33,7 @@ def test_remove_non_existant_attribute():
 
     screen.select_graphic_rendition(24)  # underline-off.
     assert screen == [[screen.default_char, screen.default_char]] * 2
-    assert not screen.attributes.underscore
+    assert not screen.cursor_attributes.underscore
 
 
 def test_attributes():
@@ -43,7 +43,7 @@ def test_attributes():
 
     # Still default, since we haven't written anything.
     assert screen == [[screen.default_char, screen.default_char]] * 2
-    assert screen.attributes.bold
+    assert screen.cursor_attributes.bold
 
     screen.draw("f")
     assert screen == [
@@ -58,12 +58,12 @@ def test_colors():
 
     screen.select_graphic_rendition(30) # black foreground
     screen.select_graphic_rendition(40) # black background
-    assert screen.attributes.fg == "black"
-    assert screen.attributes.bg == "black"
+    assert screen.cursor_attributes.fg == "black"
+    assert screen.cursor_attributes.bg == "black"
 
     screen.select_graphic_rendition(31) # red foreground
-    assert screen.attributes.fg == "red"
-    assert screen.attributes.bg == "black"
+    assert screen.cursor_attributes.fg == "red"
+    assert screen.cursor_attributes.bg == "black"
 
 
 def test_reset_resets_colors():
@@ -72,11 +72,11 @@ def test_reset_resets_colors():
 
     screen.select_graphic_rendition(30)
     screen.select_graphic_rendition(40)
-    assert screen.attributes.fg == "black"
-    assert screen.attributes.bg == "black"
+    assert screen.cursor_attributes.fg == "black"
+    assert screen.cursor_attributes.bg == "black"
 
     screen.select_graphic_rendition(0)
-    assert screen.attributes == screen.default_char
+    assert screen.cursor_attributes == screen.default_char
 
 
 def test_multi_attribs():
@@ -85,8 +85,8 @@ def test_multi_attribs():
     screen.select_graphic_rendition(1)
     screen.select_graphic_rendition(3)
 
-    assert screen.attributes.bold
-    assert screen.attributes.italics
+    assert screen.cursor_attributes.bold
+    assert screen.cursor_attributes.italics
 
 
 def test_attributes_reset():
@@ -468,12 +468,12 @@ def test_save_cursor():
     screen.save_cursor()
     screen.select_graphic_rendition(24)
 
-    assert screen.attributes == screen.default_char
+    assert screen.cursor_attributes == screen.default_char
 
     screen.restore_cursor()
 
-    assert screen.attributes != screen.default_char
-    assert screen.attributes == Char(" ", underscore=True)
+    assert screen.cursor_attributes != screen.default_char
+    assert screen.cursor_attributes == Char(" ", underscore=True)
 
 
 def test_restore_cursor_with_none_saved():
