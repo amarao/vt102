@@ -35,16 +35,16 @@ There are two important classes in ``vt102``:
 buffer of text and text-attributes to display on screen. The ``Stream``
 is the stream processor. It manages the state of the input and dispatches
 events to anything that's listening about things that are going on.
-Events are things like ``linefeed``, ``draw "a"``, or ``cursor-position 10,10``.
+Events are things like ``LINEFEED``, ``DRAW "a"``, or ``CURSOR_POSITION 10 10``.
 See the :ref:`API <api>` for more details.
 
 In general, if you just want to know what's being displayed on screen you
 can do something like the following:
 
     >>> import vt102
-    >>> stream = vt102.Stream()
     >>> screen = vt102.Screen(80, 24)
-    >>> screen.attach(stream)
+    >>> stream = vt102.Stream()
+    >>> stream.attach(screen)
     >>> stream.feed(u"\u001b7\u001b[?47h\u001b)0\u001b[H\u001b[2J\u001b[H"
                     u"\u001b[2;1HNetHack, Copyright 1985-2003\r\u001b[3;1"
                     u"H         By Stichting Mathematisch Centrum and M. "

@@ -36,9 +36,9 @@ Example
 -------
 
     >>> import vt102
-    >>> stream = vt102.Stream()
     >>> screen = vt102.Screen(80, 24)
-    >>> screen.attach(stream)
+    >>> stream = vt102.Stream()
+    >>> stream.attach(screen)
     >>> stream.feed(u"\u001b7\u001b[?47h\u001b)0\u001b[H\u001b[2J\u001b[H"
                     u"\u001b[2;1HNetHack, Copyright 1985-2003\r\u001b[3;1"
                     u"H         By Stichting Mathematisch Centrum and M. "

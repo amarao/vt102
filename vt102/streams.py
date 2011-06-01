@@ -354,10 +354,10 @@ class DebugStream(ByteStream):
 
     >>> stream = DebugStream()
     >>> stream.feed("\x1b[1;24r\x1b[4l\x1b[24;1H\x1b[0;10m")
-    SET-MARGINS 1 24
-    RESET-MODE 4
-    CURSOR-POSITION 24 1
-    SELECT-GRAPHIC-RENDITION 0 10
+    SET_MARGINS 1 24
+    RESET_MODE 4
+    CURSOR_POSITION 24 1
+    SELECT_GRAPHIC_RENDITION 0 10
 
     :param file to: a file-like object to write debug information to.
     :param list only: a list of events you want to debug (empty by
