@@ -193,7 +193,7 @@ class Stream(object):
             self.state = "escape"
         elif char == ctrl.CSI:
             self.state = "arguments"
-        elif char not in (ctrl.NUL, ctrl.DEL):
+        elif char not in [ctrl.NUL, ctrl.DEL]:
             self.dispatch("draw", char)
 
     def _escape(self, char):
@@ -211,11 +211,15 @@ class Stream(object):
         elif char in "()":
             self.state = "charset"
             self.flags["mode"] = char
-        elif char in self.escape:
-            self.state = "stream"
-            self.dispatch(self.escape[char])
         else:
-            self.state = "stream"
+            try:
+                event = self.escape[char]
+            except KeyError:
+                event = "debug"
+                self.flags["escape"] = char
+
+            self.dispatch(event, **self.flags)
+            self.reset()
 
     def _sharp(self, char):
         """Parse arguments of a `"#"` seqence."""

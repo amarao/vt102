@@ -13,6 +13,7 @@ class counter(object):
         self.count = 0
 
     def __call__(self, *args):
+        print args
         self.count += 1
 
 
@@ -40,10 +41,11 @@ def test_basic_sequences():
 
         stream.consume(ctrl.ESC)
         assert stream.state == "escape"
+        assert not handler.count
 
         stream.consume(cmd)
-        assert handler.count == 1
         assert stream.state == "stream"
+        assert handler.count == 1
 
     # ``linefeed``s is somewhat an exception, there's three ways to
     # trigger it.
