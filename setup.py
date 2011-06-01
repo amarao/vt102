@@ -22,7 +22,7 @@ except IOError:
 
 
 CLASSIFIERS = (
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
@@ -52,7 +52,7 @@ class PyTest(Command):
 
 
 setup(name="vt102",
-      version="0.3.9",
+      version="0.4.0",
       packages=find_packages(exclude=["tests"]),
       cmdclass={"test": PyTest},
       platforms=["any"],
