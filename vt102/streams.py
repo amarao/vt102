@@ -173,7 +173,8 @@ class Stream(object):
 
         Event handlers are looked up implicitly in the listeners'
         ``__dict__``, so, if a listener only wants to handle ``DRAW``
-        events it should define a ``draw()`` method.
+        events it should define a ``draw()`` method or pass
+        ``only=["draw"]`` argument to :meth:`attach`.
 
         .. warning::
 
@@ -181,8 +182,6 @@ class Stream(object):
            subsequent callbacks are be aborted.
 
         :param unicode event: event to dispatch.
-        :param bool reset: reset stream state after all callback are
-                           executed.
         :param list args: arguments to pass to event handlers.
         """
         for listener, only in self.listeners:
