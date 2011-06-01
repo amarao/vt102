@@ -357,25 +357,25 @@ class DebugStream(ByteStream):
     """
 
     def __init__(self, to=sys.stdout, only=(), *args, **kwargs):
-        self.to = to
-        self.only = set(only)
         super(DebugStream, self).__init__(*args, **kwargs)
 
-    def dispatch(self, event, *args, **flags):
-        def fixup(arg):
-            if isinstance(arg, str):
-                return arg.encode("utf-8")
-            elif not isinstance(arg, unicode):
-                return str(arg)
-            else:
-                return arg
+        class Bugger(object):
+            def fixup(self, arg):
+                if isinstance(arg, str):
+                    return arg.encode("utf-8")
+                elif not isinstance(arg, unicode):
+                    return str(arg)
+                else:
+                    return arg
 
-        if not self.only or event in self.only:
-            self.to.write(event.upper() + " ")
-            self.to.write("; ".join(map(fixup, args)))
-            self.to.write(" ")
-            self.to.write(", ".join("{0}: {1}".format(name, fixup(arg))
-                                    for name, arg in flags.iteritems()))
-            self.to.write("\n")
+            def __getattr__(self, event):
+                def inner(*args, **flags):
+                    to.write(event.upper() + " ")
+                    to.write("; ".join(map(self.fixup, args)))
+                    to.write(" ")
+                    to.write(", ".join("{0}: {1}".format(name, self.fixup(arg))
+                                       for name, arg in flags.iteritems()))
+                    to.write("\n")
+                return inner
 
-        super(DebugStream, self).dispatch(event, *args, **flags)
+        self.attach(Bugger(), only=only)
