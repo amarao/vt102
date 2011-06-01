@@ -465,13 +465,7 @@ class Screen(list):
         of the stack.
         """
         if self.savepoints:
-            # .. todo:: use _cursor_position()
-            # .. todo:: ensure that the poped cursor is within screen
-            #           boundaries?
             savepoint = self.savepoints.pop()
-            self.y, self.x = savepoint.cursor
-
-            self.cursor_attributes = savepoint.cursor_attributes
 
             self.g0_charset = savepoint.g0_charset
             self.g1_charset = savepoint.g1_charset
@@ -479,6 +473,10 @@ class Screen(list):
 
             if savepoint.origin: self.set_mode(mo.DECOM)
             if savepoint.wrap: self.set_mode(mo.DECAWM)
+
+            self.cursor_attributes = savepoint.cursor_attributes
+            self.y, self.x = savepoint.cursor
+            self.ensure_bounds(use_margins=True)
         else:
             # If nothing was saved, the cursor moves to home position;
             # origin mode is reset. :todo: DECAWM?

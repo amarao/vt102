@@ -486,6 +486,31 @@ def test_restore_cursor_with_none_saved():
     assert mo.DECOM not in screen.mode
 
 
+def test_restore_cursor_out_of_bounds():
+    screen = Screen(10, 10)
+
+    # a) origin mode off.
+    screen.cursor_position(5, 5)
+    screen.save_cursor()
+    screen.resize(3, 3)
+    screen.reset()
+    screen.restore_cursor()
+
+    assert screen.cursor == (2, 2)
+
+    # b) origin mode is on.
+    screen.resize(10, 10)
+    screen.cursor_position(8, 8)
+    screen.save_cursor()
+    screen.resize(5, 5)
+    screen.reset()
+    screen.set_mode(mo.DECOM)
+    screen.set_margins(2, 3)
+    screen.restore_cursor()
+
+    assert screen.cursor == (2, 4)
+
+
 def test_insert_lines():
     # a) without margins
     screen = update(Screen(3, 3), ["sam", "is ", "foo"], colored=[1])
