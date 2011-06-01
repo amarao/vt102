@@ -350,10 +350,10 @@ class DebugStream(ByteStream):
 
     >>> stream = DebugStream()
     >>> stream.feed("\x1b[1;24r\x1b[4l\x1b[24;1H\x1b[0;10m")
-    SET_MARGINS 1 24
+    SET_MARGINS 1; 24
     RESET_MODE 4
-    CURSOR_POSITION 24 1
-    SELECT_GRAPHIC_RENDITION 0 10
+    CURSOR_POSITION 24; 1
+    SELECT_GRAPHIC_RENDITION 0; 10
 
     :param file to: a file-like object to write debug information to.
     :param list only: a list of events you want to debug (empty by
@@ -365,18 +365,21 @@ class DebugStream(ByteStream):
         self.only = set(only)
         super(DebugStream, self).__init__(*args, **kwargs)
 
-    def dispatch(self, event, *args, **kwargs):
+    def dispatch(self, event, *args, **flags):
+        def fixup(arg):
+            if isinstance(arg, str):
+                return arg.encode("utf-8")
+            elif not isinstance(arg, unicode):
+                return str(arg)
+            else:
+                return arg
+
         if not self.only or event in self.only:
-            self.to.write(event.upper())
-
-            for arg in args:
-                if isinstance(arg, str):
-                    arg = arg.encode("utf-8")
-                elif not isinstance(arg, unicode):
-                    arg = str(arg)
-
-                self.to.write(" " + arg)
-
+            self.to.write(event.upper() + " ")
+            self.to.write("; ".join(map(fixup, args)))
+            self.to.write(" ")
+            self.to.write(", ".join("{0}: {1}".format(name, fixup(arg))
+                                    for name, arg in flags.iteritems()))
             self.to.write("\n")
 
-        super(DebugStream, self).dispatch(event, *args, **kwargs)
+        super(DebugStream, self).dispatch(event, *args, **flags)
