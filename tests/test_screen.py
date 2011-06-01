@@ -166,7 +166,7 @@ def test_draw():
 
     map(screen.draw, "abc")
     assert screen.display == ["abc", "   ", "   "]
-    assert screen.cursor == (0, 3)
+    assert screen.cursor == (0, 2)
 
     # ... one` more character -- now we got a linefeed!
     screen.draw("a")
@@ -178,12 +178,12 @@ def test_draw():
 
     map(screen.draw, "abc")
     assert screen.display == ["abc", "   ", "   "]
-    assert screen.cursor == (0, 3)
+    assert screen.cursor == (0, 2)
 
     # No linefeed is issued on the end of the line ...
     screen.draw("a")
     assert screen.display == ["aba", "   ", "   "]
-    assert screen.cursor == (0, 3)
+    assert screen.cursor == (0, 2)
 
     # ``IRM`` mode is on, expecting new characters to move the old ones
     # instead of replacing them.
