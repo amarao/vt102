@@ -141,6 +141,11 @@ class Stream(object):
             self.handlers.get(self.state)(char)
         except TypeError:
             pass
+        except KeyError:
+            self.flags["state"] = self.state
+            self.flags["unhandled"] = char
+            self.dispatch("debug", *self.params)
+            self.reset()
 
     def feed(self, chars):
         """Consume a unicode string and advance the state as necessary.
@@ -160,7 +165,7 @@ class Stream(object):
         """
         self.listeners.append(screen)
 
-    def dispatch(self, event, *args, **flags):
+    def dispatch(self, event, *args, **kwargs):
         """Dispatch an event.
 
         Event handlers are looked up implicitly in the listeners'
@@ -173,14 +178,17 @@ class Stream(object):
            subsequent callbacks are be aborted.
 
         :param unicode event: event to dispatch.
+        :param bool reset: reset stream state after all callback are
+                           executed.
         :param list args: arguments to pass to event handlers.
-        :param dict flags: keyword flags to pass to event handlers.
         """
         for listener in self.listeners:
             try:
-                getattr(listener, event)(*args, **flags)
+                getattr(listener, event)(*args, **self.flags)
             except AttributeError:
                 continue
+        else:
+            if kwargs.get("reset", True): self.reset()
 
     # State transformers.
     # ...................
@@ -212,26 +220,15 @@ class Stream(object):
             self.state = "charset"
             self.flags["mode"] = char
         else:
-            try:
-                event = self.escape[char]
-            except KeyError:
-                event = "debug"
-                self.flags["escape"] = char
-
-            self.dispatch(event, **self.flags)
-            self.reset()
+            self.dispatch(self.escape[char])
 
     def _sharp(self, char):
         """Parse arguments of a `"#"` seqence."""
-        if char in self.sharp:
-            self.dispatch(self.sharp[char])
-
-        self.state = "stream"
+        self.dispatch(self.sharp[char])
 
     def _charset(self, char):
         """Parse ``G0`` or ``G1`` charset code."""
-        self.dispatch("set-charset", char, **self.flags)
-        self.reset()
+        self.dispatch("set-charset", char)
 
     def _arguments(self, char):
         """Parse arguments of an escape sequence.
@@ -255,12 +252,9 @@ class Stream(object):
                       ctrl.FF, ctrl.CR]:
             # Not sure why, but those seem to be allowed between CSI
             # sequence arguments.
-            self.dispatch(self.basic[char])
+            self.dispatch(self.basic[char], reset=False)
         elif char == " ":
             pass
-        elif char == ";":
-            self.params.append(min(int(self.current or 0), 9999))
-            self.current = ""
         elif char in [ctrl.CAN, ctrl.SUB]:
             # If CAN or SUB is received during a sequence, the current
             # sequence is aborted; terminal displays the substitute
@@ -271,15 +265,12 @@ class Stream(object):
         elif char.isdigit():
             self.current += char
         else:
-            try:
-                event = self.csi[char]
-            except KeyError:
-                event = "debug"
-                self.flags["csi"] = char
-            finally:
-                self.params.append(min(int(self.current or 0), 9999))
-                self.dispatch(event, *self.params, **self.flags)
-                self.reset()
+            self.params.append(min(int(self.current or 0), 9999))
+
+            if char == ";":
+                self.current = ""
+            else:
+                self.dispatch(self.csi[char], *self.params)
 
 
 class ByteStream(Stream):

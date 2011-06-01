@@ -13,7 +13,6 @@ class counter(object):
         self.count = 0
 
     def __call__(self, *args):
-        print args
         self.count += 1
 
 
@@ -70,7 +69,7 @@ def test_unknown_sequences():
     else:
         assert handler.count == 1
         assert handler.args == (6, 0)
-        assert handler.kwargs == {"csi": "Z" }
+        assert handler.kwargs == {"unhandled": "Z", "state": "arguments"}
 
 
 def test_non_csi_sequences():

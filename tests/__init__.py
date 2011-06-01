@@ -21,7 +21,7 @@ class TestMixin(object):
         """
         self.listeners[event].append(callback)
 
-    def dispatch(self, event, *args, **flags):
+    def dispatch(self, event, *args, **kwargs):
         """Dispatch an event.
 
         .. note::
@@ -30,11 +30,14 @@ class TestMixin(object):
            are be aborted.
 
         :param unicode event: event to dispatch.
+        :param bool reset: reset stream state after all callback are
+                           executed.
         :param list args: arguments to pass to event handlers.
-        :param dict flags: keyword flags to pass to event handlers.
         """
         for callback in self.listeners.get(event, []):
-            callback(*args, **flags)
+            callback(*args, **self.flags)
+        else:
+            if kwargs.get("reset", True): self.reset()
 
 
 class TestStream(TestMixin, Stream):
