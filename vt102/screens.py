@@ -170,11 +170,6 @@ class Screen(list):
         # we aim to support VT102 / VT220 and linux -- we use n = 8.
         self.tabstops = set(xrange(7, self.columns, 8))
 
-        # Internal screen flags.
-        self.flags = {
-            "wrap": False,  # Line wrap needed.
-        }
-
         self.cursor_position()
 
     def resize(self, lines=None, columns=None):
@@ -322,10 +317,11 @@ class Screen(list):
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line. Otherwise replace
         # characters already displayed with newly entered.
-        if self.flags["wrap"]:
+        if self.x == self.columns:
             if mo.DECAWM in self.mode:
                 self.linefeed()
-            self.flags["wrap"] = False
+            else:
+                self.x -= 1
 
         # If Insert mode is set, new characters move old characters to
         # the right, otherwise terminal is in Replace mode and new
@@ -335,10 +331,9 @@ class Screen(list):
 
         self[self.y][self.x] = self.cursor_attributes._replace(data=char)
 
-        if self.x == self.columns - 1:
-            self.flags["wrap"] = True
-        else:
-            self.cursor_forward()
+        # .. note:: We can't use :meth:`cursor_forward()`, because that
+        #           way, we'll never know when to linefeed.
+        self.x += 1
 
     def carriage_return(self):
         """Move the cursor to the beginning of the current line."""
