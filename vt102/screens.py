@@ -137,56 +137,6 @@ class Screen(list):
         return ["".join(map(operator.attrgetter("data"), line))
                 for line in self]
 
-    def attach(self, stream):
-        """Attaches a screen to an object, which processes commands
-        and dispatches events.
-
-        :param vt102.streams.Stream events: event producer to attach
-                                            the screen to.
-        """
-        handlers = [
-            ("reset", self.reset),
-            ("draw", self.draw),
-            ("backspace", self.backspace),
-            ("tab", self.tab),
-            ("linefeed", self.linefeed),
-            ("carriage-return", self.carriage_return),
-            ("index", self.index),
-            ("reverse-index", self.reverse_index),
-            ("save-cursor", self.save_cursor),
-            ("restore-cursor", self.restore_cursor),
-            ("cursor-up", self.cursor_up),
-            ("cursor-down", self.cursor_down),
-            ("cursor-forward", self.cursor_forward),
-            ("cursor-back", self.cursor_back),
-            ("cursor-down1", self.cursor_down1),
-            ("cursor-up1", self.cursor_up1),
-            ("cursor-position", self.cursor_position),
-            ("cursor-to-column", self.cursor_to_column),
-            ("cursor-to-line", self.cursor_to_line),
-            ("erase-in-line", self.erase_in_line),
-            ("erase-in-display", self.erase_in_display),
-            ("insert-lines", self.insert_lines),
-            ("delete-lines", self.delete_lines),
-            ("insert-characters", self.insert_characters),
-            ("delete-characters", self.delete_characters),
-            ("erase-characters", self.erase_characters),
-            ("select-graphic-rendition", self.select_graphic_rendition),
-            ("bell", self.bell),
-            ("set-tab-stop", self.set_tab_stop),
-            ("clear-tab-stop", self.clear_tab_stop),
-            ("set-margins", self.set_margins),
-            ("set-mode", self.set_mode),
-            ("reset-mode", self.reset_mode),
-            ("alignment-display", self.alignment_display),
-            ("set-charset", self.set_charset),
-            ("shift-in", self.shift_in),
-            ("shift-out", self.shift_out),
-        ]
-
-        for event, handler in handlers:
-            stream.connect(event, handler)
-
     def reset(self):
         """Resets the terminal to its initial state.
 

@@ -1108,9 +1108,9 @@ def test_cursor_position():
 
 
 def test_unicode():
-    stream = Stream()
     screen = Screen(4, 2)
-    screen.attach(stream)
+    stream = Stream()
+    stream.attach(screen)
 
     try:
         stream.feed("тест")

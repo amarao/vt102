@@ -4,8 +4,8 @@ from __future__ import unicode_literals
 
 import pytest
 
-import vt102
-import vt102.control as ctrl, vt102.escape as esc
+from vt102 import ctrl, esc
+from . import TestStream, TestByteStream
 
 
 class counter(object):
@@ -32,7 +32,7 @@ class argstore(object):
 
 
 def test_basic_sequences():
-    stream = vt102.Stream()
+    stream = TestStream()
 
     for cmd, event in stream.escape.iteritems():
         handler = counter()
@@ -58,7 +58,7 @@ def test_basic_sequences():
 
 def test_unknown_sequences():
     handler = argcheck()
-    stream = vt102.Stream()
+    stream = TestStream()
     stream.connect("debug", handler)
 
     try:
@@ -71,7 +71,7 @@ def test_unknown_sequences():
 
 
 def test_non_csi_sequences():
-    stream = vt102.Stream()
+    stream = TestStream()
 
     for cmd, event in stream.csi.iteritems():
         # a) single param
@@ -108,12 +108,12 @@ def test_non_csi_sequences():
 
 def test_mode_csi_sequences():
     bugger = counter()
-    stream = vt102.Stream()
+    stream = TestStream()
     stream.connect("debug", bugger)
 
-    # a) set-mode
+    # a) set_mode
     handler = argcheck()
-    stream.connect("set-mode", handler)
+    stream.connect("set_mode", handler)
     stream.feed(ctrl.CSI + "?9;2h")
 
     assert not bugger.count
@@ -121,9 +121,9 @@ def test_mode_csi_sequences():
     assert handler.args == (9, 2)
     assert handler.kwargs == {"private": True}
 
-    # a) reset-mode
+    # a) reset_mode
     handler = argcheck()
-    stream.connect("reset-mode", handler)
+    stream.connect("reset_mode", handler)
     stream.feed(ctrl.CSI + "?9;2l")
 
     assert not bugger.count
@@ -135,10 +135,10 @@ def test_byte_stream():
     def validator(char):
         assert "\ufffd" not in char
 
-    stream = vt102.ByteStream(encodings=[("utf-8", "replace")])
+    stream = TestByteStream(encodings=[("utf_8", "replace")])
     stream.connect("draw", validator)
 
-    bytes = "Garðabær".encode("utf-8")
+    bytes = "Garðabær".encode("utf_8")
 
     for byte in bytes:
         stream.feed(byte)
@@ -146,8 +146,8 @@ def test_byte_stream():
 
 def test_missing_params():
     handler = argcheck()
-    stream = vt102.Stream()
-    stream.connect("cursor-position", handler)
+    stream = TestStream()
+    stream.connect("cursor_position", handler)
 
     stream.feed(ctrl.CSI + ";" + esc.HVP)
     assert handler.count == 1
@@ -156,8 +156,8 @@ def test_missing_params():
 
 def test_overflow():
     handler = argcheck()
-    stream = vt102.Stream()
-    stream.connect("cursor-position", handler)
+    stream = TestStream()
+    stream.connect("cursor_position", handler)
 
     stream.feed(ctrl.CSI + "999999999999999;99999999999999" + esc.HVP)
     assert handler.count == 1
@@ -166,9 +166,9 @@ def test_overflow():
 
 def test_interrupt():
     bugger, handler = argstore(), argcheck()
-    stream = vt102.Stream()
+    stream = TestStream()
     stream.connect("draw", bugger)
-    stream.connect("cursor-position", handler)
+    stream.connect("cursor_position", handler)
 
     stream.feed(ctrl.CSI + "10;" + ctrl.SUB + "10" + esc.HVP)
 
@@ -180,8 +180,8 @@ def test_interrupt():
 
 def test_control_characters():
     handler = argcheck()
-    stream = vt102.Stream()
-    stream.connect("cursor-position", handler)
+    stream = TestStream()
+    stream.connect("cursor_position", handler)
 
     stream.feed(ctrl.CSI + "10;\t\t\n\r\n10" + esc.HVP)
 

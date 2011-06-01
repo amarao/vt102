@@ -29,7 +29,6 @@ from __future__ import absolute_import, unicode_literals
 
 import codecs
 import sys
-from collections import defaultdict
 
 from . import control as ctrl, escape as esc
 
@@ -59,54 +58,54 @@ class Stream(object):
         ctrl.LF: "linefeed",
         ctrl.VT: "linefeed",
         ctrl.FF: "linefeed",
-        ctrl.CR: "carriage-return",
-        ctrl.SO: "shift-out",
-        ctrl.SI: "shift-in",
+        ctrl.CR: "carriage_return",
+        ctrl.SO: "shift_out",
+        ctrl.SI: "shift_in",
     }
 
-    #: non-CSI escape sequences.
+    #: non_CSI escape sequences.
     escape = {
         esc.RIS: "reset",
         esc.IND: "index",
         esc.NEL: "linefeed",
-        esc.RI: "reverse-index",
-        esc.HTS: "set-tab-stop",
-        esc.DECSC: "save-cursor",
-        esc.DECRC: "restore-cursor",
+        esc.RI: "reverse_index",
+        esc.HTS: "set_tab_stop",
+        esc.DECSC: "save_cursor",
+        esc.DECRC: "restore_cursor",
     }
 
-    #: "sharp" escape sequences -- ``ESC # <N>``.
+    #: "sharp" escape sequences __ ``ESC # <N>``.
     sharp = {
-        esc.DECALN: "alignment-display",
+        esc.DECALN: "alignment_display",
     }
 
-    #: CSI escape sequences -- ``CSI P1;P2;...;Pn <fn>``.
+    #: CSI escape sequences __ ``CSI P1;P2;...;Pn <fn>``.
     csi = {
-        esc.ICH: "insert-characters",
-        esc.CUU: "cursor-up",
-        esc.CUD: "cursor-down",
-        esc.CUF: "cursor-forward",
-        esc.CUB: "cursor-back",
-        esc.CNL: "cursor-down1",
-        esc.CPL: "cursor-up1",
-        esc.CHA: "cursor-to-column",
-        esc.CUP: "cursor-position",
-        esc.ED: "erase-in-display",
-        esc.EL: "erase-in-line",
-        esc.IL: "insert-lines",
-        esc.DL: "delete-lines",
-        esc.DCH: "delete-characters",
-        esc.ECH: "erase-characters",
-        esc.HPR: "cursor-forward",
-        esc.VPA: "cursor-to-line",
-        esc.VPR: "cursor-down",
-        esc.HVP: "cursor-position",
-        esc.TBC: "clear-tab-stop",
-        esc.SM: "set-mode",
-        esc.RM: "reset-mode",
-        esc.SGR: "select-graphic-rendition",
-        esc.DECSTBM: "set-margins",
-        esc.HPA: "cursor-to-column",
+        esc.ICH: "insert_characters",
+        esc.CUU: "cursor_up",
+        esc.CUD: "cursor_down",
+        esc.CUF: "cursor_forward",
+        esc.CUB: "cursor_back",
+        esc.CNL: "cursor_down1",
+        esc.CPL: "cursor_up1",
+        esc.CHA: "cursor_to_column",
+        esc.CUP: "cursor_position",
+        esc.ED: "erase_in_display",
+        esc.EL: "erase_in_line",
+        esc.IL: "insert_lines",
+        esc.DL: "delete_lines",
+        esc.DCH: "delete_characters",
+        esc.ECH: "erase_characters",
+        esc.HPR: "cursor_forward",
+        esc.VPA: "cursor_to_line",
+        esc.VPR: "cursor_down",
+        esc.HVP: "cursor_position",
+        esc.TBC: "clear_tab_stop",
+        esc.SM: "set_mode",
+        esc.RM: "reset_mode",
+        esc.SGR: "select_graphic_rendition",
+        esc.DECSTBM: "set_margins",
+        esc.HPA: "cursor_to_column",
     }
 
     def __init__(self):
@@ -118,7 +117,7 @@ class Stream(object):
             "charset": self._charset
         }
 
-        self.listeners = defaultdict(lambda: [])
+        self.listeners = []
         self.reset()
 
     def reset(self):
@@ -154,34 +153,42 @@ class Stream(object):
 
         for char in chars: self.consume(char)
 
-    def connect(self, event, callback):
-        """Add an event listener for a particular event.
+    def attach(self, screen):
+        """Attach itself to a given screen.
 
-        Depending on the event, there may or may not be parameters
-        passed to the callback. Some escape sequences might also have
-        default values, but providing these defaults is responsibility
-        of the callback.
+        If a Screen only wants to handle `DRAW` events it should provide
+        a ``draw()`` method; example:
 
-        :param unicode event: event to listen for.
-        :param callable callback: callable to invoke when a given event
-                                  occurs.
+        >>> class UselessScreen(object):
+        ...     def draw(self, char):
+        ...         print("drawn {0}".format(char))
+        ...
+        >>> stream = Stream()
+        >>> stream.attach(UselessScreen())
+        >>> stream.feed("x")
+        drawn x
+
+        :param vt102.screens.Screen screen: a screen to attach to.
         """
-        self.listeners[event].append(callback)
+        self.listeners.append(screen)
 
     def dispatch(self, event, *args, **flags):
         """Dispatch an event.
 
         .. note::
 
-           If any callback throws an exception, the subsequent callbacks
-           are be aborted.
+           If any of the attached listeners throws an exception, the
+           subsequent callbacks are be aborted.
 
         :param unicode event: event to dispatch.
         :param list args: arguments to pass to event handlers.
         :param dict flags: keyword flags to pass to event handlers.
         """
-        for callback in self.listeners.get(event, []):
-            callback(*args, **flags)
+        for listener in self.listeners:
+            try:
+                getattr(listener, event)(*args, **flags)
+            except AttributeError:
+                continue
 
     # State transformers.
     # ...................
