@@ -9,16 +9,16 @@
     >>>
     >>> class Dummy(object):
     ...     def __init__(self):
-    ...         self.foo = 0
+    ...         self.y = 0
     ...
-    ...     def up(self, bar):
-    ...         self.foo += bar
+    ...     def cursor_up(self, count=None):
+    ...         self.y += count or 1
     ...
     >>> dummy = Dummy()
     >>> stream = vt102.Stream()
-    >>> stream.connect("cursor-up", dummy.up)
-    >>> stream.feed(u"\u001B[5A") # Move the cursor up 5 rows.
-    >>> dummy.foo
+    >>> stream.attach(dummy)
+    >>> stream.feed(u"\u001B[5A")  # Move the cursor up 5 rows.
+    >>> dummy.y
     5
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
@@ -156,18 +156,6 @@ class Stream(object):
     def attach(self, screen):
         """Attach itself to a given screen.
 
-        If a Screen only wants to handle `DRAW` events it should provide
-        a ``draw()`` method; example:
-
-        >>> class UselessScreen(object):
-        ...     def draw(self, char):
-        ...         print("drawn {0}".format(char))
-        ...
-        >>> stream = Stream()
-        >>> stream.attach(UselessScreen())
-        >>> stream.feed("x")
-        drawn x
-
         :param vt102.screens.Screen screen: a screen to attach to.
         """
         self.listeners.append(screen)
@@ -175,7 +163,11 @@ class Stream(object):
     def dispatch(self, event, *args, **flags):
         """Dispatch an event.
 
-        .. note::
+        Event handlers are looked up implicitly in the listeners'
+        ``__dict__``, so, if a listener only wants to handle ``DRAW``
+        events it should define a ``draw()`` method.
+
+        .. warning::
 
            If any of the attached listeners throws an exception, the
            subsequent callbacks are be aborted.
