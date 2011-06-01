@@ -158,12 +158,15 @@ class Stream(object):
 
         for char in chars: self.consume(char)
 
-    def attach(self, screen):
+    def attach(self, screen, only=()):
         """Attach itself to a given screen.
 
         :param vt102.screens.Screen screen: a screen to attach to.
+        :param list only: a list of events you want to dispatch to a
+                          given screen (empty by default, which means
+                          -- dispatch all events).
         """
-        self.listeners.append(screen)
+        self.listeners.append((screen, set(only)))
 
     def dispatch(self, event, *args, **kwargs):
         """Dispatch an event.
@@ -182,11 +185,14 @@ class Stream(object):
                            executed.
         :param list args: arguments to pass to event handlers.
         """
-        for listener in self.listeners:
+        for listener, only in self.listeners:
+            if only and event not in only:
+                continue
+
             try:
                 getattr(listener, event)(*args, **self.flags)
             except AttributeError:
-                continue
+                pass
         else:
             if kwargs.get("reset", True): self.reset()
 
