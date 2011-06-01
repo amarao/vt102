@@ -67,7 +67,8 @@ def test_unknown_sequences():
         pytest.fail("No exception should've raised, got: %s" % e)
     else:
         assert handler.count == 1
-        assert handler.args == (ctrl.CSI + "6;0Z", )
+        assert handler.args == (6, 0)
+        assert handler.kwargs == {"csi": "Z" }
 
 
 def test_non_csi_sequences():

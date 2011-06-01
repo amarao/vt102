@@ -262,6 +262,9 @@ class Stream(object):
             self.dispatch(self.basic[char])
         elif char == " ":
             pass
+        elif char == ";":
+            self.params.append(min(int(self.current or 0), 9999))
+            self.current = ""
         elif char in [ctrl.CAN, ctrl.SUB]:
             # If CAN or SUB is received during a sequence, the current
             # sequence is aborted; terminal displays the substitute
@@ -272,18 +275,14 @@ class Stream(object):
         elif char.isdigit():
             self.current += char
         else:
-            self.params.append(min(int(self.current or 0), 9999))
-
-            if char == ";":
-                self.current = ""
-            else:
-                event = self.csi.get(char)
-                if event:
-                    self.dispatch(event, *self.params, **self.flags)
-                elif __debug__:
-                    self.dispatch("debug",
-                        ctrl.CSI + ";".join(map(unicode, self.params)) + char)
-
+            try:
+                event = self.csi[char]
+            except KeyError:
+                event = "debug"
+                self.flags["csi"] = char
+            finally:
+                self.params.append(min(int(self.current or 0), 9999))
+                self.dispatch(event, *self.params, **self.flags)
                 self.reset()
 
 
@@ -355,10 +354,10 @@ class DebugStream(ByteStream):
 
     >>> stream = DebugStream()
     >>> stream.feed("\x1b[1;24r\x1b[4l\x1b[24;1H\x1b[0;10m")
-    SET-MARGINS 1, 24
+    SET-MARGINS 1 24
     RESET-MODE 4
-    CURSOR-POSITION 24, 1
-    SELECT-GRAPHIC-RENDITION 0, 10
+    CURSOR-POSITION 24 1
+    SELECT-GRAPHIC-RENDITION 0 10
 
     :param file to: a file-like object to write debug information to.
     :param list only: a list of events you want to debug (empty by
@@ -372,16 +371,16 @@ class DebugStream(ByteStream):
 
     def dispatch(self, event, *args, **kwargs):
         if not self.only or event in self.only:
-            self.to.write("%s " % event.upper())
+            self.to.write(event.upper())
 
             for arg in args:
-                if isinstance(arg, unicode):
+                if isinstance(arg, str):
                     arg = arg.encode("utf-8")
-                elif not isinstance(arg, bytes):
-                    arg = bytes(arg)
+                elif not isinstance(arg, unicode):
+                    arg = str(arg)
 
-                self.to.write(b"%s " % arg)
-            else:
-                self.to.write("\n")
+                self.to.write(" " + arg)
+
+            self.to.write("\n")
 
         super(DebugStream, self).dispatch(event, *args, **kwargs)
