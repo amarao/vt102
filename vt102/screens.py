@@ -383,11 +383,7 @@ class Screen(list):
         if mo.IRM in self.mode:
             self.insert_characters(1)
 
-        try:
-            self[self.y][self.x] = self.cursor_attributes._replace(data=char)
-        except IndexError:
-            # cat /dev/urandom to reproduce
-            if __debug__: print(self.x, self.y, char)
+        self[self.y][self.x] = self.cursor_attributes._replace(data=char)
 
         if self.x == self.columns - 1:
             self.flags["wrap"] = True
