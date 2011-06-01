@@ -159,7 +159,7 @@ class Stream(object):
         for char in chars: self.consume(char)
 
     def attach(self, screen, only=()):
-        """Attach itself to a given screen.
+        """Adds a given screen to the listeners queue.
 
         :param vt102.screens.Screen screen: a screen to attach to.
         :param list only: a list of events you want to dispatch to a
@@ -167,6 +167,16 @@ class Stream(object):
                           -- dispatch all events).
         """
         self.listeners.append((screen, set(only)))
+
+    def detach(self, screen):
+        """Removes a given screen from the listeners queue and failes
+        silently if it's not attached.
+
+        :param vt102.screens.Screen screen: a screen to detach.
+        """
+        for idx, (listener, _) in enumerate(self.listeners):
+            if screen is listener:
+                self.listeners.pop(idx)
 
     def dispatch(self, event, *args, **kwargs):
         """Dispatch an event.
