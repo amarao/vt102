@@ -63,7 +63,7 @@ class Stream(object):
         ctrl.SI: "shift_in",
     }
 
-    #: non_CSI escape sequences.
+    #: non-CSI escape sequences.
     escape = {
         esc.RIS: "reset",
         esc.IND: "index",
@@ -74,12 +74,12 @@ class Stream(object):
         esc.DECRC: "restore_cursor",
     }
 
-    #: "sharp" escape sequences __ ``ESC # <N>``.
+    #: "sharp" escape sequences -- ``ESC # <N>``.
     sharp = {
         esc.DECALN: "alignment_display",
     }
 
-    #: CSI escape sequences __ ``CSI P1;P2;...;Pn <fn>``.
+    #: CSI escape sequences -- ``CSI P1;P2;...;Pn <fn>``.
     csi = {
         esc.ICH: "insert_characters",
         esc.CUU: "cursor_up",
