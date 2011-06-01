@@ -1,3 +1,11 @@
+2011-06-XX version 0.4.0:
+
+  * Improved cursor movement - ``Screen`` passes all but one tests
+    in `vttest`.
+  * Changed the way ``Stream`` interacts with ``Screen`` -- event
+    handlers are now implicitly looked up in screen's ``__dict__``,
+    not connected manually.
+
 2011-05-31 version 0.3.9:
 
   * Added initial support for G0-1 charsets (mappings taken from ``tty``
