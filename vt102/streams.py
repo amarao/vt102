@@ -142,10 +142,13 @@ class Stream(object):
         except TypeError:
             pass
         except KeyError:
-            self.flags["state"] = self.state
-            self.flags["unhandled"] = char
-            self.dispatch("debug", *self.params)
-            self.reset()
+            if __debug__:
+                self.flags["state"] = self.state
+                self.flags["unhandled"] = char
+                self.dispatch("debug", *self.params)
+                self.reset()
+            else:
+                raise
 
     def feed(self, chars):
         """Consume a unicode string and advance the state as necessary.
