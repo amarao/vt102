@@ -271,6 +271,11 @@ class Screen(list):
         :param list modes: modes to set, where each mode is a constant
                            from :mod:`vt102.modes`.
         """
+        # Private mode codes are shifted, to be distingiushed from non
+        # private ones.
+        if kwargs.get("private"):
+            modes = [mode << 5 for mode in modes]
+
         self.mode.update(modes)
 
         # When DECOLM mode is set, the screen is erased and the cursor
@@ -285,12 +290,23 @@ class Screen(list):
         if mo.DECOM in modes:
             self.cursor_position()
 
+        # Mark all displayed characters as reverse.
+        if mo.DECSCNM in modes:
+            self[:] = ([char._replace(reverse=True) for char in line]
+                       for line in self)
+            self.select_graphic_rendition(g._SGR["+reverse"])
+
     def reset_mode(self, *modes, **kwargs):
         """Resets (disables) a given list of modes.
 
         :param list modes: modes to reset -- hopefully, each mode is a
                            constant from :mod:`vt102.modes`.
         """
+        # Private mode codes are shifted, to be distingiushed from non
+        # private ones.
+        if kwargs.get("private"):
+            modes = [mode << 5 for mode in modes]
+
         self.mode.difference_update(modes)
 
         # Lines below follow the logic in :meth:`set_mode`.
@@ -301,6 +317,11 @@ class Screen(list):
 
         if mo.DECOM in modes:
             self.cursor_position()
+
+        if mo.DECSCNM in modes:
+            self[:] = ([char._replace(reverse=False) for char in line]
+                       for line in self)
+            self.select_graphic_rendition(g._SGR["-reverse"])
 
     def shift_in(self):
         """Activates ``G0`` character set."""

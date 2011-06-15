@@ -67,3 +67,6 @@ BG = {
     47: "white",
     49: "default"  # black.
 }
+
+# Reverse mapping of all available attributes -- keep this private!
+_SGR = dict((v, k) for k, v in BG.items() + FG.items() + TEXT.items())
