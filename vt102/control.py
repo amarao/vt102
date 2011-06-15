@@ -14,6 +14,8 @@
 
 from __future__ import unicode_literals
 
+#: *Space*: Not suprisingly -- ``" "``.
+SP = " "
 
 #: *Null*: Does nothing.
 NUL = "\u0000"

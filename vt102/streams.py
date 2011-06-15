@@ -271,7 +271,7 @@ class Stream(object):
             # Not sure why, but those seem to be allowed between CSI
             # sequence arguments.
             self.dispatch(self.basic[char], reset=False)
-        elif char == " ":
+        elif char == ctrl.SP:
             pass
         elif char in [ctrl.CAN, ctrl.SUB]:
             # If CAN or SUB is received during a sequence, the current
