@@ -41,7 +41,7 @@ IRM = 4
 #: visible.
 DECTCEM = 25 << 5
 
-#: *Screen Mode*: toggles screen-wide reverse video.
+#: *Screen Mode*: toggles screen-wide reverse-video mode.
 DECSCNM = 5 << 5
 
 #: *Origin Mode*: allows cursor addressing relative to a user-defined
