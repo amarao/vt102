@@ -112,6 +112,8 @@ def test_attributes_reset():
 
 def test_resize():
     screen = Screen(2, 2)
+    screen.set_mode(mo.DECOM)
+    screen.set_margins(0, 1)
     assert screen.size == (2, 2)
     assert len(screen) == 2
     assert len(screen[0]) == 2
@@ -124,6 +126,9 @@ def test_resize():
     assert screen == [[screen.default_char,
                        screen.default_char,
                        screen.default_char]] * 3
+    assert mo.DECOM not in screen.mode
+    assert screen.margins == (0, 2)
+
 
     screen.resize(2, 2)
     assert screen.size == (2, 2)
