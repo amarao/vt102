@@ -37,7 +37,7 @@ def take(n, iterable):
 #: A container for screen's scroll margins.
 Margins = namedtuple("Margins", "top bottom")
 
-#: A container for savepoint, created on :data:`vt102.escape.DECSC`.
+#: A container for savepoint, created on :data:`~vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", [
     "cursor",
     "g0_charset",
@@ -94,6 +94,11 @@ class Screen(list):
     and given explicit commands, or it can be attached to a stream and
     will respond to events.
 
+    .. attribute:: cursor
+
+       Reference to the :class:`~vt102.screens.Cursor` object, holding
+       cursor position and attributes.
+
     .. attribute:: margins
 
        Top and bottom screen margins, defining the scrolling region;
@@ -128,7 +133,7 @@ class Screen(list):
     @property
     def size(self):
         """Returns screen size -- ``(lines, columns)`` when
-        :data:`vt102.modes.DECTCEM` mode is set, otherwise returns
+        :data:`~vt102.modes.DECTCEM` mode is set, otherwise returns
         ``None``.
         """
         if mo.DECTCEM in self.mode:
@@ -336,7 +341,7 @@ class Screen(list):
 
     def draw(self, char):
         """Display a character at the current cursor position and advance
-        the cursor if :data:`vt102.modes.DECAWM` is set.
+        the cursor if :data:`~vt102.modes.DECAWM` is set.
 
         :param unicode char: a character to display.
         """
@@ -393,7 +398,7 @@ class Screen(list):
             self.cursor_up()
 
     def linefeed(self):
-        """Performs an index and, if :data:`vt102.modes.LNM` is set, a
+        """Performs an index and, if :data:`~vt102.modes.LNM` is set, a
         carriage return.
         """
         self.index()
@@ -621,9 +626,9 @@ class Screen(list):
         """Ensure that current cursor position is within screen bounds.
 
         :param bool use_margins: when ``True`` or when
-                                 :data:`vt102.modes.DECOM` is set, cursor
-                                 is bounded by top and and bottom margins,
-                                 instead of ``[0; lines - 1]``.
+                                 :data:`~vt102.modes.DECOM` is set,
+                                 cursor is bounded by top and and bottom
+                                 margins, instead of ``[0; lines - 1]``.
         """
         if use_margins or mo.DECOM in self.mode:
             top, bottom = self.margins
@@ -691,7 +696,7 @@ class Screen(list):
         """Set the cursor to a specific `line` and `column`.
 
         Cursor is allowed to move out of the scrolling region only when
-        :data:`vt102.modes.DECOM` is reset, otherwise -- the position
+        :data:`~vt102.modes.DECOM` is reset, otherwise -- the position
         doesn't change.
 
         :param int line: line number to move the cursor to.
