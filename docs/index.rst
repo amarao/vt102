@@ -30,7 +30,7 @@ Usage
 =====
 
 There are two important classes in ``vt102``:
-:class:`vt102.screens.Screen` and :class:`vt102.streams.Stream`. The
+:class:`~vt102.screens.Screen` and :class:`~vt102.streams.Stream`. The
 ``Screen`` is the terminal screen emulator. It maintains an in-memory
 buffer of text and text-attributes to display on screen. The ``Stream``
 is the stream processor. It manages the state of the input and dispatches
