@@ -21,6 +21,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import copy
 import operator
 from collections import namedtuple
 from itertools import islice, repeat
@@ -39,7 +40,6 @@ Margins = namedtuple("Margins", "top bottom")
 #: A container for savepoint, created on :data:`vt102.escape.DECSC`.
 Savepoint = namedtuple("Savepoint", [
     "cursor",
-    "cursor_attributes",
     "g0_charset",
     "g1_charset",
     "charset",
@@ -70,6 +70,21 @@ class Char(_Char):
                 strikethrough=False):
         return _Char.__new__(cls, data, fg, bg, bold, italics, underscore,
                              reverse, strikethrough)
+
+
+class Cursor(object):
+    """Screen cursor.
+
+    :param int x: horizontal cursor position.
+    :param int y: vertical cursor position.
+    :param Char attrs: cursor attributes (see
+                       :meth:`Screen.selectel_graphic_rendition`)
+    """
+    __slots__ = "x y attrs".split()
+
+    def __init__(self, x, y, attrs=Char(" ")):
+        self.x, self.y, self.attrs = x, y, attrs
+
 
 
 class Screen(list):
@@ -111,18 +126,6 @@ class Screen(list):
         self.reset()
 
     @property
-    def cursor(self):
-        """Returns current cursor position -- ``(line, column)``.
-
-        .. note::
-
-           The reason for reversed ``(y, x)`` or ``(line, column)`` pair
-           is that :meth:`cursor_position` uses same argument ordering.
-           Same note applies to :data:`size` property.
-        """
-        return self.y, self.x
-
-    @property
     def size(self):
         """Returns screen size -- ``(lines, columns)`` when
         :data:`vt102.modes.DECTCEM` mode is set, otherwise returns
@@ -157,7 +160,6 @@ class Screen(list):
                    for _ in xrange(self.lines))
         self.mode = set([mo.DECAWM, mo.DECTCEM, mo.LNM, mo.DECTCEM])
         self.margins = Margins(0, self.lines - 1)
-        self.cursor_attributes = self.default_char
 
         # According to VT220 manual and ``linux/drivers/tty/vt.c``
         # the default G0 charset is latin-1, but for reasons unknown
@@ -170,6 +172,7 @@ class Screen(list):
         # we aim to support VT102 / VT220 and linux -- we use n = 8.
         self.tabstops = set(xrange(7, self.columns, 8))
 
+        self.cursor = Cursor(0, 0)
         self.cursor_position()
 
     def resize(self, lines=None, columns=None):
@@ -343,11 +346,11 @@ class Screen(list):
         # If this was the last column in a line and auto wrap mode is
         # enabled, move the cursor to the next line. Otherwise replace
         # characters already displayed with newly entered.
-        if self.x == self.columns:
+        if self.cursor.x == self.columns:
             if mo.DECAWM in self.mode:
                 self.linefeed()
             else:
-                self.x -= 1
+                self.cursor.x -= 1
 
         # If Insert mode is set, new characters move old characters to
         # the right, otherwise terminal is in Replace mode and new
@@ -355,15 +358,15 @@ class Screen(list):
         if mo.IRM in self.mode:
             self.insert_characters(1)
 
-        self[self.y][self.x] = self.cursor_attributes._replace(data=char)
+        self[self.cursor.y][self.cursor.x] = self.cursor.attrs._replace(data=char)
 
         # .. note:: We can't use :meth:`cursor_forward()`, because that
         #           way, we'll never know when to linefeed.
-        self.x += 1
+        self.cursor.x += 1
 
     def carriage_return(self):
         """Move the cursor to the beginning of the current line."""
-        self.x = 0
+        self.cursor.x = 0
 
     def index(self):
         """Move the cursor down one line in the same column. If the
@@ -371,7 +374,7 @@ class Screen(list):
         """
         top, bottom = self.margins
 
-        if self.y == bottom:
+        if self.cursor.y == bottom:
             self.pop(top)
             self.insert(bottom, take(self.columns, self.default_line))
         else:
@@ -383,7 +386,7 @@ class Screen(list):
         """
         top, bottom = self.margins
 
-        if self.y == top:
+        if self.cursor.y == top:
             self.pop(bottom)
             self.insert(top, take(self.columns, self.default_line))
         else:
@@ -403,13 +406,13 @@ class Screen(list):
         aren't anymore left.
         """
         for stop in sorted(self.tabstops):
-            if self.x < stop:
+            if self.cursor.x < stop:
                 column = stop
                 break
         else:
             column = self.columns - 1
 
-        self.x = column
+        self.cursor.x = column
 
     def backspace(self):
         """Move cursor to the left one or keep it in it's position if
@@ -419,8 +422,7 @@ class Screen(list):
 
     def save_cursor(self):
         """Push the current cursor position onto the stack."""
-        self.savepoints.append(Savepoint(self.cursor,
-                                         self.cursor_attributes,
+        self.savepoints.append(Savepoint(copy.copy(self.cursor),
                                          self.g0_charset,
                                          self.g1_charset,
                                          self.charset,
@@ -441,8 +443,7 @@ class Screen(list):
             if savepoint.origin: self.set_mode(mo.DECOM)
             if savepoint.wrap: self.set_mode(mo.DECAWM)
 
-            self.cursor_attributes = savepoint.cursor_attributes
-            self.y, self.x = savepoint.cursor
+            self.cursor = savepoint.cursor
             self.ensure_bounds(use_margins=True)
         else:
             # If nothing was saved, the cursor moves to home position;
@@ -461,9 +462,9 @@ class Screen(list):
         top, bottom = self.margins
 
         # If cursor is outside scrolling margins it -- do nothin'.
-        if top <= self.y <= bottom:
+        if top <= self.cursor.y <= bottom:
             #                           v +1, because xrange() is exclusive.
-            for line in xrange(self.y, min(bottom + 1, self.y + count)):
+            for line in xrange(self.cursor.y, min(bottom + 1, self.cursor.y + count)):
                 self.pop(bottom)
                 self.insert(line, take(self.columns, self.default_line))
 
@@ -481,12 +482,12 @@ class Screen(list):
         top, bottom = self.margins
 
         # If cursor is outside scrolling margins it -- do nothin'.
-        if top <= self.y <= bottom:
+        if top <= self.cursor.y <= bottom:
             #                v -- +1 to include the bottom margin.
-            for _ in xrange(min(bottom - self.y + 1, count)):
-                self.pop(self.y)
+            for _ in xrange(min(bottom - self.cursor.y + 1, count)):
+                self.pop(self.cursor.y)
                 self.insert(bottom, list(
-                    repeat(self.cursor_attributes, self.columns)))
+                    repeat(self.cursor.attrs, self.columns)))
 
             self.carriage_return()
 
@@ -500,9 +501,9 @@ class Screen(list):
         """
         count = count or 1
 
-        for _ in xrange(min(self.columns - self.y, count)):
-            self[self.y].insert(self.x, self.cursor_attributes)
-            self[self.y].pop()
+        for _ in xrange(min(self.columns - self.cursor.y, count)):
+            self[self.cursor.y].insert(self.cursor.x, self.cursor.attrs)
+            self[self.cursor.y].pop()
 
     def delete_characters(self, count=None):
         """Deletes the indicated # of characters, starting with the
@@ -514,9 +515,9 @@ class Screen(list):
         """
         count = count or 1
 
-        for _ in xrange(min(self.columns - self.x, count)):
-            self[self.y].pop(self.x)
-            self[self.y].append(self.cursor_attributes)
+        for _ in xrange(min(self.columns - self.cursor.x, count)):
+            self[self.cursor.y].pop(self.cursor.x)
+            self[self.cursor.y].append(self.cursor.attrs)
 
     def erase_characters(self, count=None):
         """Erases the indicated # of characters, starting with the
@@ -534,8 +535,8 @@ class Screen(list):
         """
         count = count or 1
 
-        for column in xrange(self.x, min(self.x + count, self.columns)):
-            self[self.y][column] = self.cursor_attributes
+        for column in xrange(self.cursor.x, min(self.cursor.x + count, self.columns)):
+            self[self.cursor.y][column] = self.cursor.attrs
 
     def erase_in_line(self, type_of=0, private=False):
         """Erases a line in a specific way.
@@ -553,16 +554,16 @@ class Screen(list):
         interval = (
             # a) erase from the cursor to the end of line, including
             # the cursor,
-            xrange(self.x, self.columns),
+            xrange(self.cursor.x, self.columns),
             # b) erase from the beginning of the line to the cursor,
             # including it,
-            xrange(0, self.x + 1),
+            xrange(0, self.cursor.x + 1),
             # c) erase the entire line.
             xrange(0, self.columns)
         )[type_of]
 
         for column in interval:
-            self[self.y][column] = self.cursor_attributes
+            self[self.cursor.y][column] = self.cursor.attrs
 
     def erase_in_display(self, type_of=0, private=False):
         """Erases display in a specific way.
@@ -581,17 +582,17 @@ class Screen(list):
         interval = (
             # a) erase from cursor to the end of the display, including
             # the cursor,
-            xrange(self.y + 1, self.lines),
+            xrange(self.cursor.y + 1, self.lines),
             # b) erase from the beginning of the display to the cursor,
             # including it,
-            xrange(0, self.y),
+            xrange(0, self.cursor.y),
             # c) erase the whole display.
             xrange(0, self.lines)
         )[type_of]
 
         for line in interval:
             self[line][:] = \
-                (self.cursor_attributes for _ in xrange(self.columns))
+                (self.cursor.attrs for _ in xrange(self.columns))
 
         # In case of 0 or 1 we have to erase the line with the cursor.
         if type_of in [0, 1]:
@@ -599,7 +600,7 @@ class Screen(list):
 
     def set_tab_stop(self):
         """Sest a horizontal tab stop at cursor position."""
-        self.tabstops.add(self.x)
+        self.tabstops.add(self.cursor.x)
 
     def clear_tab_stop(self, type_of=None):
         """Clears a horizontal tab stop in a specific way, depending
@@ -612,7 +613,7 @@ class Screen(list):
         if not type_of:
             # Clears a horizontal tab stop at cursor position, if it's
             # present, or silently fails if otherwise.
-            self.tabstops.discard(self.x)
+            self.tabstops.discard(self.cursor.x)
         elif type_of == 3:
             self.tabstops = set()  # Clears all horizontal tab stops.
 
@@ -629,8 +630,8 @@ class Screen(list):
         else:
             top, bottom = 0, self.lines - 1
 
-        self.x = min(max(0, self.x), self.columns - 1)
-        self.y = min(max(top, self.y), bottom)
+        self.cursor.x = min(max(0, self.cursor.x), self.columns - 1)
+        self.cursor.y = min(max(top, self.cursor.y), bottom)
 
     def cursor_up(self, count=None):
         """Moves cursor up the indicated # of lines in same column.
@@ -638,7 +639,7 @@ class Screen(list):
 
         :param int count: number of lines to skip.
         """
-        self.y -= count or 1
+        self.cursor.y -= count or 1
         self.ensure_bounds(use_margins=True)
 
     def cursor_up1(self, count=None):
@@ -656,7 +657,7 @@ class Screen(list):
 
         :param int count: number of lines to skip.
         """
-        self.y += count or 1
+        self.cursor.y += count or 1
         self.ensure_bounds(use_margins=True)
 
     def cursor_down1(self, count=None):
@@ -674,7 +675,7 @@ class Screen(list):
 
         :param int count: number of columns to skip.
         """
-        self.x -= count or 1
+        self.cursor.x -= count or 1
         self.ensure_bounds()
 
     def cursor_forward(self, count=None):
@@ -683,7 +684,7 @@ class Screen(list):
 
         :param int count: number of columns to skip.
         """
-        self.x += count or 1
+        self.cursor.x += count or 1
         self.ensure_bounds()
 
     def cursor_position(self, line=None, column=None):
@@ -708,7 +709,7 @@ class Screen(list):
             if not self.margins.top <= line <= self.margins.bottom:
                 return
 
-        self.x, self.y = column, line
+        self.cursor.x, self.cursor.y = column, line
         self.ensure_bounds()
 
     def cursor_to_column(self, column=None):
@@ -716,7 +717,7 @@ class Screen(list):
 
         :param int column: column number to move the cursor to.
         """
-        self.x = (column or 1) - 1
+        self.cursor.x = (column or 1) - 1
         self.ensure_bounds()
 
     def cursor_to_line(self, line=None):
@@ -724,12 +725,12 @@ class Screen(list):
 
         :param int line: line number to move the cursor to.
         """
-        self.y = (line or 1) - 1
+        self.cursor.y = (line or 1) - 1
 
         # If origin mode (DECOM) is set, line number are relative to
         # the top scrolling margin.
         if mo.DECOM in self.mode:
-            self.y += self.margins.top
+            self.cursor.y += self.margins.top
 
             # FIXME: should we also restrict the cursor to the scrolling
             # region?
@@ -765,4 +766,4 @@ class Screen(list):
             elif not attr:
                 replace = self.default_char._asdict()
 
-        self.cursor_attributes = self.cursor_attributes._replace(**replace)
+        self.cursor.attrs = self.cursor.attrs._replace(**replace)
