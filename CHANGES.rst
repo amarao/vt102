@@ -7,6 +7,8 @@
     not connected manually.
   * Added support for `DECSCNM` -- toggle screen-wide reverse-video
     mode.
+  * Changed cursor API -- cursor position and attributes are encapsulated
+    in a separate ``Cursor`` class.
 
 2011-05-31 version 0.3.9:
 
