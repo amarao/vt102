@@ -78,7 +78,8 @@ class Cursor(object):
     :param int x: horizontal cursor position.
     :param int y: vertical cursor position.
     :param Char attrs: cursor attributes (see
-                       :meth:`Screen.selectel_graphic_rendition`)
+                       :meth:`Screen.selectel_graphic_rendition` for
+                       details).
     """
     __slots__ = "x y attrs".split()
 
