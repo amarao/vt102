@@ -23,7 +23,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
 import operator
-from collections import namedtuple
+from collections import namedtuple, deque
 from itertools import islice, repeat
 
 from . import modes as mo, graphics as g, charsets as c
@@ -863,3 +863,47 @@ class DiffScreen(Screen):
     def alignment_display(self):
         self.dirty.update(xrange(self.cursor.y, self.lines))
         super(DiffScreen, self).alignment_display()
+
+
+History = namedtuple("History", "top bottom")
+
+
+class HistoryScreen(Screen):
+    """A screen subclass, which keeps track of screen history and allows
+    per-page browsing. This is not linux-specific, but still useful; see
+    page 462 of VT520 User's Manual.
+
+    :param int pages: total number of pages to keep.
+    """
+
+    def __init__(self, columns, lines, pages=10):
+        super(HistoryScreen, self).__init__(columns, lines)
+
+        self.page = pages // 2
+        self.pages = pages
+        self.history = History(deque(maxlen=self.page * self.lines),
+                               deque(maxlen=self.page * self.lines))
+
+    def index(self):
+        top, bottom = self.margins
+
+        if self.cursor.y == bottom:
+            self.history.top.append(self[top])
+
+        super(HistoryScreen, self).index()
+
+    def page_up(self):
+        if self.page > 0:
+            chunk = self[:self.lines // 2]
+            self.history.bottom.extendleft(reversed(self[-len(chunk):]))
+            self.page -= 1
+
+            self[-len(chunk):] = chunk
+            self[:-len(chunk)] = reversed([
+                self.history.top.pop() for _ in xrange(self.lines - len(chunk))
+            ])
+
+    def page_down(self):
+        if self.page < self.pages:
+            # do something useful :)
+            pass
