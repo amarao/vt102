@@ -22,6 +22,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
+import math
 import operator
 from collections import namedtuple, deque
 from itertools import islice, repeat
@@ -870,10 +871,14 @@ History = namedtuple("History", "top bottom")
 
 class HistoryScreen(Screen):
     """A screen subclass, which keeps track of screen history and allows
-    per-page browsing. This is not linux-specific, but still useful; see
-    page 462 of VT520 User's Manual.
+    pagination. This is not linux-specific, but still useful; see  page
+    462 of VT520 User's Manual.
 
     :param int pages: total number of pages to keep.
+
+    .. attribute:: history
+
+       A pair of history queues for top and bottom margins accordingly.
     """
 
     def __init__(self, columns, lines, pages=10):
@@ -885,6 +890,7 @@ class HistoryScreen(Screen):
                                deque(maxlen=self.page * self.lines))
 
     def index(self):
+        """Overloaded, to update top history with the removed lines."""
         top, bottom = self.margins
 
         if self.cursor.y == bottom:
@@ -893,17 +899,33 @@ class HistoryScreen(Screen):
         super(HistoryScreen, self).index()
 
     def page_up(self):
+        """Moves the screen half-page up.
+
+        .. note:: If a screen has odd number of lines, the middle point
+                  is floored, so for a 5-line screen only the first two
+                  lines are saved.
+        """
         if self.page > 0:
-            chunk = self[:self.lines // 2]
-            self.history.bottom.extendleft(reversed(self[-len(chunk):]))
+            mid = int(math.floor(self.lines / 2.))
+            self.history.bottom.extendleft(reversed(self[mid:]))
             self.page -= 1
 
-            self[-len(chunk):] = chunk
-            self[:-len(chunk)] = reversed([
-                self.history.top.pop() for _ in xrange(self.lines - len(chunk))
-            ])
+            self[:] = list(reversed([
+                self.history.top.pop() for _ in xrange(self.lines - mid)
+            ])) + self[:mid]
 
     def page_down(self):
+        """Moves the screen half-page down.
+
+        .. note:: If a screen has odd number of lines, the middle point
+                  is ceiled, so for a 5-line screen only the last two
+                  lines are saved.
+        """
         if self.page < self.pages:
-            # do something useful :)
-            pass
+            mid = int(math.ceil(self.lines / 2.))
+            self.history.top.extend(self[:mid])
+            self.page +=1
+
+            self[:] = self[mid:] + [
+                self.history.bottom.popleft() for _ in xrange(mid)
+            ]
