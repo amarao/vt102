@@ -889,6 +889,19 @@ class HistoryScreen(Screen):
         self.history = History(deque(maxlen=self.page * self.lines),
                                deque(maxlen=self.page * self.lines))
 
+    def ensure_width(self):
+        """Ensures all lines on a screen have proper width (attr:`columns`).
+
+        Extra characters are truncated, missing characters are filled
+        with whitespace.
+        """
+        for idx, line in enumerate(self):
+            if len(line) > self.columns:
+                self[idx] = line[:self.columns]
+            elif len(line) < self.columns:
+                self[idx] = line + take(self.columns - len(line),
+                                        self.default_line)
+
     def index(self):
         """Overloaded, to update top history with the removed lines."""
         top, bottom = self.margins
@@ -914,6 +927,8 @@ class HistoryScreen(Screen):
                 self.history.top.pop() for _ in xrange(self.lines - mid)
             ])) + self[:mid]
 
+            self.ensure_width()
+
     def page_down(self):
         """Moves the screen half-page down.
 
@@ -929,3 +944,5 @@ class HistoryScreen(Screen):
             self[:] = self[mid:] + [
                 self.history.bottom.popleft() for _ in xrange(mid)
             ]
+
+            self.ensure_width()

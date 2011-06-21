@@ -218,3 +218,49 @@ def test_page_down():
         "21   ",
         "22   "
     ]
+
+
+def test_ensure_width():
+    screen = HistoryScreen(5, 5, pages=10)
+
+    for idx in xrange(len(screen) * 5):
+        map(screen.draw, unicode(idx))
+        screen.linefeed()
+
+    assert screen.display == [
+        "21   ",
+        "22   ",
+        "23   ",
+        "24   ",
+        "     "
+    ]
+
+    # a) shrinking the screen, expecting the lines displayed to
+    #    be truncated.
+    screen.resize(5, 2)
+    screen.page_up()
+
+    assert all(len(l) is not 2 for l in screen.history.top)
+    assert all(len(l) is 2 for l in screen.history.bottom)
+    assert screen.display == [
+        "18",
+        "19",
+        "20",
+        "21",
+        "22"
+    ]
+
+    # b) expading the screen, expecting the lines displayed to
+    #    be filled with whitespace characters.
+    screen.resize(5, 10)
+    screen.page_down()
+
+    assert all(len(l) is 10 for l in list(screen.history.top)[-3:])
+    assert all(len(l) is not 10 for l in screen.history.bottom)
+    assert screen.display == [
+        "21        ",
+        "22        ",
+        "23        ",
+        "24        ",
+        "          "
+    ]
