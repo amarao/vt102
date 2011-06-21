@@ -1,14 +1,18 @@
-2011-06-XX version 0.4.0:
+2011-06-21 version 0.4.0:
 
   * Improved cursor movement -- ``Screen`` passes all but one tests
     in `vttest`.
   * Changed the way ``Stream`` interacts with ``Screen`` -- event
     handlers are now implicitly looked up in screen's ``__dict__``,
     not connected manually.
-  * Added support for `DECSCNM` -- toggle screen-wide reverse-video
-    mode.
   * Changed cursor API -- cursor position and attributes are encapsulated
     in a separate ``Cursor`` class.
+  * Added support for `DECSCNM` -- toggle screen-wide reverse-video
+    mode.
+  * Added a couple of useful ``Screen`` subclasses: ``HistoryScreen``
+    which allows screen pagination and ``DiffScreen`` which tracks
+    the changed lines.
+
 
 2011-05-31 version 0.3.9:
 
