@@ -15,7 +15,8 @@
     :license: LGPL, see LICENSE for more details.
 """
 
-__all__ = ("Screen", "Stream", "ByteStream", "DebugStream",
+__all__ = ("Screen",  "DiffScreen", "HistoryScreen",
+           "Stream", "ByteStream", "DebugStream",
            "ctrl", "esc", "mo", "g", "c")
 
 from . import (
@@ -25,7 +26,7 @@ from . import (
     graphics as g,
     charsets as c
 )
-from .screens import Screen
+from .screens import Screen, DiffScreen, HistoryScreen
 from .streams import Stream, ByteStream, DebugStream
 
 

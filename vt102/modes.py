@@ -4,7 +4,18 @@
     ~~~~~~~~~~~
 
     This module defines terminal mode switches, used by
-    :class:`vt102.screens.Screen`.
+    :class:`~vt102.screens.Screen`. There're two types of terminal modes:
+
+    * `non-private` which should be set with ``ESC [ N h``, where ``N``
+      is an integer, representing mode being set; and
+    * `private` which should be set with ``ESC [ ? N h``.
+
+    The latter are shifted 5 times to the right, to be easily
+    distinguishable from the former ones; for example `Origin Mode`
+    -- :data:`DECOM` is ``192`` not ``6``.
+
+    >>> DECOM
+    192
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
     :license: LGPL, see LICENSE for more details.
@@ -28,17 +39,20 @@ IRM = 4
 
 #: *Text Cursor Enable Mode*: determines if the text cursor is
 #: visible.
-DECTCEM = 25
+DECTCEM = 25 << 5
+
+#: *Screen Mode*: toggles screen-wide reverse-video mode.
+DECSCNM = 5 << 5
 
 #: *Origin Mode*: allows cursor addressing relative to a user-defined
 #: origin. This mode resets when the terminal is powered up or reset.
 #: It does not affect the erase in display (ED) function.
-DECOM = 6
+DECOM = 6 << 5
 
 #: *Auto Wrap Mode*: selects where received graphic characters appear
 #: when the cursor is at the right margin.
-DECAWM = 7
+DECAWM = 7 << 5
 
 #: *Column Mode*: selects the number of columns per line (80 or 132)
 #: on the screen.
-DECCOLM = 3
+DECCOLM = 3 << 5

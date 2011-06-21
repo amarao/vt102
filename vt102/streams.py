@@ -9,16 +9,16 @@
     >>>
     >>> class Dummy(object):
     ...     def __init__(self):
-    ...         self.foo = 0
+    ...         self.y = 0
     ...
-    ...     def up(self, bar):
-    ...         self.foo += bar
+    ...     def cursor_up(self, count=None):
+    ...         self.y += count or 1
     ...
     >>> dummy = Dummy()
     >>> stream = vt102.Stream()
-    >>> stream.connect("cursor-up", dummy.up)
-    >>> stream.feed(u"\u001B[5A") # Move the cursor up 5 rows.
-    >>> dummy.foo
+    >>> stream.attach(dummy)
+    >>> stream.feed(u"\u001B[5A")  # Move the cursor up 5 rows.
+    >>> dummy.y
     5
 
     :copyright: (c) 2011 by Selectel, see AUTHORS for more details.
@@ -29,7 +29,6 @@ from __future__ import absolute_import, unicode_literals
 
 import codecs
 import sys
-from collections import defaultdict
 
 from . import control as ctrl, escape as esc
 
@@ -59,9 +58,9 @@ class Stream(object):
         ctrl.LF: "linefeed",
         ctrl.VT: "linefeed",
         ctrl.FF: "linefeed",
-        ctrl.CR: "carriage-return",
-        ctrl.SO: "shift-out",
-        ctrl.SI: "shift-in",
+        ctrl.CR: "carriage_return",
+        ctrl.SO: "shift_out",
+        ctrl.SI: "shift_in",
     }
 
     #: non-CSI escape sequences.
@@ -69,44 +68,44 @@ class Stream(object):
         esc.RIS: "reset",
         esc.IND: "index",
         esc.NEL: "linefeed",
-        esc.RI: "reverse-index",
-        esc.HTS: "set-tab-stop",
-        esc.DECSC: "save-cursor",
-        esc.DECRC: "restore-cursor",
+        esc.RI: "reverse_index",
+        esc.HTS: "set_tab_stop",
+        esc.DECSC: "save_cursor",
+        esc.DECRC: "restore_cursor",
     }
 
     #: "sharp" escape sequences -- ``ESC # <N>``.
     sharp = {
-        esc.DECALN: "alignment-display",
+        esc.DECALN: "alignment_display",
     }
 
     #: CSI escape sequences -- ``CSI P1;P2;...;Pn <fn>``.
     csi = {
-        esc.ICH: "insert-characters",
-        esc.CUU: "cursor-up",
-        esc.CUD: "cursor-down",
-        esc.CUF: "cursor-forward",
-        esc.CUB: "cursor-back",
-        esc.CNL: "cursor-down1",
-        esc.CPL: "cursor-up1",
-        esc.CHA: "cursor-to-column",
-        esc.CUP: "cursor-position",
-        esc.ED: "erase-in-display",
-        esc.EL: "erase-in-line",
-        esc.IL: "insert-lines",
-        esc.DL: "delete-lines",
-        esc.DCH: "delete-characters",
-        esc.ECH: "erase-characters",
-        esc.HPR: "cursor-forward",
-        esc.VPA: "cursor-to-line",
-        esc.VPR: "cursor-down",
-        esc.HVP: "cursor-position",
-        esc.TBC: "clear-tab-stop",
-        esc.SM: "set-mode",
-        esc.RM: "reset-mode",
-        esc.SGR: "select-graphic-rendition",
-        esc.DECSTBM: "set-margins",
-        esc.HPA: "cursor-to-column",
+        esc.ICH: "insert_characters",
+        esc.CUU: "cursor_up",
+        esc.CUD: "cursor_down",
+        esc.CUF: "cursor_forward",
+        esc.CUB: "cursor_back",
+        esc.CNL: "cursor_down1",
+        esc.CPL: "cursor_up1",
+        esc.CHA: "cursor_to_column",
+        esc.CUP: "cursor_position",
+        esc.ED: "erase_in_display",
+        esc.EL: "erase_in_line",
+        esc.IL: "insert_lines",
+        esc.DL: "delete_lines",
+        esc.DCH: "delete_characters",
+        esc.ECH: "erase_characters",
+        esc.HPR: "cursor_forward",
+        esc.VPA: "cursor_to_line",
+        esc.VPR: "cursor_down",
+        esc.HVP: "cursor_position",
+        esc.TBC: "clear_tab_stop",
+        esc.SM: "set_mode",
+        esc.RM: "reset_mode",
+        esc.SGR: "select_graphic_rendition",
+        esc.DECSTBM: "set_margins",
+        esc.HPA: "cursor_to_column",
     }
 
     def __init__(self):
@@ -118,7 +117,7 @@ class Stream(object):
             "charset": self._charset
         }
 
-        self.listeners = defaultdict(lambda: [])
+        self.listeners = []
         self.reset()
 
     def reset(self):
@@ -142,6 +141,14 @@ class Stream(object):
             self.handlers.get(self.state)(char)
         except TypeError:
             pass
+        except KeyError:
+            if __debug__:
+                self.flags["state"] = self.state
+                self.flags["unhandled"] = char
+                self.dispatch("debug", *self.params)
+                self.reset()
+            else:
+                raise
 
     def feed(self, chars):
         """Consume a unicode string and advance the state as necessary.
@@ -154,34 +161,52 @@ class Stream(object):
 
         for char in chars: self.consume(char)
 
-    def connect(self, event, callback):
-        """Add an event listener for a particular event.
+    def attach(self, screen, only=()):
+        """Adds a given screen to the listeners queue.
 
-        Depending on the event, there may or may not be parameters
-        passed to the callback. Some escape sequences might also have
-        default values, but providing these defaults is responsibility
-        of the callback.
-
-        :param unicode event: event to listen for.
-        :param callable callback: callable to invoke when a given event
-                                  occurs.
+        :param vt102.screens.Screen screen: a screen to attach to.
+        :param list only: a list of events you want to dispatch to a
+                          given screen (empty by default, which means
+                          -- dispatch all events).
         """
-        self.listeners[event].append(callback)
+        self.listeners.append((screen, set(only)))
 
-    def dispatch(self, event, *args, **flags):
+    def detach(self, screen):
+        """Removes a given screen from the listeners queue and failes
+        silently if it's not attached.
+
+        :param vt102.screens.Screen screen: a screen to detach.
+        """
+        for idx, (listener, _) in enumerate(self.listeners):
+            if screen is listener:
+                self.listeners.pop(idx)
+
+    def dispatch(self, event, *args, **kwargs):
         """Dispatch an event.
 
-        .. note::
+        Event handlers are looked up implicitly in the listeners'
+        ``__dict__``, so, if a listener only wants to handle ``DRAW``
+        events it should define a ``draw()`` method or pass
+        ``only=["draw"]`` argument to :meth:`attach`.
 
-           If any callback throws an exception, the subsequent callbacks
-           are be aborted.
+        .. warning::
+
+           If any of the attached listeners throws an exception, the
+           subsequent callbacks are be aborted.
 
         :param unicode event: event to dispatch.
         :param list args: arguments to pass to event handlers.
-        :param dict flags: keyword flags to pass to event handlers.
         """
-        for callback in self.listeners.get(event, []):
-            callback(*args, **flags)
+        for listener, only in self.listeners:
+            if only and event not in only:
+                continue
+
+            try:
+                getattr(listener, event)(*args, **self.flags)
+            except AttributeError:
+                pass
+        else:
+            if kwargs.get("reset", True): self.reset()
 
     # State transformers.
     # ...................
@@ -194,7 +219,7 @@ class Stream(object):
             self.state = "escape"
         elif char == ctrl.CSI:
             self.state = "arguments"
-        elif char not in (ctrl.NUL, ctrl.DEL):
+        elif char not in [ctrl.NUL, ctrl.DEL]:
             self.dispatch("draw", char)
 
     def _escape(self, char):
@@ -212,23 +237,16 @@ class Stream(object):
         elif char in "()":
             self.state = "charset"
             self.flags["mode"] = char
-        elif char in self.escape:
-            self.state = "stream"
-            self.dispatch(self.escape[char])
         else:
-            self.state = "stream"
+            self.dispatch(self.escape[char])
 
     def _sharp(self, char):
         """Parse arguments of a `"#"` seqence."""
-        if char in self.sharp:
-            self.dispatch(self.sharp[char])
-
-        self.state = "stream"
+        self.dispatch(self.sharp[char])
 
     def _charset(self, char):
         """Parse ``G0`` or ``G1`` charset code."""
-        self.dispatch("set-charset", char, **self.flags)
-        self.reset()
+        self.dispatch("set-charset", char)
 
     def _arguments(self, char):
         """Parse arguments of an escape sequence.
@@ -248,9 +266,12 @@ class Stream(object):
         """
         if char == "?":
             self.flags["private"] = True
-        elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.CR]:
+        elif char in [ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.VT,
+                      ctrl.FF, ctrl.CR]:
             # Not sure why, but those seem to be allowed between CSI
             # sequence arguments.
+            self.dispatch(self.basic[char], reset=False)
+        elif char == ctrl.SP:
             pass
         elif char in [ctrl.CAN, ctrl.SUB]:
             # If CAN or SUB is received during a sequence, the current
@@ -267,14 +288,7 @@ class Stream(object):
             if char == ";":
                 self.current = ""
             else:
-                event = self.csi.get(char)
-                if event:
-                    self.dispatch(event, *self.params, **self.flags)
-                elif __debug__:
-                    self.dispatch("debug",
-                        ctrl.CSI + ";".join(map(unicode, self.params)) + char)
-
-                self.reset()
+                self.dispatch(self.csi[char], *self.params)
 
 
 class ByteStream(Stream):
@@ -345,10 +359,10 @@ class DebugStream(ByteStream):
 
     >>> stream = DebugStream()
     >>> stream.feed("\x1b[1;24r\x1b[4l\x1b[24;1H\x1b[0;10m")
-    SET-MARGINS 1, 24
-    RESET-MODE 4
-    CURSOR-POSITION 24, 1
-    SELECT-GRAPHIC-RENDITION 0, 10
+    SET_MARGINS 1; 24
+    RESET_MODE 4
+    CURSOR_POSITION 24; 1
+    SELECT_GRAPHIC_RENDITION 0; 10
 
     :param file to: a file-like object to write debug information to.
     :param list only: a list of events you want to debug (empty by
@@ -356,22 +370,25 @@ class DebugStream(ByteStream):
     """
 
     def __init__(self, to=sys.stdout, only=(), *args, **kwargs):
-        self.to = to
-        self.only = set(only)
         super(DebugStream, self).__init__(*args, **kwargs)
 
-    def dispatch(self, event, *args, **kwargs):
-        if not self.only or event in self.only:
-            self.to.write("%s " % event.upper())
+        class Bugger(object):
+            def fixup(self, arg):
+                if isinstance(arg, str):
+                    return arg.encode("utf-8")
+                elif not isinstance(arg, unicode):
+                    return str(arg)
+                else:
+                    return arg
 
-            for arg in args:
-                if isinstance(arg, unicode):
-                    arg = arg.encode("utf-8")
-                elif not isinstance(arg, bytes):
-                    arg = bytes(arg)
+            def __getattr__(self, event):
+                def inner(*args, **flags):
+                    to.write(event.upper() + " ")
+                    to.write("; ".join(map(self.fixup, args)))
+                    to.write(" ")
+                    to.write(", ".join("{0}: {1}".format(name, self.fixup(arg))
+                                       for name, arg in flags.iteritems()))
+                    to.write("\n")
+                return inner
 
-                self.to.write(b"%s " % arg)
-            else:
-                self.to.write("\n")
-
-        super(DebugStream, self).dispatch(event, *args, **kwargs)
+        self.attach(Bugger(), only=only)
